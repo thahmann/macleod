@@ -1,0 +1,12 @@
+# Ignore eclipse project files
+.project
+.pydevproject
+# Ignore all bin directories
+bin
+# Ignore all files ending with ~
+*~
+# Ignore compiled python code
+*.pyc
+# Ignore the target directory
+# Matches "target" in any subfolder
+target/ 
