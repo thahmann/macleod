@@ -1,242 +1,124 @@
 '''
-Created on 2012-10-18
+Created on 2012-03-07
+Refactored on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-
-from ColoreFileManager import ColoreFileManager
-from LADR import LADR
-import subprocess
+import os, filemgt, process, clif
+from sets import Set
 
 class ClifModule(object):
 
-    URL_PREFIX = 'http://stl.mie.utoronto.ca/colore'
+    module_name = ''
     
-    CLIF_TO_PROVER9 = '/stl/tmp/cltools/bin/clif-to-prover9'
+    depth = 0
     
-    CLIF_ENDING = '.clif'
+    """set of all imported module names """
+    imports = Set([])
     
+    clif_file_name = ''
     
+    """Location of the clif input file that has undergone preprocessing"""
+    clif_processed_file_name = ''
+    
+    p9_file_name = ''
+    
+    # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
+    nonlogical_symbols = Set([])
+    nonlogical_variables = Set([])
+        
     '''
     classdocs
     '''
-
-    def __init__(self,coloreprover,module_name,depth):
+    def __init__(self,module_name,depth):
         '''
         Constructor
         '''
         self.clif = True
-        self.coloreprover = None
-        self.nonlogical_symbols = []
-        self.nonlogical_variables = []
-        self.coloreprover = coloreprover
-        self.module_name = module_name.lower().replace(ClifModule.URL_PREFIX,'')
-        self.depth = depth
+        self.module_name = ClifModule.get_simple_module_name(module_name)
         print 'processing module: ' + self.module_name
+        # remove any obsolete URL prefix as specified in the configuration file
+        if self.module_name.endswith(filemgt.read_config('cl','ending')):
+            self.module_name = self.module_name.replace(filemgt.read_config('cl','ending'),'')
         
-        self.clif_file_name = module_name + ClifModule.CLIF_ENDING
-        self.replace_clif_quotes()
-        self.get_nonlogical_symbols()
+        # stores the depth of the import hierarchy
+        self.depth = depth
         
-        self.p9_file_name = self.get_p9_file_name()
-        print 'created p9 file: ' + self.p9_file_name
-        #print 'all named entities : ' + str(namedentities)
+        # add the standard ending for CLIF files to the module name
+        self.clif_file_name = os.path.abspath(self.module_name + filemgt.read_config('cl','ending'))
+
+        self.clif_processed_file_name = os.path.abspath(filemgt.get_name_with_subfolder(self.module_name, 
+                                                                        filemgt.read_config('converters','tempfolder'), 
+                                                                        filemgt.read_config('cl','ending')))
+
+        #print self.clif_file_name
+        #print self.clif_processed_file_name
         
-        if self.clif:
-            self.p9_intermediary_file_name = ColoreFileManager.get_name_with_subfolder(self.module_name, ColoreFileManager.GENERATED_FOLDER, '.p9i')
-            ctp = subprocess.Popen(ClifModule.CLIF_TO_PROVER9 + ' ' +  self.clif_processed_file_name + ' > ' + self.p9_intermediary_file_name, shell=True)
-            ctp.wait()
-        #print module_name + ': '
-        #print 'named entities in \'' + module_name + '\': ' + str(namedentities) 
-        self.write_p9_file()
+        clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
+        
+        self.imports =  [self.get_simple_module_name(i) for i in clif.get_imports(self.clif_processed_file_name)]
+        
+        print self.imports
+        
+        self.compute_nonlogical_symbols(self.clif_processed_file_name)
         
         # push nonlogical symbols and variables upwards (VERY LAST STEP)
 #        if isinstance(parent, ClifModule):
 #            parent.nonlogical_symbols.append[self.nonlogical_symbols]
 #            parent.nonlogical_variables.append[self.nonlogical_variables]
 
-        # cleanse the list of non-logical symbols
-        for l in self.nonlogical_variables:
-            for symbol in self.nonlogical_symbols:
-                if l == symbol:
-                    self.nonlogical_symbols.remove(symbol)
+    @staticmethod
+    def get_simple_module_name(name):
+        import re
+        prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
+        prefix.sub('', name)
+        return name
         
-        self.coloreprover.append_nonlogical_symbols(self.nonlogical_symbols,self.depth)
-        
-        
-    # replace all " by ' to prepare a clif file for translation to prover9 (LADR) syntax
-    # also remove attribution (multiline comment) in clif file: \* *\
-    def replace_clif_quotes (self):
-        #print 'Replacing clif quotes and multiline comments'
-
-        self.clif_processed_file_name = ColoreFileManager.get_name_with_subfolder(self.module_name, ColoreFileManager.GENERATED_FOLDER, LADR.PROVER9_ENDING + ClifModule.CLIF_ENDING)
-
-        input_file = open(self.clif_file_name, 'r')
-        output_file = open(self.clif_processed_file_name, 'w')
-        line = input_file.readline()
-        # currently within multiline comment section
-        attribution_section = False
-        while line:
-            if attribution_section:
-                if '*/' in line:
-                    attribution_section = False
-                    # normally process the remainder 
-                    line = line.split('*/',1)
-                    if len(line)>0:
-                        line=line[1]
-                else:
-                    # if in multiline comment, ignore content
-                    line = input_file.readline()
-            elif '/*' in line:
-                attribution_section = True
-                line = line.split('/*',1)
-                output_file.write(line[0])
-                if len(line)>1:
-                    line = line[1]
-            else:
-                output_file.write(line.replace('\"', '\''))
-                line = input_file.readline()
-        input_file.close()
-        output_file.close()
-        
-
-    # extract all named entities (relations and functions) from a clif file
-    def get_nonlogical_symbols (self):
-        
-        # get the named entities (functions and relations) from a string
-        def get_logical_symbols_from_single_line(self, line):
-            #print 'line: ' + line 
             
-            s = line.find('(')
-            while  s > -1:
-                #print 'line before: ' + line
-                line = line[s+1:]
-                #print 'reduced line: ' + xline
-
-                # we need the first closing parenthesis 
-                e = line.find(')')
-                
-                if e<0:
-                    # no closing parenthesis
-                    activepart = line
-                    line = ''
-                else:
-                    # find last  open parenthesis before the closing one
-                    s2 = line.rfind('(', 0, e)
-                    if s2<0:
-                        # no other parenthesis
-                        # split the line into an active parts that is immediately processed and the remainder of the line
-                        activepart = line[0:e]
-                        line = line[e+1:]
-                    else:
-                        activepart = line[s2+1:e]
-                        line = line[0:s2] + ' ' + line[e+1:]
-                        
-                #print 'active part: ' + activepart
-                
-                if len(activepart)!=0:
-                #print 'remainder of line: ' + line
-                # split the active part into words
-                    words = activepart.split()
-                    
-                    if words[0] in self.coloreprover.clif_logical_connectives:
-                        # remove the connective, add the remainder to the remaining line
-                        line = activepart[len(words[0]):] + line
-                        #print 'line after processing connectives: ' + line
-                    elif words[0] not in self.coloreprover.irrelevant_clif_symbols:
-                        self.nonlogical_symbols.append(words[0])
-                # next one 
-                s = line.find('(')
     
+    def get_nonlogical_symbols(self):
+        return self.nonlogical_symbols
     
-        def get_quantified_variables_from_single_line (self,line):
-            #print 'line (initial) = ' + line
-            line = line.strip()
-            #print 'all variables: ' + str(logical_vars)
-            
-            for keyword in self.coloreprover.quantifiers:
-                i = line.find(keyword)
-                while  i > -1:
-                    #print 'line: ' + line
-                    s = line.find('(',i)
-                    e = line.find(')', s)
-                    var_string = line[s+1:e]
-                    remainder = line[e:]
-                    #print 'logical_vars: ' + var_string
-                    #print 'remainder: ' + remainder                   
-                    for var in var_string.split():
-                        if var not in self.nonlogical_variables:
-                            #print 'new var: ' + var
-                            self.nonlogical_variables.append(var)
-                    line = remainder
-                    i = line.find(keyword)
+    def get_depth(self):
+        return depth
                 
-        def strip_comments (line):
-            keyword = 'cl-comment'
-            
-            # remove trailing comments
-            lineparts = line.strip().split('#')
-            
-            if not lineparts[0]:
-                return ''
-            
-            line = lineparts[0]
-            
-            c1 = line.find(keyword)
-            if c1>-1:
-                s = line.find('\'',c1)
-                e = line.find('\'',s+1)
-                c2 = line.find(')',e+1)
-                if s<0 or e<0 or c2<0:
-                    return line[0:c1]
-                
-                #comment = line[c1:c2]
-                #print 'comment: ' + comment
-                line = line[0:c1] + line[c2:] 
-                #print 'rest of line: ' + line
-            return line
-            
 
-        cl_file = open(self.clif_processed_file_name, 'r')
+    # extract all nonlogical symbols (predicate and function symbols) from the preprocessed clif file
+    def compute_nonlogical_symbols (self,input_file_name):
+        
+
+        cl_file = open(input_file_name, 'r')
         line = cl_file.readline()
         while line:
-            # remove comments
-            line = strip_comments(line)
-            get_logical_symbols_from_single_line(self,line)
-            get_quantified_variables_from_single_line(self,line)
+            self.nonlogical_symbols |= clif.get_logical_symbols_from_single_line(line)
+            self.nonlogical_variables |= clif.get_quantified_variables_from_single_line(line)
             line = cl_file.readline()
-            
+
         cl_file.close()
         
-        
-        #print 'all variables: ' + str(logical_vars) 
-        #print 'all named entities : ' + str(namedentities)    
-        
-        
-    # import a single module (resolve imports)
-    def write_p9_file (self):
-        # want to create a subfolder for the output files
-        p9_file_name = self.p9_file_name
-        
-        if not self.clif:
-            return self.p9_file_name
-        else:
-            p9_file = open(self.p9_file_name, 'w')
-            p9i_file = open(self.p9_intermediary_file_name, 'r')
-            line = p9i_file.readline()
-            while line:
-                keyword = 'imports('
-                if line.strip().find(keyword) > -1:
-                    #print 'module import found'
-                    p9_file.write('%' + line)
-                    new_module_name = line.strip()[len(keyword)+1:-3].strip()
-                    self.coloreprover.append_module(new_module_name, self.depth+1)
-                else:
-                    p9_file.write(line)
-                line = p9i_file.readline()
-            p9i_file.close()
-            p9_file.close()
+        self.nonlogical_symbols -= self.nonlogical_variables
+        print "Nonlogical symbols: " + str(self.nonlogical_symbols)
+        print "Variables: " + str(self.nonlogical_variables)
         
 
     def get_p9_file_name (self):
-        return ColoreFileManager.get_name_with_subfolder(self.module_name, LADR.P9_FOLDER, LADR.PROVER9_ENDING)
+        """get the filename of the LADR translation of the module"""
+        self.p9_file_name =  filemgt.get_name_with_subfolder(self.module_name, 
+                                                             filemgt.read_config('ladr','folder'), 
+                                                             filemgt.read_config('ladr','ending'))
+        return self.p9_file_name
+    
+
+    def convert_to_ladr(self):
+        """translate the module into the LADR syntax"""
+        self.get_p9_file_name()
+        commands.get_clfi_to_p9_cmd(self.clif_processed_file_name, self.p9_file_name)
+        process.executeSubprocess(command)
+        return self.p9_file_name
+
+        
+if __name__ == '__main__':
+    import sys
+    # global variables
+    options = sys.argv
+    m = ClifModule(options[1],0)
