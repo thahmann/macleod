@@ -1,0 +1,248 @@
+\documentclass{article}
+
+\usepackage{url}
+\usepackage[margin=0.6in]{geometry}
+
+\title{Assisted ontology translation and verification with theorem provers\\
+\begin{Large}
+--- Manual ---
+\end{Large}
+}
+
+\author{Torsten Hahmann}
+
+
+\begin{document}
+
+\maketitle
+
+\section{The COLORE tools}
+
+The COLORE tools have been developed to assist the ontology design and verification by automatically translating theories and their import closures. It mainly consists of a single python script, \texttt{colore-prover.py}, that comes with several options for different tasks.
+
+Each Common Logic module is assumed to have the filename \texttt{modulename.clif} with the namespace defining the directory.
+For example, the module \texttt{inc/axioms/\allowbreak lineparts\_segs} should be located in the directory \texttt{inc/axioms} (relative to the current path) and named \texttt{lineparts\_segs.clif}.
+
+\section{Setup}
+
+These are step-by-step instructions for setting up the COLORE tools.
+
+\paragraph{Step 1: Install SWI Prolog}
+Download and follow the instructions from \url{http://www.swi-prolog.org/}.
+
+\paragraph{Step 2: Install Python 2.7}
+Download and follow the instructions from \url{http://www.python.org/download/releases/2.7/}.
+Do not use use Python version 3.x as they are not backward compatible.
+
+\paragraph{Step 3: Install Prover9-Mace4}
+
+Download and follow the instructions from \url{http://www.cs.unm.edu/~mccune/mace4/download/}.
+
+\paragraph{Step 4: Install cltools}
+
+Download and copy everything from \url{https://github.com/cmungall/cltools} to a local directory, we use \texttt{/stl/tmp/cltools/} as example directory.
+
+\paragraph{Step 5: Copy colore-prover}
+Copy all python files (ending in \texttt{.py}) for colore-prover to a local directory, for example to \texttt{/stl/tmp/cltools/}.
+
+\paragraph{Step 6: Add directories to local PATH environment variable}
+
+Add the directories where the binaries of Python, SWI Prolog, cltools, Mace4-Prover9 are located to the \texttt{PATH} variable.
+ 
+For example, \texttt{/usr/bin/} (location of \texttt{python}), \texttt{/usr/local/bin/} (location of \texttt{swipl}), \texttt{/stl/tmp/cltools/bin/} (location of \texttt{clif-to-prover9}), \texttt{usr/local/prover9-mace4/bin/} (location of Prover9-Mace4 binaries).
+
+You also want to add \texttt{/stl/tmp/cltools} (the location of \texttt{ColoreProver.py}) to your \texttt{PYTHONPATH} for ease of access. 
+
+In \texttt{tcsh} (TC shell) you can do this by adding the following to your \texttt{.tcshrc}.  Make sure that you keep all other directories that were previously in the \texttt{PATH} variable.
+\begin{verbatim}
+setenv PATH /usr/bin:/usr/local/bin/:/stl/tmp/cltools/bin/:/usr/local/prover9-mace4/bin/
+setenv PYTHONPATH /stl/tmp/cltools
+\end{verbatim}
+
+Having the \texttt{PYTHONPATH} variable point to the folder of the colore-prover python scripts allows us to call them by their name alone using the \texttt{-m} option, omitting the full path. For example, we can use
+\begin{verbatim}
+python -m ColoreProver input
+\end{verbatim}
+instead of
+\begin{verbatim}
+python /stl/tmp/cltools/ColoreProver.py input
+\end{verbatim}
+
+\paragraph{Step 7: Change Prolog path in cltools}
+
+In \texttt{cltools/bin/clif-to-prover9} change the first line so that the first part points to the location of the installed version of SWI Prolog (from Step 1). 
+
+\begin{verbatim}
+#!/usr/local/bin/swipl -L0 -G0 -T0 -q -g main -t halt -s
+\end{verbatim}
+
+If installing on Windows, remove this first line altogether.
+
+\paragraph{Step 8: Create Prolog library index}
+
+Create a Prolog library index within the \texttt{cltools} folder. To do so, go into that directory and call (assuming \texttt{swipl} is in the PATH):
+\begin{verbatim}
+swipl -g "make_library_index('.')" -t halt
+\end{verbatim}
+More documentation: \url{http://www.swi-prolog.org/pldoc/doc_for?object=section(2,'2.13',swi('/doc/Manual/autoload.html'))}.
+
+\paragraph{Step 9: Point to correct Prolog libraries}
+
+Edit the top portion of \texttt{cltools/bin/\allowbreak clif-to-prover9} so that the \texttt{library\_directory} points to the location of the \texttt{cltools} directory.  The four \texttt{library} statements should then point to the relative directory of the Prolog libraries \texttt{cl}, \texttt{cl\_io}, \texttt{clif\_parser}, and \texttt{p9\_writer} -- all ending with \texttt{.pl}.
+
+\begin{verbatim}
+:- assertz(library_directory('/stl/tmp/')).
+
+:- use_module(library('cltools/cl')).
+:- use_module(library('cltools/cl_io')).
+:- use_module(library('cltools/clif_parser')).
+:- use_module(library('cltools/p9_writer')).
+\end{verbatim}
+
+
+\paragraph{Step 10: Adapt the command to invoke clif-to-prover9 in \texttt{ClifModule.py} (only necessary for installation in Windows)}
+
+In \texttt{ClifModule.py} change the attribute \texttt{CLIF\_TO\_PROVER9} to
+\begin{verbatim}
+CLIF_TO_PROVER9 = "swipl -L0 -G0 -T0 -q -g main -t halt -s clif-to-prover9 --"
+\end{verbatim}
+
+\paragraph{Step 11: Test}
+
+Type the following command, e.g., to test:
+
+\begin{verbatim}
+python -m ColoreProver /stl/tmp/cltools/t/overlaps
+\end{verbatim}
+
+
+\section{Simple tasks}
+
+\subsection{Model construction}
+
+\subsubsection{Mace4}
+
+To search for a model of a theory in prover9 format:
+
+\begin{verbatim}
+mace4  [-n size] -f input_files.p9 goal_file.p9 > goal_file.model
+\end{verbatim}
+
+To check for all models of a particular size:
+
+\begin{verbatim}
+mace4 -n 24 -m -1 -f SPOLS input_files.p9 > goal_file.model
+
+interpformat standard -f goal_file.model | isofilter check `^ v' output `^ v' > goal_file.out
+\end{verbatim}
+
+\subsubsection{Paradox3}
+
+Currently only in Windows, still awaiting a Linux version of Paradox.
+
+\begin{verbatim}
+paradox3 --verbose 2 --model [--tstp] input.tptp > input-paradox.model
+\end{verbatim}
+
+\subsection{Theorem Proving}
+
+\subsubsection{Prover9}
+
+To prove a theorem in the goal\_file about a theory (axiom\_files) in prover9 format:
+
+\begin{verbatim}
+prover9 -f axiom_files.p9 goal_file.p9 >  goal_file.out
+\end{verbatim}
+
+\subsubsection{IProver}
+
+If the file is saved from Windows, it needs to be saved in linux, e.g.\ with pico.
+
+\begin{verbatim}
+iproveropt --clausifier /usr/local/bin/eprover 
+           --clausifier_options "--tstp-format --silent --cnf"
+           input.tptp > input-iprover.out
+\end{verbatim}
+
+\section{Theory translation}
+
+\subsection{From Common Logic to Prover9 syntax (LADR)}
+
+Common Logic uses double quotes (") for comments, these need to be replaced by single quotes (').
+
+\begin{verbatim}
+clif-to-prover9 input > output
+\end{verbatim}
+
+Before running Prover9 on the generated files, the correctness of all parenthesis, especially those for ORs need to be verified.
+Moreover, all imports must be commented by \%.
+
+\subsubsection{On Windows (from Maryam)}
+
+Just in case you would want to run clif-to-prover9 on a Windows machine. I removed the first line in clif-to-prover9, and then from the cltools folder I called the following command: 
+
+\begin{verbatim}
+swipl -L0 -G0 -T0 -q -g main -t halt -s clif-to-prover9 -- input > output
+\end{verbatim}
+
+
+\subsection{Prover9 syntax (LADR) to TPTP syntax}
+
+\begin{verbatim}
+ladr_to_tptp -q < input > output
+\end{verbatim}
+
+Subsequently, all predicates listed at the beginning in single quotation marks must be replaced by names starting with a lowercase letter and only containing letters, numbers and the underscore. Moreover, some theorem provers on TPTP require distinct names for all axioms and other sentences.
+
+
+\section{Complex tasks}
+
+
+\subsection{Translating a Common Logic theory to Prover9 syntax}
+
+Still work in progress, there is no separate option yet available.
+We can use the standard option that tries to verify consistency:
+
+\begin{verbatim}
+python -m ColoreProver input_theory
+\end{verbatim}
+
+All imported modules are also translated, each module is located in the same directory as the original \texttt{.clif} file with the same name and the ending \texttt{.p9}.
+
+
+\subsection{Translating a Common Logic theory to TPTP syntax}
+
+We use the option \texttt{--tptp} to generate a single file TPTP-syntax output. One or several instances of the optional option \texttt{-s=ReplacedSymbol:ReplacementSymbol} can be used to automate the renaming of symbols that are unacceptable as relations or functions in TPTP syntax, e.g.\ \texttt{-s='<':less} renames the predicate \texttt{<} to \texttt{less}.
+
+\begin{verbatim}
+python -m ColoreProver input_theory -tptp -s='ReplacedSymbol':ReplacementSymbol
+\end{verbatim}
+
+We use e.g.: 
+
+\begin{verbatim}
+python -m ColoreProver codi/consistency/codi\_down\_nontrivial -tptp -s='<':less
+\end{verbatim}
+
+
+
+\subsection{Proving a lemma or a set of lemmas}
+
+We use the \texttt{-l} option, e.g.:
+
+\begin{verbatim}
+python -m ColoreProver dim/lemmas/inc_p_lemmas -l
+\end{verbatim}
+It is assumed that all ontologies necessary are imported by the file \texttt{dim/lemmas/inc\_p\_lemmas}, i.e., the axioms directly included in \texttt{dim/lemmas/inc\_p\_lemmas} are the sentences to be proved, while all imports (including the import closure) are the axioms we are allowed to use to produce a proof.
+If \texttt{dim/lemmas/inc\_p\_lemmas} contains more than a single sentence, they will be broken into individual files and each will be proved separately. 
+
+\subsection{Testing a set of heuristics for proving a lemma}
+
+We use, e.g.:
+
+\begin{verbatim}
+python -m ColoreProver dim/lemmas/inc_p_lemmas -l -t
+\end{verbatim}
+
+
+\end{document}
