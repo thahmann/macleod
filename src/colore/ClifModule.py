@@ -40,13 +40,15 @@ class ClifModule(object):
         print '+++\nprocessing module: ' + self.module_name
         # remove any obsolete URL prefix as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
-            self.module_name = self.module_name.replace(filemgt.read_config('cl','ending'),'')
+            self.module_name = os.path.normpath(self.module_name.replace(filemgt.read_config('cl','ending'),''))
         
         # stores the depth of the import hierarchy
         self.depth = depth
         
         # add the standard ending for CLIF files to the module name
-        self.clif_file_name = os.path.abspath(self.module_name + filemgt.read_config('cl','ending'))
+        self.clif_file_name = os.path.abspath(os.path.normpath(filemgt.read_config('cl','path') + os.sep +
+                                              self.module_name + 
+                                              filemgt.read_config('cl','ending')))
 
         self.clif_processed_file_name = os.path.abspath(filemgt.get_name_with_subfolder(self.module_name, 
                                                                         filemgt.read_config('converters','tempfolder'), 
@@ -76,11 +78,19 @@ class ClifModule(object):
         import re
         prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
         prefix.sub('', module)
-        return module
+        return os.path.normpath(module)
+    
+    def get_full_module_name (self,module=None):
+        if not module: 
+            module= self.module_name
+        import re
+        prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
+        prefix.sub('', module)
+        return os.path.normpath(module)
                 
     def add_parent (self,name,depth):
-        print "adding parent: " + str(name) + ' (' + str(depth) + ')' + ' to ' + self.module_name
-        self.parents.add(name)
+        #print "adding parent: " + str(name) + ' (' + str(depth) + ')' + ' to ' + self.module_name
+        self.parents.add(self.get_full_module_name(name))
         # update the depth
         if depth>=self.depth:
             self.depth=depth+1
@@ -122,6 +132,17 @@ class ClifModule(object):
         print "Nonlogical symbols: " + str(self.nonlogical_symbols)
         print "Variables: " + str(self.nonlogical_variables)
         
+
+    @staticmethod
+    def compare(x, y):
+        """ Compares two ClifModules to allow to sort them."""
+        if x.get_depth() > y.get_depth():
+           return 1
+        elif x.get_depth() == y.get_depth():
+           if x.get_simple_module_name() > y.get_simple_module_name(): return 1
+           else: return -1
+        else:  #x < y
+           return -1
 
     def get_p9_file_name (self):
         """get the filename of the LADR translation of the module"""

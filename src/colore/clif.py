@@ -7,7 +7,7 @@ New module created on 2013-03-16
 import clif
 
 # logical connectives in CLIF
-CLIF_LOGICAL_CONNECTIVES = ['not', 'and', 'or', 'iff', 'if', 'exists', 'forall']
+CLIF_LOGICAL_CONNECTIVES = ['not', 'and', 'or', 'iff', 'if', 'exists', 'forall', '=']
 # CLIF symbols that are logically irrelevant
 CLIF_OTHER_SYMBOLS = ['cl-text', 'cl-module', 'cl-imports']
 # CLIF quantifiers
@@ -75,7 +75,7 @@ def strip_clif_comments (lines):
             if len(line)>1:
                 # closing quotes found in line
                 search_end = False
-                line = line[1].split(')')
+                line = line[1].split(')',1)
                 if len(line)<2:
                     output.append(start) 
                     raise ClifParsingError('Syntax error in clif input: no closing parenthesis found for ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
@@ -249,7 +249,7 @@ def get_imports(input_file):
     while line:           
         c1 = line.find(clif.CLIF_IMPORT)
         if c1>-1:
-            imports.add(line[c1:].split(' ')[1].split(')')[0].strip())
+            imports.add(line[c1:].split(' ',1)[1].split(')')[0].strip())
         line = cl_file.readline()
     cl_file.close()
     return imports

@@ -67,16 +67,25 @@ class ClifModuleSet(object):
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
-        print "\nall modules:\n------------"
-        
-        for n in self.imports:
-            print str(n)
-
-        print "------------\n"
+            self.pretty_print()
 
 #        atexit.register(self.cleanup)
-            
+    
+    def pretty_print (self):
 
+        print "\n++++++++++++\nall modules:\n++++++++++++"
+
+        imports = list(self.imports)
+        imports.sort(ClifModule.compare)
+
+        for n in imports:
+            indent = ''
+            for i in range(n.get_depth()):
+                indent += "-"
+            print '|-'+indent+ str(n)+'\n|'
+
+        print "++++++++++++\n"
+    
           
     def set_module_name(self,module_name):  
         """initially set the name of the top module
