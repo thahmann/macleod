@@ -46,16 +46,15 @@ class ClifModule(object):
         self.depth = depth
         
         # add the standard ending for CLIF files to the module name
-        self.clif_file_name = os.path.abspath(os.path.normpath(filemgt.read_config('cl','path') + os.sep +
-                                              self.module_name + 
-                                              filemgt.read_config('cl','ending')))
+        self.clif_file_name = filemgt.get_full_path(self.module_name, ending=filemgt.read_config('cl','ending'))
 
-        self.clif_processed_file_name = os.path.abspath(filemgt.get_name_with_subfolder(self.module_name, 
-                                                                        filemgt.read_config('converters','tempfolder'), 
-                                                                        filemgt.read_config('cl','ending')))
+        self.clif_processed_file_name = filemgt.get_full_path(self.module_name, 
+                                                              folder= filemgt.read_config('converters','tempfolder'), 
+                                                              ending = filemgt.read_config('cl','ending'))
 
-        #print self.clif_file_name
-        #print self.clif_processed_file_name
+        print self.clif_file_name
+        print self.clif_processed_file_name
+        
         
         clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
         
@@ -146,9 +145,9 @@ class ClifModule(object):
 
     def get_p9_file_name (self):
         """get the filename of the LADR translation of the module"""
-        self.p9_file_name =  filemgt.get_name_with_subfolder(self.module_name, 
-                                                             filemgt.read_config('ladr','folder'), 
-                                                             filemgt.read_config('ladr','ending'))
+        self.p9_file_name =  filemgt.get_full_path(self.module_name, 
+                                                   folder=filemgt.read_config('ladr','folder'), 
+                                                   ending=filemgt.read_config('ladr','ending'))
         return self.p9_file_name
     
 

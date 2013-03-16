@@ -5,7 +5,7 @@ Major revision (restructed as a module with new name filemgt) on 2013-03-14
 @author: Torsten Hahmann
 '''
 
-import os
+import os, filemgt
 
 #CONFIG_PARSER: reads
 CONFIG_PARSER = None
@@ -51,38 +51,19 @@ def read_config(section, key):
 
   
 # determines the suitable subfolder for a given file_name
-def get_name_with_subfolder (complete_path_and_name, folder, ending=''):
+def get_full_path (module_name, folder=None, ending=''):
+    path = filemgt.read_config('cl','path') + os.sep 
+    if folder:
+        path += folder + os.sep
+    path = os.path.normpath(path + os.sep + module_name)
+    # create this folder if it does not exist yet
+    if not os.path.isdir(os.path.dirname(path)):
+        if os.mkdir(os.path.dirname(path)):
+            print "Created folder " + path
     
-    #print complete_path_and_name
-        
-    SUBFOLDERS = set([read_config('ladr','folder'), 
-                      read_config('tptp','folder'), 
-                      read_config('output','folder'),
-                      read_config('converters','tempfolder')])
-        
-    (dir, filename) = os.path.split(complete_path_and_name)
-    if (len(dir)>0 and len(filename)>0):
-        # strip other folder names:
-        directory_parts = dir.rsplit(os.sep,1)
-#            if len(directory_parts)==2:
-#                print directory_parts[1]
-        if len(directory_parts)==2:
-            #directory_parts[1] = '/' + directory_parts[1]
-            #print directory_parts[1]
-            # remove special folder from path
-            if directory_parts[1] in SUBFOLDERS:
-                dir = directory_parts[0]
-#                else:
-#                    print 'stripped subfolder ' + directory_parts[1] 
-        directory = os.path.join(dir,folder)
-        out_file_name = os.path.join(directory,filename + ending)
-    else:
-        directory = folder
-        out_file_name = os.path.join(directory, filename + ending)
-    # create the directory if necessary
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    return out_file_name
+    return os.path.abspath(path + ending)
+
     
+
     
         

@@ -4,7 +4,7 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import clif
+import os, clif
 
 # logical connectives in CLIF
 CLIF_LOGICAL_CONNECTIVES = ['not', 'and', 'or', 'iff', 'if', 'exists', 'forall', '=']
@@ -40,7 +40,8 @@ def remove_all_comments(input_file, output_file):
         finally:
             file.close()
 
-    with open(output_file, 'w') as file:
+    with open(output_file, 'w+') as file:
+        print "Writing to " + os.path.abspath(output_file)
         try:
             file.writelines(lines)
         except IOError:
@@ -249,6 +250,7 @@ def get_imports(input_file):
     while line:           
         c1 = line.find(clif.CLIF_IMPORT)
         if c1>-1:
+            
             imports.add(line[c1:].split(' ',1)[1].split(')')[0].strip())
         line = cl_file.readline()
     cl_file.close()

@@ -13,6 +13,8 @@ import os, datetime, filemgt, process, commands
 
 class ClifModuleSet(object):
 
+    module_name = ''
+
     # list of ClifModules that are imported and have been processed already   
     imports = set([])
     
@@ -48,7 +50,11 @@ class ClifModuleSet(object):
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
         
-        self.unprocessed_imports.add(name)
+        m = ClifModule(name,0)
+        self.imports.add(m)
+        self.module_name=m.get_simple_module_name()
+
+        self.unprocessed_imports = self.unprocessed_imports.union(m.get_imports())
 
         while len(self.unprocessed_imports)>0:
             m = ClifModule(self.unprocessed_imports.pop(),0)
@@ -67,13 +73,13 @@ class ClifModuleSet(object):
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
-            self.pretty_print()
+        self.pretty_print()
 
 #        atexit.register(self.cleanup)
     
     def pretty_print (self):
 
-        print "\n++++++++++++\nall modules:\n++++++++++++"
+        print "\n++++++++++++\nall modules of "+ self.module_name +":\n++++++++++++"
 
         imports = list(self.imports)
         imports.sort(ClifModule.compare)
@@ -280,8 +286,8 @@ class ClifModuleSet(object):
         """ test the input for consistency by trying to find a model or an inconsistency"""
         if self.run_prover:    
             # want to create a subfolder for the output files
-            outfile_stem = filemgt.get_name_with_subfolder(self.imports[0].module_name, 
-                                                            filemgt.read_config('output','folder')) 
+            outfile_stem = filemgt.get_full_path(self.module_name, 
+                                                folder=filemgt.read_config('output','folder')) 
             
             (provers, finders) = self.select_systems(outfile_stem)
             
@@ -307,9 +313,9 @@ class ClifModuleSet(object):
         if not number==0:
             ending = '_' + str(number)
 
-        self.tptp_file_name = filemgt.get_name_with_subfolder(self.imports[0].module_name,
-                                                              filemgt.read_config('tptp','folder'),
-                                                              ending + filemgt.read_config('tptp','all_ending'))
+        self.tptp_file_name = filemgt.get_full_path(self.module_name,
+                                                    folder=filemgt.read_config('tptp','folder'),
+                                                    ending=ending + filemgt.read_config('tptp','all_ending'))
         
         TPTP.ladr_to_tptp(self.p9_file_name, self.tptp_file_name)      
 

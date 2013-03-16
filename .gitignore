@@ -1,6 +1,8 @@
 # Ignore eclipse project files
 .project
 .pydevproject
+# Ignore cltools directory
+cltools
 # Ignore all bin directories
 bin
 # Ignore all files ending with ~
