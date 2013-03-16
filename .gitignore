@@ -7,6 +7,12 @@ bin
 *~
 # Ignore compiled python code
 *.pyc
+# Ignore generated files and folders
+*.out
+*.p9
+generated/
+p9/
+output/
 # Ignore the target directory
 # Matches "target" in any subfolder
 target/ 
