@@ -7,60 +7,91 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 
 import sys
 from ClifModule import ClifModule
-import atexit, os, datetime, filemgt, process, commands
+import os, datetime, filemgt, process, commands
+#import atexit
 
 
-class ClifModelSet(object):
+class ClifModuleSet(object):
 
-    imports = []
-    nonlogical_symbols = []
-    primitive_predicates = []
-    defined_predicates = []
-    nonskolem_functions = []
-    replaceable_symbols = []
+    # list of ClifModules that are imported and have been processed already   
+    imports = set([])
+    
+    # list of imports that still require processing
+    unprocessed_imports = set([])
+
+    # list of nonlogical symbols that occur in any imported files
+    # it is a tuple [symbol, count, d_min, d_max] where
+    # symbol: name of the symbol
+    # count: total number of Occurrences
+    # d_min: minimal depth in the CL-import tree where it occurs
+    # d_max: maximal depth in the CL-import tree where it occurs
+    nonlogical_symbols = set([])
+    
+    # the primitive and potentially some defined predicates occurring in any imported files
+    primitive_predicates = set([])
+
+    # a list of predicates that are definitively defined predicates occurring in any imported files
+    defined_predicates = set([])
+    
+    # the functions occurring in any imported files
+    nonskolem_functions = set([])
+    
+    # list of special symbols that will be replaced in the p9 and the tptp translation
+    replaceable_symbols = set([])
     
     translations = {}
+
+    p9_file_name = ''
+    tptp_file_name = ''
     
 
     # initialize with a set of files to be processed (for lemmas)
-    def __init__(self, processing=None):
+    def __init__(self, name):
+        
+        self.unprocessed_imports.add(name)
 
-        self.p9_file_name = ''
-        self.tptp_file_name = ''
+        while len(self.unprocessed_imports)>0:
+            m = ClifModule(self.unprocessed_imports.pop(),0)
+            
+            # Link the module to all its parents
+            for cm in self.imports:
+                if m.get_simple_module_name() in cm.get_imports():
+                    m.add_parent(cm.get_simple_module_name(),cm.get_depth())
 
-        # list of clif files still to process
-        self.processing = []
-        # list of already processes clif imports (list of ClifModule)
-        self.imports = []
-        # list of nonlogical symbols that occur in any imported files
-        # it is a tuple [symbol, count, d_min, d_max] where
-        # symbol: name of the symbol
-        # count: total number of Occurrences
-        # d_min: minimal depth in the CL-import tree where it occurs
-        # d_max: maximal depth in the CL-import tree where it occurs
-        self.nonlogical_symbols = []
-        # the primitive and potentially some defined predicates occurring in any imported files
-        self.primitive_predicates = []
-        # a list of predicates that are definitively defined predicates occurring in any imported files
-        self.defined_predicates = []
-        # the functions occurring in any imported files
-        self.nonskolem_functions = []
-        # list of special symbols that will be replaced in the p9 and the tptp translation
-        self.replaceable_symbols = []
+            self.imports.add(m)
 
-        if processing:
-            self.processing = processing
+            # add all the names of imported modules that have not yet been processed
+            new_imports = set(m.get_imports()) - set([i.get_simple_module_name() for i in self.imports])
+            for i in new_imports:
+                print '|-- imports: ' + m.get_simple_module_name(i) + ' (depth ' + str(m.get_depth()+1) + ')'
+                            
+            self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
+        
+        print "\nall modules:\n------------"
+        
+        for n in self.imports:
+            print str(n)
+
+        print "------------\n"
+
+#        atexit.register(self.cleanup)
+            
+
           
     def set_module_name(self,module_name):  
         """initially set the name of the top module
            NOT to be used later on"""
-        self.processing.append((module_name, 0))
+        self.unprocessed_imports.add(module_name)
 
     def get_module_name(self):
         """return the name of the top module"""
         if len(self.imports)>0:
             return self.imports[0].module_name
 
+    def get_non_logical_symbol_info(self,symbol):
+        """get relevant information about a nonlogical symbol"""
+        
+    
     def update_nonlogical_symbols(self,new_nonlogical_symbols,depth):
         """update the ClifModuleSet's list of nonlogical symbols with the symbols in new_nonlogical_symbols
            new_nonlogical_symbols -- list of tuples (symbol_name, number of modules this occurs in, minimal_depth in import tree, maximal_depth in import tree)
@@ -82,40 +113,7 @@ class ClifModelSet(object):
                 #print 'found ' + words[0] + ' in line: ' + line
                 #a NEW meaningful named entity has been found
                 self.nonlogical_symbols.append([symbol, 1, depth, depth])
-
-
-    def prepare(self):
-        """process the processing list until it is empty: create the list of imports (list of ClifModules)"""
-        while self.processing:
-            (module, depth) = self.processing[0]
-            #print 'processing list:'
-            #print self.processing
-            m = ClifModule(self, module, depth)
-            self.processing.remove((module, depth))
-            self.imports.append(m)
-            self.update_nonlogical_symbols(m.get_nonlogical_symbols(), m.get_depth())
-
-        atexit.register(self.cleanup)
-        
-    
-    def append_module(self,new_module_name, depth):
-        """add a module to the processing list if it hasn't been included before"""
-        existing = False
-        # self.processing is a list of names
-        for (p, _) in self.processing:
-            if new_module_name == p:
-                existing=True
-                break
-        # self.imports is a list of ClifModules
-        for p in self.imports:
-            if new_module_name == p.module_name:
-                existing=True
-                break 
-        if not existing:
-            print '|-- imports: ' + new_module_name + ' (depth ' + str(depth) + ')'
-            # This is the only place where we increase the depth!!
-            self.processing.append((new_module_name, depth))
-    
+            
 
     # extract the predicates and functions from prover9 mock run
     def extract_p9_predicates_and_functions (self):
@@ -329,13 +327,20 @@ class ClifModelSet(object):
 #                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
 
 
-    # delete unnecessary files at the end
-    def cleanup(self):
-        if self.tidy:          
-            LADR.cleanup_option_files()  
-            for m in self.imports:
-                if os.path.exists(m.p9_intermediary_file_name):
-                    os.remove(m.p9_intermediary_file_name)
-                if os.path.exists(m.clif_processed_file_name):
-                    os.remove(m.clif_processed_file_name)
+#    # delete unnecessary files at the end
+#    def cleanup(self):
+#        if self.tidy:          
+#            LADR.cleanup_option_files()  
+#            for m in self.imports:
+#                if os.path.exists(m.p9_intermediary_file_name):
+#                    os.remove(m.p9_intermediary_file_name)
+#                if os.path.exists(m.clif_processed_file_name):
+#                    os.remove(m.clif_processed_file_name)
             
+
+        
+if __name__ == '__main__':
+    import sys
+    # global variables
+    options = sys.argv
+    m = ClifModuleSet(options[1])

@@ -167,8 +167,7 @@ def strip_sections (lines, begin_symbol, end_symbol):
 def get_logical_symbols_from_single_line(line):
     #print 'line: ' + line 
     
-    from sets import Set
-    symbols = Set([])
+    symbols = set([])
     
     s = line.find('(')
     while  s > -1:
@@ -219,8 +218,7 @@ def get_quantified_variables_from_single_line (line):
     line = line.strip()
     #print 'all variables: ' + str(logical_vars)
 
-    from sets import Set
-    vars = Set([])
+    vars = set([])
     
     for keyword in clif.CLIF_QUANTIFIERS:
         
@@ -244,8 +242,7 @@ def get_quantified_variables_from_single_line (line):
 def get_imports(input_file):
     """Find all the imported modules"""
 
-    from sets import Set
-    imports = Set([])
+    imports = set([])
     
     cl_file = open(input_file, 'r')
     line = cl_file.readline()

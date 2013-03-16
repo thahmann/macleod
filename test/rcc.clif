@@ -8,11 +8,11 @@
  *    Torsten Hahmann - initial implementation
  *******************************************************************************/
 
-(cl-text mt/rcc_full
+(cl-text test\rcc_full
 
-(cl-imports mt/rcc_basic)
+(cl-imports test\rcc_basic)
 
-(cl-comment "RCC4a")
+(cl-comment 'RCC4a')
 
 (forall (x y)
 	(if
@@ -24,7 +24,7 @@
 	)			
 )
 
-(cl-comment "RCC8")
+(cl-comment 'RCC8')
 
 (forall (x)
 	(exists (y)
