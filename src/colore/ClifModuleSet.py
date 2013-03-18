@@ -39,7 +39,7 @@ class ClifModuleSet(object):
     nonskolem_functions = set([])
     
     # list of special symbols that will be replaced in the p9 and the tptp translation
-    replaceable_symbols = set([])
+    replaceable_symbols = None
     
     translations = {}
 
@@ -93,17 +93,20 @@ class ClifModuleSet(object):
         print "++++++++++++\n"
     
           
-    def set_module_name(self,module_name):  
+    def set_module_name (self,module_name):  
         """initially set the name of the top module
            NOT to be used later on"""
         self.unprocessed_imports.add(module_name)
 
-    def get_module_name(self):
+    def get_module_name (self):
         """return the name of the top module"""
         if len(self.imports)>0:
             return self.imports[0].module_name
 
-    def get_non_logical_symbol_info(self,symbol):
+    def get_imports (self):
+        return self.imports
+
+    def get_non_logical_symbol_info (self,symbol):
         """get relevant information about a nonlogical symbol"""
         
     
@@ -296,12 +299,24 @@ class ClifModuleSet(object):
 
             print self.consolidate_results(provers, finders)
     
+    
+    def get_single_ladr_file (self):
+        import ladr
+        """get the ClifModuleSet as a single file in LADR syntax."""
+        p9_files = self.get_ladr_files()
+
+        output_file = filemgt.get_full_path(self.module_name, 
+                                           folder=filemgt.read_config('ladr','folder'), 
+                                           ending=filemgt.read_config('ladr','all_ending'))
+        # TODO: need to initialize self.replaceable_symbols
+        return ladr.cumulate_ladr_files(p9_files, output_file, self.replaceable_symbols)
+        
        
-    # get a list of all p9files created here
-    def get_p9_files(self):
+    def get_ladr_files (self):
+        """get a list of translations of all associated ClifModules in LADR syntax."""
         p9_files = []
         for m in self.imports:
-            p9_files.append(m.p9_file_name)
+            p9_files.append(m.get_p9_file_name())
         return p9_files
    
 
@@ -359,3 +374,4 @@ if __name__ == '__main__':
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])
+    print m.get_single_ladr_file()

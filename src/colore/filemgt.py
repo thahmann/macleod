@@ -52,11 +52,11 @@ def read_config(section, key):
   
 # determines the suitable subfolder for a given file_name
 def get_full_path (module_name, folder=None, ending=''):
-    path = filemgt.read_config('cl','path') + os.sep 
+    path = filemgt.read_config('cl','path') + os.sep + module_name
     if folder:
-        path += folder + os.sep
-    path = os.path.normpath(path + os.sep + module_name)
+        path = os.path.dirname(path) + os.sep + folder + os.sep + os.path.basename(path)
     # create this folder if it does not exist yet
+    path = os.path.normpath(path)
     if not os.path.isdir(os.path.dirname(path)):
         if os.mkdir(os.path.dirname(path)):
             print "Created folder " + path

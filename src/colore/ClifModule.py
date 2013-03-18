@@ -4,7 +4,7 @@ Refactored on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, filemgt, process, clif
+import os, filemgt, process, clif, commands
 
 class ClifModule(object):
 
@@ -23,7 +23,7 @@ class ClifModule(object):
     """Location of the clif input file that has undergone preprocessing"""
     clif_processed_file_name = ''
     
-    p9_file_name = ''
+    p9_file_name = None
     
     # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
     nonlogical_symbols = set([])
@@ -144,18 +144,19 @@ class ClifModule(object):
            return -1
 
     def get_p9_file_name (self):
-        """get the filename of the LADR translation of the module"""
-        self.p9_file_name =  filemgt.get_full_path(self.module_name, 
-                                                   folder=filemgt.read_config('ladr','folder'), 
-                                                   ending=filemgt.read_config('ladr','ending'))
-        return self.p9_file_name
+        """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
+        if self.p9_file_name: return self.p9_file_name
+        else: return self.convert_to_ladr()
     
 
     def convert_to_ladr(self):
-        """translate the module into the LADR syntax"""
-        self.get_p9_file_name()
-        commands.get_clfi_to_p9_cmd(self.clif_processed_file_name, self.p9_file_name)
-        process.executeSubprocess(command)
+        """translate the module into the LADR syntax."""
+        self.p9_file_name =  filemgt.get_full_path(self.module_name, 
+                                                   folder=filemgt.read_config('ladr','folder'), 
+                                                   ending=filemgt.read_config('ladr','ending'))
+
+        cmd = commands.get_clif_to_ladr_cmd(self.clif_processed_file_name, self.p9_file_name)
+        process.executeSubprocess(cmd)
         return self.p9_file_name
 
         
@@ -164,3 +165,4 @@ if __name__ == '__main__':
     # global variables
     options = sys.argv
     m = ClifModule(options[1],0)
+    print m.convert_to_ladr()
