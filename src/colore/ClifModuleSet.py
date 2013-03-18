@@ -38,11 +38,6 @@ class ClifModuleSet(object):
     # the functions occurring in any imported files
     nonskolem_functions = set([])
     
-    # list of special symbols that will be replaced in the p9 and the tptp translation
-    replaceable_symbols = None
-    
-    translations = {}
-
     p9_file_name = ''
     tptp_file_name = ''
     
@@ -297,19 +292,7 @@ class ClifModuleSet(object):
             # run provers and modelfinders simultaneously and wait until one returns
             (prc, frc) = process.raceProcesses(provers, finders)
 
-            print self.consolidate_results(provers, finders)
-    
-    
-    def get_single_ladr_file (self):
-        import ladr
-        """get the ClifModuleSet as a single file in LADR syntax."""
-        p9_files = self.get_ladr_files()
-
-        output_file = filemgt.get_full_path(self.module_name, 
-                                           folder=filemgt.read_config('ladr','folder'), 
-                                           ending=filemgt.read_config('ladr','all_ending'))
-        # TODO: need to initialize self.replaceable_symbols
-        return ladr.cumulate_ladr_files(p9_files, output_file, self.replaceable_symbols)
+            print self.consolidate_results(provers, finders)    
         
        
     def get_ladr_files (self):
@@ -319,20 +302,59 @@ class ClifModuleSet(object):
             p9_files.append(m.get_p9_file_name())
         return p9_files
    
+    def get_single_ladr_file (self):
+        """get the ClifModuleSet as a single file in LADR syntax."""
+        import ladr
+        p9_files = self.get_ladr_files()
 
-    # translate the module and all imported modules (Common Logic files) to a single TPTP file
-    def get_single_tptp_file (self, number=0):
+        self.p9_file_name = filemgt.get_full_path(self.module_name, 
+                                           folder=filemgt.read_config('ladr','folder'), 
+                                           ending=filemgt.read_config('ladr','all_ending'))
+        # TODO: need to initialize self.replaceable_symbols
+        ladr.cumulate_ladr_files(p9_files, self.p9_file_name)
+        print "CREATED LADR TRANSLATION: " + self.p9_file_name
+        return self.p9_file_name
+   
+
+    def get_single_tptp_file (self):
+        """translate the module and all imported modules to a single TPTP file. Uses the LADR format as intermediate step."""
+        import ladr
+
+        self.get_single_ladr_file()
+
+        # hack: replace iff's (<->) by <- to do a correct windows translation; revert it afterwards
+        ladr.replace_equivalences(self.p9_file_name)
         
-        single_p9_file = ladr.get_single_p9_file(get_module_name)
-        ending = ''
-        if not number==0:
-            ending = '_' + str(number)
+        # convert LADR file to lower case, only temporarily for TPTP translation
+        file = open(self.p9_file_name, 'r')
+        text = file.readlines()
+        file.close()
+        file = open(self.p9_file_name, 'w')
+        text = [s.strip().lower() for s in text]
+        newtext = []
+        for s in text:
+            if len(s)>0: newtext.append(s+'\n')
+        file.writelines(newtext)
+        file.close()
+        #print "".join(newtext)
 
         self.tptp_file_name = filemgt.get_full_path(self.module_name,
                                                     folder=filemgt.read_config('tptp','folder'),
-                                                    ending=ending + filemgt.read_config('tptp','all_ending'))
+                                                    ending=filemgt.read_config('tptp','all_ending'))
         
-        TPTP.ladr_to_tptp(self.p9_file_name, self.tptp_file_name)      
+        cmd = commands.get_ladr_to_tptp_cmd(self.p9_file_name, self.tptp_file_name)
+        process.executeSubprocess(cmd)  
+
+        ladr.number_tptp_axioms(self.tptp_file_name)
+
+        # complete hack
+        ladr.replace_equivalences_back(self.tptp_file_name)
+
+        # restore LADR file with proper case and equivalences
+        self.get_single_ladr_file()
+        
+        print "CREATED TPTP TRANSLATION: " + self.tptp_file_name
+        return self.tptp_file_name    
 
     
 #    def check_consistency(self):
@@ -374,4 +396,4 @@ if __name__ == '__main__':
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])
-    print m.get_single_ladr_file()
+    print m.get_single_tptp_file()

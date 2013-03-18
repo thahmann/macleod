@@ -145,20 +145,16 @@ class ClifModule(object):
 
     def get_p9_file_name (self):
         """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
-        if self.p9_file_name: return self.p9_file_name
-        else: return self.convert_to_ladr()
-    
-
-    def convert_to_ladr(self):
-        """translate the module into the LADR syntax."""
-        self.p9_file_name =  filemgt.get_full_path(self.module_name, 
-                                                   folder=filemgt.read_config('ladr','folder'), 
-                                                   ending=filemgt.read_config('ladr','ending'))
-
-        cmd = commands.get_clif_to_ladr_cmd(self.clif_processed_file_name, self.p9_file_name)
-        process.executeSubprocess(cmd)
+        if not self.p9_file_name:   # do the translation
+            self.p9_file_name =  filemgt.get_full_path(self.module_name, 
+                                                       folder=filemgt.read_config('ladr','folder'), 
+                                                       ending=filemgt.read_config('ladr','ending'))
+            cmd = commands.get_clif_to_ladr_cmd(self)
+            process.executeSubprocess(cmd)
+            print "CREATED LADR TRANSLATION: " + self.p9_file_name
+             
         return self.p9_file_name
-
+    
         
 if __name__ == '__main__':
     import sys

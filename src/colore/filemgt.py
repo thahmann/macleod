@@ -6,15 +6,15 @@ Major revision (restructed as a module with new name filemgt) on 2013-03-14
 '''
 
 import os, filemgt
+from ConfigParser import SafeConfigParser
 
-#CONFIG_PARSER: reads
 CONFIG_PARSER = None
+conf = None
 config_file = 'macleod.conf'
 config_dir = 'conf'
 
-# tries to find and then read the MacLeod configuration file
 def find_config():
-    import filemgt
+    """tries to find and then read the MacLeod configuration file."""
     file= filemgt.config_file
     for loc in os.path.curdir, os.path.join(os.path.curdir,filemgt.config_dir), os.path.expanduser("~"), os.environ.get("MACLEOD_CONF"):
         try:
@@ -25,20 +25,18 @@ def find_config():
             if os.path.isfile(loc):
                 filemgt.config_file = loc
                 print("Macleod configuration file found at: " + filemgt.config_file)
+                filemgt.conf = filemgt.CONFIG_PARSER.read(config_file)
                 break
         except IOError:
             pass
 
 
-# read a value from the MacLeod configuration file     
 def read_config(section, key):
-    import filemgt
-    from ConfigParser import SafeConfigParser
+    """read a value from the MacLeod configuration file."""     
     # load 
     if not filemgt.CONFIG_PARSER:
         filemgt.CONFIG_PARSER = SafeConfigParser()
-        find_config()
-        conf = filemgt.CONFIG_PARSER.read(config_file)
+        filemgt.find_config()
         if len(conf)==0:
             print("Problem reading config file from " + os.path.abspath(os.path.curdir) + filemgt.config_file)
         
@@ -50,8 +48,8 @@ def read_config(section, key):
      
 
   
-# determines the suitable subfolder for a given file_name
 def get_full_path (module_name, folder=None, ending=''):
+    """determines the suitable subfolder for a given file_name."""
     path = filemgt.read_config('cl','path') + os.sep + module_name
     if folder:
         path = os.path.dirname(path) + os.sep + folder + os.sep + os.path.basename(path)
@@ -63,7 +61,24 @@ def get_full_path (module_name, folder=None, ending=''):
     
     return os.path.abspath(path + ending)
 
-    
 
+def get_tptp_symbols ():
+    """get all options and their values from a section as a dictionary."""
+    options = {}
+    if not filemgt.CONFIG_PARSER:
+        filemgt.CONFIG_PARSER = SafeConfigParser()
+        filemgt.find_config()
+    symbol_file = os.path.normpath(os.path.dirname(os.path.abspath(filemgt.config_file)) + os.sep + filemgt.read_config("converters","tptp_symbols"))
+        
+    file = open(symbol_file,"r")
+    for line in file.readlines():
+        if line.startswith('"'):
+            line = line.strip('"').split('"')
+            key = line[0].strip('"')
+            value = line[1].strip().strip(':').strip()
+            options[key] = value
+        else:
+            options[line.split(":")[0].strip()] = line.split(":")[1].strip()
+    return options
     
         

@@ -4,7 +4,7 @@ from multiprocessing import Queue
 def startSubprocess(command):
 	"""Start a new subprocess, but does not wait for the subprocess to complete. 
 	This method uses the os.setsid in Linux, which is not available in Windows"""
-	print("\n---")
+	print("---")
 	print("STARTING: " + command)
 	if os.name == 'nt':
 		# Windows
@@ -17,7 +17,7 @@ def startSubprocess(command):
 
 
 def startInteractiveProcess():
-	"""Start a process whose output (STDOUT) is written to the return value"""
+	"""Start a process whose output (STDOUT) is written to the return value."""
 	if os.name == 'nt':
 		# Windows
 		p = subprocess.Popen(command, shell=True, close_fds=True, 
@@ -36,11 +36,12 @@ def executeSubprocess(command, results = None):
 	"""start a new subprocess and wait for it to terminate"""
 	p = process.startSubprocess(command)
 	p.wait()
+	#print str(p.returncode) + '\n'
 	if p.returncode==0:
 		# give a bit of time to finish the command line output
 		time.sleep(1.0)
 		print("FINISHED: " + command)
-		print("---\n")
+		print("---")
 		if results:
 			results.put((command, p.returncode))
 			return
@@ -58,7 +59,7 @@ def terminateSubprocess (process):
 		#os.kill(process.pid, signal.SIGINT)
 		return os.killpg(process.pid, signal.SIGINT)
 		#return os.waitpid(process.pid, os.WNOHANG)
-	
+
 	terminate_default = terminate_nix
 	
 	handlers = {

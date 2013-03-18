@@ -3,6 +3,8 @@
 .pydevproject
 # Ignore cltools directory
 cltools
+LADR-2009-11A
+paradox3.exe
 # Ignore all bin directories
 bin
 # Ignore all files ending with ~
@@ -15,6 +17,7 @@ bin
 generated/
 p9/
 output/
+tptp/
 # Ignore the target directory
 # Matches "target" in any subfolder
 target/ 
