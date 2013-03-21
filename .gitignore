@@ -9,6 +9,10 @@ paradox3.exe
 bin
 # Ignore all files ending with ~
 *~
+# Ignore generated latex files
+*.log
+*.aux
+*.synctex.gz
 # Ignore compiled python code
 *.pyc
 # Ignore generated files and folders
