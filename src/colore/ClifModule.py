@@ -99,8 +99,9 @@ class ClifModule(object):
         return self.parents
             
     def get_imports (self):
+        """returns the set of immediate imports."""
         return self.imports
-    
+        
     def get_nonlogical_symbols (self):
         return self.nonlogical_symbols
     

@@ -78,8 +78,7 @@ class ClifModuleSet(object):
 
         print "\n++++++++++++\nall modules of "+ self.module_name +":\n++++++++++++"
 
-        imports = list(self.imports)
-        imports.sort(ClifModule.compare)
+        imports = self.get_sorted_imports()
 
         for n in imports:
             indent = ''
@@ -100,9 +99,44 @@ class ClifModuleSet(object):
         if len(self.imports)>0:
             return self.imports[0].module_name
 
+    def get_top_module (self):
+        return self.get_import_by_name(self.module_name)
+
     def get_imports (self):
         return self.imports
-
+    
+    def get_sorted_imports (self):
+        l = list(self.imports)
+        l.sort(ClifModule.compare)
+        return l 
+    
+    def get_import_by_name (self, name):
+        """Find and return a module from the list of imports by its module nam. """
+        m = filter(lambda s:s.get_simple_module_name()==name, list(self.imports))
+        if len(m)==0:
+            raise ClifModuleSetError("Module {0} does not exist in ClifModuleSet {1}".format(name, self.module_name))
+        elif len(m)>1:
+            raise ClifModuleSetError("Multiple modules with name '{0}' exist in ClifModuleSet {1}".format(name, self.module_name))            
+        elif len(m)==1:
+            return m[0]
+    
+    def get_import_closure (self, module):
+        """return the set of all direct and indirect imports."""
+        import_names = set([])  # list of the names of modules directly or indirectly imported by module
+        imports = set([module,])   # list of modules directly or indirectly imported by module
+        new_imports = set(module.get_imports()) # list of the names of modules directly imported by module
+        #print "direct imports: " + str(new_imports)
+        while len(new_imports)>0:
+            name = new_imports.pop()
+            i = self.get_import_by_name(name)
+            import_names.add(name) 
+            imports.add(i)
+            new_imports.update(set(i.get_imports()).difference(import_names)) # add the imports that have not yet been processed
+        imports = list(imports)
+        imports.sort(ClifModule.compare)
+        return imports
+        
+    
     def get_non_logical_symbol_info (self,symbol):
         """get relevant information about a nonlogical symbol"""        
     
@@ -270,7 +304,10 @@ class ClifModuleSet(object):
 
         return_value = self.consolidate_results(provers, finders)    
 
-        self.pretty_print_consistency_result(module_name, return_value)
+        if len(modules)==0:
+            self.pretty_print_consistency_result(module_name + " (without imports)", return_value)
+        else:
+            self.pretty_print_consistency_result(module_name + " (with imports = " + str(modules) + ")", return_value)
         
         return return_value
 
@@ -290,14 +327,36 @@ class ClifModuleSet(object):
             if len(safe_imports)==len(modules):
                 print "All modules are consistent."
                 # starting checking increasingly larger subontology, starting with the deepest ontologies first
-                imports = list(modules)
-                max_depth = max([s.get_depth() for s in imports])
-                for reverse_depth in range(max_depth,0,-1):
-                    s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
-                    return_value = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
-                    if return_value==-1:    # this set is inconsistent
-                        print "Found inconsistent subontology."
-                        break                
+                #self.run_consistency_check_by_depth()
+                self.run_consistency_check_by_subset()
+
+    def run_consistency_check_by_subset (self, modules=None):
+        """run consistency checks by successively examining larger subontologies."""
+        if not modules:
+            modules = self.imports
+
+        imports = list(modules)
+        # start with the second deepest depth and examine each ontology and its imports
+        max_depth = max([s.get_depth() for s in imports])
+        for reverse_depth in range(max_depth,0,-1):
+            current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
+            for i in current_imports:
+                self.run_simple_consistency_check(i.get_simple_module_name(), self.get_import_closure(i))
+            
+        
+
+
+    def run_consistency_check_by_depth (self, modules=None):
+        """run consistency checks by successively testing a larger subontology by increasing the depth cutoff."""
+        imports = list(modules)
+        max_depth = max([s.get_depth() for s in imports])
+        for reverse_depth in range(max_depth,0,-1):
+            s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
+            return_value = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
+            if return_value==-1:    # this set is inconsistent
+                print "Found inconsistent subontology."
+                break                
+        
 
 
     def get_consistent_module_set (self, modules=None, min_depth=0, max_depth=None):
@@ -480,10 +539,25 @@ class ClifModuleSet(object):
 #                    os.remove(m.clif_processed_file_name)
             
 
+
+class ClifModuleSetError(Exception):
+    
+    output = []
+    
+    def __init__(self, value, output=[]):
+        self.value = value
+        self.output = output
+    def __str__(self):
+        return repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output)))
+
+
         
 if __name__ == '__main__':
     import sys
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])
-    print m.get_single_tptp_file()
+    #print m.get_single_tptp_file()
+    #print m.get_top_module()
+    print m.get_import_closure(m.get_top_module())
+    #print m.get_import_closure(m.get_import_by_name("codi\codi_linear_int"))

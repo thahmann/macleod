@@ -13,4 +13,5 @@ if __name__ == '__main__':
     options = sys.argv
     m = ClifModuleSet(options[1])
     print str(m.get_imports())
-    m.run_full_consistency_check()
+    #m.run_full_consistency_check()
+    m.run_consistency_check_by_subset()
