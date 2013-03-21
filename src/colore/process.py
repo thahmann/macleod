@@ -39,7 +39,7 @@ def executeSubprocess(command, results = None):
 	#print str(p.returncode) + '\n'
 	if p.returncode==0:
 		# give a bit of time to finish the command line output
-		time.sleep(1.0)
+		time.sleep(0.1)
 		print("FINISHED: " + command)
 		print("---")
 		if results:
@@ -53,11 +53,22 @@ def executeSubprocess(command, results = None):
 def terminateSubprocess (process):
 	"""terminate a sub process; needed for downwards compatibility with Python 2.5"""
 	def terminate_win (process):
-		return win32process.TerminateProcess(process._handle, -1)
+		os.system("taskkill /F /T /PID " + str(process.pid))
+		#value = win32process.TerminateProcess(process._handle, -1)
+#		import win32api
+#		PROCESS_TERMINATE = 1
+#		handle = win32api.OpenProcess(PROCESS_TERMINATE, False, process.pid)
+#		win32api.TerminateProcess(handle, -1)
+#		win32api.CloseHandle(handle)
+		time.sleep(1.0)
+		return value
 
 	def terminate_nix (process):
 		#os.kill(process.pid, signal.SIGINT)
-		return os.killpg(process.pid, signal.SIGINT)
+		value = os.killpg(process.pid, signal.SIGINT)
+		time.sleep(1.0)
+		return value
+
 		#return os.waitpid(process.pid, os.WNOHANG)
 
 	terminate_default = terminate_nix
@@ -85,10 +96,10 @@ def raceProcesses (provers, modelfinders):
 	provers -- dictionary of theorem provers to execute where the key is the command and the value a set of return codes that indicate success.
 	modelfinders -- dictionary of modelfinders to execute where the key is the command and the value a set of return codes that indicate success.
 	"""
-	time.sleep(1.0)
+	time.sleep(0.1)
 	
-	print provers
-	print modelfinders
+	#print provers
+	#print modelfinders
 	
 	proverProcesses = []
 	
@@ -104,16 +115,17 @@ def raceProcesses (provers, modelfinders):
 	for prover in (provers.keys() + modelfinders.keys()):
 		#print 'Creating subprocess for ' + prover
 		#proverDict[i] = prover
+		# TODO: need a separate class for the execute method in order to gracefully shut it down
 		p = multiprocessing.Process(name=prover.split(' ')[0], target=executeSubprocess, args=(prover,results,))
 		p.start()
-		time.sleep(0.5)
+		time.sleep(0.1)
 		proverProcesses.append(p)
 		#i += 1
 	
 	num_running = len(proverProcesses)
 	success = False
 	
-	time.sleep(0.5)
+	time.sleep(0.1)
 	#active=multiprocessing.active_children()
 	while num_running>0:	
 		while results.empty():
@@ -124,25 +136,43 @@ def raceProcesses (provers, modelfinders):
 			num_running += - 1
 			(name, code) = results.get()
 			#name = proverDict[name]		# mapping the number back to the real command name
-			print str(name) + " returned with " + str(code)
+			#print str(name) + " returned with " + str(code)
 			if name in provers:
-				print name + " finished; positive returncodes are " + str(provers[name])
+				#print name + " finished; positive returncodes are " + str(provers[name])
 				if code in provers[name]:
 					print name + " found an inconsistency"
 					success = True
 				provers[name] = code
 			if name in modelfinders:
-				print name + " finished; positive returncodes are " + str(modelfinders[name])
+				#print name + " finished; positive returncodes are " + str(modelfinders[name])
 				if code in modelfinders[name]:
 					print name + " found a model"
 					success = True
 				modelfinders[name] = code
 
-		if success or num_running==0:
+		if success:
 			# terminate all processes that are still active
 			for p in multiprocessing.active_children():
-				p.terminate()
-			break
+#				print "Child process state: %d" % p.is_alive()
+# TODO: want to gracefully shut down				
+#				p.terminate()
+				time.sleep(1.0)
+#    			if p.is_alive():
+#	       			print "Child process state: %d" % p.is_alive()
+#       			os.kill(p.pid, signal.SIGTERM)
+#       			time.sleep(1.0)
+#       			if p.is_alive():
+#       				os.kill(p.pid, signal.SIGKILL)
+#       				time.sleep(1.0)
+       			os.system("taskkill /F /T /PID " + str(p.pid))
+		       			#os.system("taskkill /im /f")
+#       			import win32api
+#       			PROCESS_TERMINATE = 1
+#       			handle = win32api.OpenProcess(PROCESS_TERMINATE, False, p.pid())
+#       			win32api.TerminateProcess(handle, -1)
+#       			win32api.CloseHandle(handle)
+		break
+
 
 	return (provers, modelfinders)
 

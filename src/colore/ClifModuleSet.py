@@ -41,6 +41,8 @@ class ClifModuleSet(object):
     p9_file_name = ''
     tptp_file_name = ''
     
+    provers = {}
+    finders = {}
 
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
@@ -102,8 +104,7 @@ class ClifModuleSet(object):
         return self.imports
 
     def get_non_logical_symbol_info (self,symbol):
-        """get relevant information about a nonlogical symbol"""
-        
+        """get relevant information about a nonlogical symbol"""        
     
     def update_nonlogical_symbols(self,new_nonlogical_symbols,depth):
         """update the ClifModuleSet's list of nonlogical symbols with the symbols in new_nonlogical_symbols
@@ -208,7 +209,7 @@ class ClifModuleSet(object):
         print 'all functions: ' + str(self.nonskolem_functions)
     
     
-    def select_systems (self, outfile_stem):
+    def select_systems (self, modules, outfile_stem):
         """read the activated provers and model finders from the configuration file
         return values:
         provers_dict -- a dictionary of all provers to be used with commands as keys and a set of return values as value
@@ -217,6 +218,9 @@ class ClifModuleSet(object):
         provers_dict = {}
         finders_dict = {}
         
+        self.provers = {}
+        self.finders = {}
+        
         provers = filemgt.read_config('active','provers').split(',')
         finders = filemgt.read_config('active','modelfinders').split(',')
         
@@ -224,31 +228,125 @@ class ClifModuleSet(object):
         finders = [ s.strip() for s in finders ]
         
         for prover in provers:
-            codes = self.get_posititve_returncodes(prover)
-            cmd = commands.get_system_command(prover, self.imports, outfile_stem)
+            codes = commands.get_positive_returncodes(prover)
+            cmd = commands.get_system_command(prover, modules, outfile_stem)
             provers_dict[cmd] = codes
             self.provers[prover] = cmd
         for finder in finders:
-            codes = self.get_posititve_returncodes(finder)
-            cmd = commands.get_system_command(finder, self.imports, outfile_stem)
+            codes = commands.get_positive_returncodes(finder)
+            cmd = commands.get_system_command(finder, modules, outfile_stem)
             finders_dict[cmd] = codes
             self.finders[finder] = cmd
         
         return (provers_dict, finders_dict)
             
+                
+    def get_list_of_nonlogical_symbols (self):
+        """returns a simple list of nonlogical symbols without additional information.
+        This is different from self.nonlogical_symbols, which stores additional information about frequency, depth, etc."""
+        s = set([])
+        for m in self.imports:
+            s.update(m.get_nonlogical_symbols())
+        return s
+      
     
-    def get_posititve_returncodes(self,name):
-        return self.get_returncodes(name)
     
-    def get_unknown_returncodes(self,name):
-        return self.get_returncodes(name, type="unknown_returncode")
+    def run_simple_consistency_check (self, module_name = None, modules = None, options_files = None):
+        """ test the input for consistency by trying to find a model or an inconsistency."""
+        # want to create a subfolder for the output files
+        outfile_stem = filemgt.get_full_path(self.module_name, 
+                                            folder=filemgt.read_config('output','folder')) 
         
-    def get_returncodes(self,name,type="positive_returncode"):
-        codes = filemgt.read_config(name,type).split(',')
-        codes = [ int(s.strip()) for s in codes ]
-        return codes
+        if not module_name:
+            module_name = self.module_name
         
-    
+        if not modules: 
+            modules = self.imports  # use all imports as default set of modules
+        
+        (provers, finders) = self.select_systems(modules, outfile_stem)
+        
+        # run provers and modelfinders simultaneously and wait until one returns
+        (prc, frc) = process.raceProcesses(provers, finders)
+
+        return_value = self.consolidate_results(provers, finders)    
+
+        self.pretty_print_consistency_result(module_name, return_value)
+        
+        return return_value
+
+
+    def run_full_consistency_check (self, modules = None, options_files = None):
+        """ test the input for consistency by trying to find a model or an inconsistency.
+        If consistency is not established, check first individual modules for consistency and then increasingly larger subontologies."""
+
+        if not modules:
+            modules = self.imports
+        
+        # first do simple consistency check
+        return_value = self.run_simple_consistency_check(modules= modules, options_files = options_files)   
+
+        if return_value==-1 or return_value==0:
+            safe_imports = self.get_consistent_modules()
+            if len(safe_imports)==len(modules):
+                print "All modules are consistent."
+                # starting checking increasingly larger subontology, starting with the deepest ontologies first
+                imports = list(modules)
+                max_depth = max([s.get_depth() for s in imports])
+                for reverse_depth in range(max_depth,0,-1):
+                    s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
+                    return_value = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
+                    if return_value==-1:    # this set is inconsistent
+                        print "Found inconsistent subontology."
+                        break                
+
+
+    def get_consistent_module_set (self, modules=None, min_depth=0, max_depth=None):
+        """get a set of all the imported modules that are between (inclusive) certain lower and upper depth levels"""
+        imports = set([])
+
+        if not modules:
+            modules = self.imports
+
+        for m in modules: 
+            if max_depth:
+                if m.get_depth()>=min_depth and m.get_depth()<=max_depth:
+                    imports.add(m)
+            elif m.get_depth()>=min_depth:
+                imports.add(m)
+
+        return imports
+        
+        
+
+    def get_consistent_modules (self):
+        """get a set of all the imported modules that are provably consistent by themselves."""
+        safe_imports = set([])
+
+        for m in self.imports: # check each imported module for consistency
+            m_return_value = self.run_module_consistency_check(m)
+            if m_return_value == -1:
+                self.pretty_print_consistency_result(m.get_simple_module_name(), m_return_value)
+            else:    # keep all imports that are consistent by themselves
+                safe_imports.add(m)
+
+        return safe_imports
+
+
+    def run_module_consistency_check (self,module):
+        """check a single module for consistency."""
+        outfile_stem = filemgt.get_full_path(module.get_simple_module_name(), 
+                                            folder=filemgt.read_config('output','folder')) 
+        
+        (provers, finders) = self.select_systems([module,], outfile_stem)
+        
+        # run provers and modelfinders simultaneously and wait until one returns
+        (prc, frc) = process.raceProcesses(provers, finders)
+
+        return_value = self.consolidate_results(provers, finders)
+        self.pretty_print_consistency_result(module.get_simple_module_name(), return_value)  
+        
+        
+
     def consolidate_results(self, provers_rc, finders_rc):
         """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found
         return values:
@@ -260,39 +358,50 @@ class ClifModuleSet(object):
          
         for finder in self.finders.keys():
             rc = finders_rc[self.finders[finder]]
-            if rc in self.get_posititve_returncodes(finder):
+            if rc in commands.get_positive_returncodes(finder):
                 return_value = 1
-            elif rc not in self.get_unknown_returncodes(finder):
+            elif rc not in commands.get_unknown_returncodes(finder):
                 print finder + ' returned with unknown error code ' + str(rc)
         for prover in self.provers.keys():
             rc = provers_rc[self.provers[prover]]
-            if rc in self.get_posititve_returncodes(prover):
+            if rc in commands.get_positive_returncodes(prover):
                 if not return_value==1:
                     return_value = -1
                 else:
                     return_value == -100 
-            elif rc not in self.get_unknown_returncodes(prover):
+            elif rc not in commands.get_unknown_returncodes(prover):
                 print prover + ' returned with unknown error code ' + str(rc)
     
-        if return_value==-1: return "inconsistent"
-        elif return_value==1: return "consistent"
-        elif return_value==0: return "unknown"
-        else: return "contradiction"
-    
+        return return_value
         
-    def run_consistency_check(self, options_files = None):
-        """ test the input for consistency by trying to find a model or an inconsistency"""
-        if self.run_prover:    
-            # want to create a subfolder for the output files
-            outfile_stem = filemgt.get_full_path(self.module_name, 
-                                                folder=filemgt.read_config('output','folder')) 
-            
-            (provers, finders) = self.select_systems(outfile_stem)
-            
-            # run provers and modelfinders simultaneously and wait until one returns
-            (prc, frc) = process.raceProcesses(provers, finders)
-
-            print self.consolidate_results(provers, finders)    
+    def pretty_print_consistency_result (self, module_name, return_value):
+        if return_value==-1:  s="inconsistent"
+        elif return_value==1: s="consistent"
+        elif return_value==0: s="unknown"
+        else: s="contradiction"
+        print str(module_name) + ": " + s
+        
+        
+#    def check_consistency(self):
+#        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)
+#        if not self.test_heuristics:
+#            # single run
+#            #weights = PredicateWeightHeuristic.predicate_weight_heuristic_occurence_count(predicates_primitive, [])
+#            #weights_file = PredicateWeightHeuristic.create_predicate_weight_file(imported[0][0] + '.weights', weights)
+#            self.weights_file = None
+#            if self.run_prover:
+#                #run_consistency_checks(imported[0][0] + '_oc' , p9_files, [options_file, weights_file])
+#                self.run_consistency_checks(self.imports[0], self.get_p9_files()) 
+#        else:
+#            # testing with multiple heuristics
+#            orders = HeuristicTestSet.get_all_tests(self.imported[0][0], predicates_primitive, None)
+#            if self.run_prover:
+#                print ' ---- EXPERIMENTS ---- '
+#                for order in orders:
+#                    print '----------------------' 
+#                    print '--- TESTCASE: ' + order[0] + ' ---' 
+#                    print '----------------------' 
+#                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
         
        
     def get_ladr_files (self):
@@ -354,29 +463,10 @@ class ClifModuleSet(object):
         self.get_single_ladr_file()
         
         print "CREATED TPTP TRANSLATION: " + self.tptp_file_name
+        
+        self.tptp_file_name = ladr.get_lowercase_tptp_file(self.tptp_file_name, self.get_list_of_nonlogical_symbols())
         return self.tptp_file_name    
 
-    
-#    def check_consistency(self):
-#        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)
-#        if not self.test_heuristics:
-#            # single run
-#            #weights = PredicateWeightHeuristic.predicate_weight_heuristic_occurence_count(predicates_primitive, [])
-#            #weights_file = PredicateWeightHeuristic.create_predicate_weight_file(imported[0][0] + '.weights', weights)
-#            self.weights_file = None
-#            if self.run_prover:
-#                #run_consistency_checks(imported[0][0] + '_oc' , p9_files, [options_file, weights_file])
-#                self.run_consistency_checks(self.imports[0], self.get_p9_files()) 
-#        else:
-#            # testing with multiple heuristics
-#            orders = HeuristicTestSet.get_all_tests(self.imported[0][0], predicates_primitive, None)
-#            if self.run_prover:
-#                print ' ---- EXPERIMENTS ---- '
-#                for order in orders:
-#                    print '----------------------' 
-#                    print '--- TESTCASE: ' + order[0] + ' ---' 
-#                    print '----------------------' 
-#                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
 
 
 #    # delete unnecessary files at the end

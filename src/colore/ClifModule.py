@@ -134,7 +134,7 @@ class ClifModule(object):
 
     @staticmethod
     def compare(x, y):
-        """ Compares two ClifModules to allow to sort them."""
+        """ Compares two ClifModules to sort them first by depth (increasing) and then by name."""
         if x.get_depth() > y.get_depth():
            return 1
         elif x.get_depth() == y.get_depth():
