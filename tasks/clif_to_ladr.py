@@ -1,5 +1,5 @@
 '''
-Created on 2013-03-19
+Created on 2013-03-22
 
 @author: Torsten Hahmann
 '''
@@ -12,6 +12,8 @@ if __name__ == '__main__':
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])
-    print str(m.get_imports())
+    output = m.get_single_ladr_file()
+    #print str(output)
+    #return output
     #m.run_full_consistency_check()
-    m.run_consistency_check_by_subset()
+    #m.run_consistency_check_by_subset()
