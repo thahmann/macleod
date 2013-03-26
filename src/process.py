@@ -53,6 +53,7 @@ def executeSubprocess(command, results = None):
 def terminateSubprocess (process):
 	"""terminate a sub process; needed for downwards compatibility with Python 2.5"""
 	def terminate_win (process):
+		print "Terminating Windows process " + str(process.pid)
 		os.system("taskkill /F /T /PID " + str(process.pid))
 		#value = win32process.TerminateProcess(process._handle, -1)
 #		import win32api
@@ -64,10 +65,13 @@ def terminateSubprocess (process):
 		return value
 
 	def terminate_nix (process):
+		print "Terminating Linux process " + str(process.pid)
 		#os.kill(process.pid, signal.SIGINT)
-		value = os.killpg(process.pid, signal.SIGINT)
-		time.sleep(1.0)
-		return value
+		process.terminate()
+		if process.is_alive():
+			value = os.kill(process.pid, signal.SIGINT)
+			time.sleep(0.5)
+			return value
 
 		#return os.waitpid(process.pid, os.WNOHANG)
 
@@ -153,24 +157,9 @@ def raceProcesses (provers, modelfinders):
 		if success:
 			# terminate all processes that are still active
 			for p in multiprocessing.active_children():
-#				print "Child process state: %d" % p.is_alive()
-# TODO: want to gracefully shut down				
-#				p.terminate()
+				# TODO: want to gracefully shut down
 				time.sleep(1.0)
-#    			if p.is_alive():
-#	       			print "Child process state: %d" % p.is_alive()
-#       			os.kill(p.pid, signal.SIGTERM)
-#       			time.sleep(1.0)
-#       			if p.is_alive():
-#       				os.kill(p.pid, signal.SIGKILL)
-#       				time.sleep(1.0)
-       			os.system("taskkill /F /T /PID " + str(p.pid))
-		       			#os.system("taskkill /im /f")
-#       			import win32api
-#       			PROCESS_TERMINATE = 1
-#       			handle = win32api.OpenProcess(PROCESS_TERMINATE, False, p.pid())
-#       			win32api.TerminateProcess(handle, -1)
-#       			win32api.CloseHandle(handle)
+				terminateSubprocess(p)
 		break
 
 

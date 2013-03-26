@@ -337,11 +337,13 @@ class ClifModuleSet(object):
 
         imports = list(modules)
         # start with the second deepest depth and examine each ontology and its imports
-        max_depth = max([s.get_depth() for s in imports])
+        max_depth = max(0, max([s.get_depth() for s in imports]))
+        print "max_depth=" + str(max_depth)
         for reverse_depth in range(max_depth,0,-1):
             current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
             for i in current_imports:
                 self.run_simple_consistency_check(i.get_simple_module_name(), self.get_import_closure(i))
+        self.run_simple_consistency_check(self.module_name)
             
         
 
