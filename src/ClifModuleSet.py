@@ -41,6 +41,8 @@ class ClifModuleSet(object):
     p9_file_name = ''
     tptp_file_name = ''
     
+    reasoners = []
+    
     provers = {}
     finders = {}
 
@@ -242,38 +244,7 @@ class ClifModuleSet(object):
         print 'all defined predicates: ' + str(self.defined_predicates)
         print 'all functions: ' + str(self.nonskolem_functions)
     
-    
-    def select_systems (self, modules, outfile_stem):
-        """read the activated provers and model finders from the configuration file
-        return values:
-        provers_dict -- a dictionary of all provers to be used with commands as keys and a set of return values as value
-        finders_dict -- a dictionary of all model finders to be used with commands as keys and a set of return values as value
-        """
-        provers_dict = {}
-        finders_dict = {}
-        
-        self.provers = {}
-        self.finders = {}
-        
-        provers = filemgt.read_config('active','provers').split(',')
-        finders = filemgt.read_config('active','modelfinders').split(',')
-        
-        provers = [ s.strip() for s in provers ]
-        finders = [ s.strip() for s in finders ]
-        
-        for prover in provers:
-            codes = commands.get_positive_returncodes(prover)
-            cmd = commands.get_system_command(prover, modules, outfile_stem)
-            provers_dict[cmd] = codes
-            self.provers[prover] = cmd
-        for finder in finders:
-            codes = commands.get_positive_returncodes(finder)
-            cmd = commands.get_system_command(finder, modules, outfile_stem)
-            finders_dict[cmd] = codes
-            self.finders[finder] = cmd
-        
-        return (provers_dict, finders_dict)
-            
+                
                 
     def get_list_of_nonlogical_symbols (self):
         """returns a simple list of nonlogical symbols without additional information.
@@ -297,10 +268,11 @@ class ClifModuleSet(object):
         if not modules: 
             modules = self.imports  # use all imports as default set of modules
         
-        (provers, finders) = self.select_systems(modules, outfile_stem)
+        self.reasoners = ReasonerSet() 
+        self.reasoners.construct_all_commands(modules, outfile_stem)
         
         # run provers and modelfinders simultaneously and wait until one returns
-        (prc, frc) = process.raceProcesses(provers, finders)
+        reasoners = process.raceProcesses(reasoners)
 
         return_value = self.consolidate_results(provers, finders)    
 
@@ -406,7 +378,7 @@ class ClifModuleSet(object):
         
         
 
-    def consolidate_results(self, provers_rc, finders_rc):
+    def consolidate_results(self, reasoners):
         """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found
         return values:
         consistent (-1) -- an inconsistency has been found in the ontology
@@ -415,21 +387,17 @@ class ClifModuleSet(object):
          """
         return_value = 0
          
-        for finder in self.finders.keys():
-            rc = finders_rc[self.finders[finder]]
-            if rc in commands.get_positive_returncodes(finder):
+        for r in reasoners:
+            if not r.is_prover() and r.terminated_successfully:
                 return_value = 1
-            elif rc not in commands.get_unknown_returncodes(finder):
-                print finder + ' returned with unknown error code ' + str(rc)
-        for prover in self.provers.keys():
-            rc = provers_rc[self.provers[prover]]
-            if rc in commands.get_positive_returncodes(prover):
+            elif r.is_prover() and r.terminated_successfully:
                 if not return_value==1:
                     return_value = -1
                 else:
+                    # problem: a proof and a counterexample have been found
                     return_value == -100 
-            elif rc not in commands.get_unknown_returncodes(prover):
-                print prover + ' returned with unknown error code ' + str(rc)
+            elif r.terminated_unknowingly:
+                print finder + ' returned with unknown result, return code ' + str(rc)
     
         return return_value
         
