@@ -1,17 +1,16 @@
 '''
 Created on 2010-11-05
 
-@author: Torsten Hahmann
+@author: torsten
 '''
 
 import sys
-from LADR import LADR
 from VAMPIRE import VAMPIRE
 from ClifModule import ClifModule
-from ColoreFileManager import ColoreFileManager
-import atexit
-import os
-import datetime
+import atexit, os, datetime, filemgt, process, ladr
+
+#from PredicateOrderHeuristic import *
+#from PredicateWeightHeuristic import *
 
 class ColoreProver(object):
 
@@ -21,12 +20,15 @@ class ColoreProver(object):
     irrelevant_clif_symbols = ['cl-text', 'cl-module', 'cl-imports']
     # CLIF quantifiers
     quantifiers = ['forall', 'exists']
-    
 
-      
+    # names of the provers and modelfinders used
+    provers = {}
+    finders = {}
+    
         
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, processing=None):
+
         self.clif = True
         self.run_prover = True
         self.test_heuristics = False
@@ -130,17 +132,15 @@ class ColoreProver(object):
         for f in self.imports:
             prover9args += f.p9_file_name + ' '
         
-        options_file = LADR.get_p9_optionsfile(self.get_module_name(), verbose=False)
+        options_file = ladr.get_p9_optionsfile(self.get_module_name(), verbose=False)
         prover9args += ' ' + options_file + ' '
 
         
         # would be better to create a temporary file or read the output stream directly
-        temp_file = self.get_module_name() + '_order' + ColoreFileManager.OUTPUT_ENDING
+        temp_file = self.get_module_name() + '_order' + filemgt.read_config('ladr','ending')
         prover9args += ' > ' + temp_file
         print prover9args
-        import subprocess
-        p9 = subprocess.Popen(prover9args, shell=True, close_fds=True, preexec_fn=os.setsid)
-        
+        process.createSubprocess(prover9args)
         p9.wait()
         
         order_file = open(temp_file, 'r')
@@ -201,55 +201,92 @@ class ColoreProver(object):
         print 'all defined predicates: ' + str(self.defined_predicates)
         print 'all functions: ' + str(self.nonskolem_functions)
     
+    
+    def select_systems (self, outfile_stem):
+        """read the activated provers and model finders from the configuration file
+        return values:
+        provers_dict -- a dictionary of all provers to be used with commands as keys and a set of return values as value
+        finders_dict -- a dictionary of all model finders to be used with commands as keys and a set of return values as value
+        """
+        provers_dict = {}
+        finders_dict = {}
+        
+        provers = filemgt.read_config('active','provers').split(',')
+        finders = filemgt.read_config('active','modelfinders').split(',')
+        
+        provers = [ s.strip() for s in provers ]
+        finders = [ s.strip() for s in finders ]
+        
+        for prover in provers:
+            codes = self.get_posititve_returncodes(prover)
+            cmd = ladr.get_system_command(prover, self.imports, outfile_stem)
+            provers_dict[cmd] = codes
+            self.provers[prover] = cmd
+        for finder in finders:
+            codes = self.get_posititve_returncodes(finder)
+            cmd = ladr.get_system_command(finder, self.imports, outfile_stem)
+            finders_dict[cmd] = codes
+            self.finders[finder] = cmd
+        
+        return (provers_dict, finders_dict)
+            
+    
+    def get_posititve_returncodes(self,name):
+        return self.get_returncodes(name)
+    
+    def get_unknown_returncodes(self,name):
+        return self.get_returncodes(name, type="unknown_returncode")
+        
+    def get_returncodes(self,name,type="positive_returncode"):
+        codes = filemgt.read_config(name,type).split(',')
+        codes = [ int(s.strip()) for s in codes ]
+        return codes
+        
+    
+    def consolidate_results(self, provers_rc, finders_rc):
+        """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found
+        return values:
+        consistent (-1) -- an inconsistency has been found in the ontology
+        unknown (0) -- unknown result (no model and no inconsistency found)
+        inconsistent (1) -- model found, the ontology is consistent
+         """
+        return_value = 0
+         
+        for finder in self.finders.keys():
+            rc = finders_rc[self.finders[finder]]
+            if rc in self.get_posititve_returncodes(finder):
+                return_value = 1
+            elif rc not in self.get_unknown_returncodes(finder):
+                print finder + ' returned with unknown error code ' + str(rc)
+        for prover in self.provers.keys():
+            rc = provers_rc[self.provers[prover]]
+            if rc in self.get_posititve_returncodes(prover):
+                if not return_value==1:
+                    return_value = -1
+                else:
+                    return_value == -100 
+            elif rc not in self.get_unknown_returncodes(prover):
+                print prover + ' returned with unknown error code ' + str(rc)
+    
+        if return_value==-1: return "inconsistent"
+        elif return_value==1: return "consistent"
+        elif return_value==0: return "unknown"
+        else: return "contradiction"
+    
         
     def run_consistency_check(self, options_files = None):
+        """ test the input for consistency by trying to find a model or an inconsistency"""
         if self.run_prover:    
-            # want to create a subfolder for for the output files
-            out_file_name = ColoreFileManager.get_name_with_subfolder(self.imports[0].module_name, ColoreFileManager.OUTPUT_FOLDER) 
+            # want to create a subfolder for the output files
+            outfile_stem = filemgt.get_name_with_subfolder(self.imports[0].module_name, 
+                                                            filemgt.read_config('output','folder')) 
             
-            ladr = LADR()
+            (provers, finders) = self.select_systems(outfile_stem)
             
-            p9cmd = ladr.get_p9_basic_cmd(self.imports) + ' > ' + out_file_name + LADR.PROVER9_ENDING + ColoreFileManager.OUTPUT_ENDING
-            m4cmd = ladr.get_m4_basic_cmd(self.imports) + ' > ' + out_file_name + LADR.MACE4_ENDING + ColoreFileManager.OUTPUT_ENDING
-            (p9rc, m4rc) = LADR.run_p9_and_m4(p9cmd, m4cmd)
-            if (m4rc == 0) or (m4rc == 3) or (m4rc == 4):
-                print 'consistent'
-                return 'True'
-            elif p9rc == 0:
-                print 'inconsistent'
-                return 'False'
-            elif m4rc == 2:
-                print 'Mace unable to find a model in the given range of domain sizes'
-                return 'Unknown'
-            elif p9rc == 2:
-                print 'Prover9 search exhausted'
-                return 'Unknown'
-            else:
-                print 'search terminated unsuccessfully, returncodes (mace4, prover9): ' + str(m4rc) + ', ' + str(p9rc)
-            return 'Unknown'
-      
-    
-#    def check_consistency(self):
-#        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)
-#        if not self.test_heuristics:
-#            # single run
-#            #weights = PredicateWeightHeuristic.predicate_weight_heuristic_occurence_count(predicates_primitive, [])
-#            #weights_file = PredicateWeightHeuristic.create_predicate_weight_file(imported[0][0] + '.weights', weights)
-#            self.weights_file = None
-#            if self.run_prover:
-#                #run_consistency_checks(imported[0][0] + '_oc' , p9_files, [options_file, weights_file])
-#                self.run_consistency_checks(self.imports[0], self.get_p9_files()) 
-#        else:
-#            # testing with multiple heuristics
-#            orders = HeuristicTestSet.get_all_tests(self.imported[0][0], predicates_primitive, None)
-#            if self.run_prover:
-#                print ' ---- EXPERIMENTS ---- '
-#                for order in orders:
-#                    print '----------------------' 
-#                    print '--- TESTCASE: ' + order[0] + ' ---' 
-#                    print '----------------------' 
-#                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
+            # run provers and modelfinders simultaneously and wait until one returns
+            (prc, frc) = process.raceProcesses(provers, finders)
 
+            print self.consolidate_results(provers, finders)
     
     
     # find minimum necessary axiom sets
@@ -271,21 +308,18 @@ class ColoreProver(object):
         return p9_files
    
 
-    # merge all the axioms into a single Prover9 file   
-    def get_single_p9_file(self):
-        
-        self.p9_file_name = ColoreFileManager.get_name_with_subfolder(self.imports[0].module_name, LADR.P9_FOLDER, '.all' + LADR.PROVER9_ENDING)
-        LADR.get_single_p9file (self.get_p9_files(), self.p9_file_name, self.special_symbols)
-       
-        
     # translate the module and all imported modules (Common Logic files) to a single TPTP file
     def get_single_tptp_file (self, number=0):
         
-        self.get_single_p9_file()
-        if number==0:
-            self.tptp_file_name = ColoreFileManager.get_name_with_subfolder(self.imports[0].module_name, TPTP.TPTP_FOLDER, '.all.tptp')
-        else:
-            self.tptp_file_name = ColoreFileManager.get_name_with_subfolder(self.imports[0].module_name, TPTP.TPTP_FOLDER, '_' + str(number) + '.all.tptp')
+        single_p9_file = ladr.get_single_p9_file(get_module_name)
+        ending = ''
+        if not number==0:
+            ending = '_' + str(number)
+
+        self.tptp_file_name = filemgt.get_name_with_subfolder(self.imports[0].module_name,
+                                                              filemgt.read_config('tptp','folder'),
+                                                              ending + filemgt.read_config('tptp','all_ending'))
+        
         TPTP.ladr_to_tptp(self.p9_file_name, self.tptp_file_name)
  
  
@@ -312,7 +346,9 @@ class ColoreProver(object):
             print 'Trying to prove ' + self.tptp_file_name  
             print '--------------------------------------' 
 
-            vampire_lemma_file_name = ColoreFileManager.get_name_with_subfolder(lemma_name, ColoreFileManager.OUTPUT_FOLDER, '_' + str(i)+ VAMPIRE.VAMPIRE_ENDING + + ColoreFileManager.OUTPUT_ENDING)
+            vampire_lemma_file_name = filemgt.get_name_with_subfolder(lemma_name, 
+                                                                      read_config('output','folder'), 
+                                                                      '_' + str(i)+ read_config('vampire','ending'),)
             # vampire command (appending to output file)
             vampire_cmd = vampire.get_vampire_basic_cmd(self.tptp_file_name) + ' >> ' + vampire_lemma_file_name
             print vampire_cmd
@@ -332,43 +368,71 @@ class ColoreProver(object):
  
     # attempt to prove a single sentence from the axioms 
     def run_lemma(self, lemma_name, lemma_file, output_file_infix =''):
-                    
-#        if len(output_file_infix)>0:
-#            output_file_infix += '.'
-        ladr = LADR()
-           
-        p9_lemma_file_name = ColoreFileManager.get_name_with_subfolder(lemma_name, ColoreFileManager.OUTPUT_FOLDER, output_file_infix + LADR.PROVER9_ENDING + ColoreFileManager.OUTPUT_ENDING)
-        p9cmd = ladr.get_p9_basic_cmd(self.imports) + lemma_file + ' > ' + p9_lemma_file_name
+                              
+        p9_lemma_file_name = filemgt.get_name_with_subfolder(lemma_name, 
+                                                            read_config('output','folder'), 
+                                                            output_file_infix + read_config('prover9','ending'))
+        p9cmd = ladr.get_p9_cmd(self.imports) + lemma_file + ' > ' + p9_lemma_file_name
         print p9cmd
     
-        m4_lemma_file_name = ColoreFileManager.get_name_with_subfolder(lemma_name, ColoreFileManager.OUTPUT_FOLDER, output_file_infix + LADR.MACE4_ENDING + ColoreFileManager.OUTPUT_ENDING)
-        m4cmd = ladr.get_m4_basic_cmd(self.imports) + lemma_file + ' > ' + m4_lemma_file_name
+        m4_lemma_file_name = filemgt.get_name_with_subfolder(lemma_name, 
+                                                            read_config('output','folder'), 
+                                                            output_file_infix + read_config('mace4','ending'))
+        m4cmd = ladr.get_m4_cmd(self.imports) + lemma_file + ' > ' + m4_lemma_file_name
         print m4cmd
         
         # run both prover9 and mace4 simultaneously and wait until one returns
-        (p9rc, m4rc) = LADR.run_p9_and_m4(p9cmd, m4cmd)
-        if m4rc == 0:
+        provers = {p9cmd: {0,101,102}}
+        finders = {m4cmd: {0,3,4,101,102}}
+        
+        # run both prover9 and mace4 simultaneously and wait until one returns
+        (prc, frc) = process.raceProcesses(provers, finders)
+
+        if frc['mace4'] == 0:
             print 'Counterexample found'
             return False
-        elif p9rc == 0:
+        elif prc['prover9'] == 0:
             print 'Lemma proved'
             return True
-        elif m4rc == 2:
+        elif frc['mace4'] == 2:
             print 'Mace unable to find a counterexample in the given range of domain sizes'
             return None
-        elif p9rc == 2:
+        elif prc['prover9'] == 2:
             print 'Prover9 unable to construct a proof'
             return None
         else:
             print 'result unknown; returncodes (mace4, prover9): '
-            print m4rc
-            print p9rc
+            print frc['mace4']
+            print prc['prover9']
             return None
     
     def write_lemma_summary(self, lemma_results):
         #TODO
         return
         
+    
+    
+#    def check_consistency(self):
+#        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)
+#        if not self.test_heuristics:
+#            # single run
+#            #weights = PredicateWeightHeuristic.predicate_weight_heuristic_occurence_count(predicates_primitive, [])
+#            #weights_file = PredicateWeightHeuristic.create_predicate_weight_file(imported[0][0] + '.weights', weights)
+#            self.weights_file = None
+#            if self.run_prover:
+#                #run_consistency_checks(imported[0][0] + '_oc' , p9_files, [options_file, weights_file])
+#                self.run_consistency_checks(self.imports[0], self.get_p9_files()) 
+#        else:
+#            # testing with multiple heuristics
+#            orders = HeuristicTestSet.get_all_tests(self.imported[0][0], predicates_primitive, None)
+#            if self.run_prover:
+#                print ' ---- EXPERIMENTS ---- '
+#                for order in orders:
+#                    print '----------------------' 
+#                    print '--- TESTCASE: ' + order[0] + ' ---' 
+#                    print '----------------------' 
+#                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
+
 
     # delete unnecessary files at the end
     def cleanup(self):
@@ -383,7 +447,7 @@ class ColoreProver(object):
 
     def print_help(self):
         print 'Ontology tool suite for ontology verification in COLORE:'
-        print 'Copyright 2010-2013: Torsten Hahmann'
+        print 'Copyright 2010-2012: Torsten Hahmann'
         print '----------'
         print '----------'
         print ''
@@ -475,6 +539,7 @@ if __name__ == '__main__':
             source_name = options[0]
             del options[0]
             cp.set_module_name(source_name)
+            # create a second instance of the ColoreProver to check consistency first
             cp_con = ColoreProver()
             cp_con.set_module_name(source_name)
             cp_con.prepare()
@@ -487,9 +552,9 @@ if __name__ == '__main__':
         cp.processing.remove((module, depth))
         cp.imports.append(m)
 
-        cp.get_single_p9_file()
+        LADR.get_single_p9_file(cp.get_module_name())
         
-        (sentences_names, sentences_files) = ColoreFileManager.get_individual_sentences(cp.imports[0].module_name,cp.p9_file_name)
+        (sentences_names, sentences_files) = ladr.get_individual_p9_sentences(cp.imports[0].module_name,cp.p9_file_name)
 
         print cp.processing
 
@@ -571,10 +636,10 @@ if __name__ == '__main__':
                     target_cp.special_symbols.append((value[0],value[1]))
 
         # construct a single p9 files from the target axiomatization
-        target_cp.get_single_p9_file()
+        LADR.get_single_p9_file(target_cp.get_module_name())
         
         # TODO: this may not work correctly (wrong number of lemmas to prove)
-        (sentences_names, sentences_files) = target_cp.cfm.get_individual_sentences(target_name,target_cp.p9_file_name)
+        (sentences_names, sentences_files) = ladr.get_individual_p9_sentences(target_name,target_cp.p9_file_name)
 
         for i in range(len(sentences_files)):
             print '--------------------------------------' 
@@ -618,9 +683,9 @@ if __name__ == '__main__':
         cp.processing.remove((module, depth))
         cp.imports.append(m)
 
-        cp.get_single_p9_file()
+        LADR.get_single_p9_file(cp.get_module_name())
         
-        (sentences_names, sentences_files) = cp.cfm.get_individual_sentences(cp.imports[0].module_name,cp.p9_file_name)
+        (sentences_names, sentences_files) = ladr.get_individual_p9_sentences(cp.imports[0].module_name,cp.p9_file_name)
         
         #print len(sentences_names)
         

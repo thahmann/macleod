@@ -315,7 +315,11 @@ class ClifModuleSet(object):
             current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
             for i in current_imports:
                 self.run_simple_consistency_check(i.get_simple_module_name(), self.get_import_closure(i))
+<<<<<<< HEAD
         #self.run_simple_consistency_check(self.module_name)
+=======
+        self.run_simple_consistency_check(self.module_name)
+>>>>>>> refs/remotes/origin/master
             
         
 
