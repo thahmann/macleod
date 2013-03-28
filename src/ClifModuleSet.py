@@ -6,8 +6,9 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 '''
 
 import sys
-from ClifModule import ClifModule
-import os, datetime, filemgt, process, commands
+from src import *
+from src.ReasonerSet import * 
+import os, datetime
 #import atexit
 
 
@@ -269,12 +270,12 @@ class ClifModuleSet(object):
             modules = self.imports  # use all imports as default set of modules
         
         self.reasoners = ReasonerSet() 
-        self.reasoners.construct_all_commands(modules, outfile_stem)
+        self.reasoners.constructAllCommands(modules, outfile_stem)
         
         # run provers and modelfinders simultaneously and wait until one returns
-        reasoners = process.raceProcesses(reasoners)
+        self.reasoners = process.raceProcesses(self.reasoners)
 
-        return_value = self.consolidate_results(provers, finders)    
+        return_value = self.consolidate_results(self.reasoners)    
 
         if len(modules)==0:
             self.pretty_print_consistency_result(module_name + " (without imports)", return_value)
@@ -390,15 +391,15 @@ class ClifModuleSet(object):
         return_value = 0
          
         for r in reasoners:
-            if not r.is_prover() and r.terminated_successfully:
+            if not r.isProver() and r.terminatedSuccessfully:
                 return_value = 1
-            elif r.is_prover() and r.terminated_successfully:
+            elif r.isProver() and r.terminatedSuccessfully:
                 if not return_value==1:
                     return_value = -1
                 else:
                     # problem: a proof and a counterexample have been found
                     return_value == -100 
-            elif r.terminated_unknowingly:
+            elif r.terminatedUnknowingly:
                 print finder + ' returned with unknown result, return code ' + str(rc)
     
         return return_value

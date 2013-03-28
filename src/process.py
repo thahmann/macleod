@@ -1,4 +1,5 @@
-import os, signal, time, subprocess, process
+import os, signal, time, subprocess
+import process
 from multiprocessing import Queue
 
 def startSubprocess(command):
@@ -54,14 +55,14 @@ def terminateSubprocess (process):
 	"""terminate a sub process; needed for downwards compatibility with Python 2.5"""
 	def terminate_win (process):
 		print "Terminating Windows process " + str(process.pid)
-		os.system("taskkill /F /T /PID " + str(process.pid))
+		value = os.system("taskkill /F /T /PID " + str(process.pid))
 		#value = win32process.TerminateProcess(process._handle, -1)
 #		import win32api
 #		PROCESS_TERMINATE = 1
 #		handle = win32api.OpenProcess(PROCESS_TERMINATE, False, process.pid)
 #		win32api.TerminateProcess(handle, -1)
 #		win32api.CloseHandle(handle)
-		time.sleep(1.0)
+		time.sleep(0.5)
 		return value
 
 	def terminate_nix (process):
@@ -116,11 +117,11 @@ def raceProcesses (reasoners):
 	results = Queue()
 	
 	# start all processess
-	for r in reasoners.get_reasoners():
+	for r in reasoners:
 		#print 'Creating subprocess for ' + r
 		#proverDict[i] = r
 		# TODO: need a separate class for the execute method in order to gracefully shut it down
-		p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.get_command(),results,))
+		p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.getCommand(),results,))
 		p.start()
 		time.sleep(0.1)
 		reasonerProcesses.append(p)
@@ -143,10 +144,11 @@ def raceProcesses (reasoners):
 			#print str(name) + " returned with " + str(code)
 			
 			#print name + " finished; positive returncodes are " + str(provers[name])
-			reasoners[name].return_code = code
-			if code in reasoners[name].positive_returncodes:
+			r = reasoners.getByCommand(name)
+			r.return_code = code
+			if code in r.positive_returncodes:
 				success = True
-				if reasoners[name].is_prover():
+				if r.isProver():
 					print name + " found an proof/inconsistency"
 				else:
 					print name + " found a counterexample/model"

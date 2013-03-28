@@ -3,7 +3,8 @@ Created on 2010-11-26
 
 @author: Torsten Hahmann
 '''
-import os, subprocess, time, process, filemgt, commands
+import os, subprocess, time
+import process, filemgt, commands
 
 options_files = []
 

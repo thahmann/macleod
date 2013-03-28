@@ -1,18 +1,29 @@
 from src import *
+from src.Reasoner import *
 
-
-class ReasonerSet (Object):
-
-    """ set of reasoners """
-    reasoners = []
+class ReasonerSet (list):  
+    """ list of reasoners """
 
     # initialize
     def __init__(self):
+        list.__init__(self)
         self.detect_systems()
 
+#    def __getitem__(self, key):
+#        return list.__getitem__(self, key-1)
 
-    def get_reasoners (self):
-        return self.reasoners
+#    def __iter__(self):
+#        return self
+# 
+#    def next(self):
+#        if self.index >= len(self.reasoners):
+#            raise StopIteration
+#        else:
+#            self.index += 1
+#            return self.reasoners[self.index-1]
+
+#    def get_reasoners (self):
+#        return self.reasoners
 
     def detect_systems (self):
         """Read the active provers from the configuration file."""
@@ -28,19 +39,19 @@ class ReasonerSet (Object):
 
         for prover in provers:
             r = Reasoner(prover)
-            self.reasoners.append(r)
+            self.append(r)
 #            self.provers[prover] = None
         for finder in finders:
             r = Reasoner(finder, type=Reasoner.MODEL_FINDER)
-            self.reasoners.append(r)
+            self.append(r)
 #            self.finders[finder] = None
         
         return True
       
       
-    def construct_all_commands (self, modules, outfile_stem):
-        for r in self.reasoners:
-            r.construct_command(modules, outfile_stem)  
+    def constructAllCommands (self, modules, outfile_stem):
+        for r in self:
+            r.constructCommand(modules, outfile_stem)  
 #
 #    def construct_commands (self, modules, outfile_stem):
 #        """construct the commands for all active provers and model finders."""
@@ -63,17 +74,28 @@ class ReasonerSet (Object):
 #        
 #        return True
     
+    def getByName (self, name):
+        for i in range(0,len(self)):
+            if self[i].name == name: return self[i]
+        return None
+    
+    def getByCommand (self, command):
+        for i in range(0,len(self)):
+            if self[i].command == command: return self[i]
+        return None
+    
+    
     def getProvers (self):
-        provers = self.reasoners
+        provers = self
         for p in provers:
-            if not p.is_prover():
+            if not p.isProver():
                 provers.remove(p)
         return provers
     
     def getFinders (self):
-        finders = self.reasoners
+        finders = self
         for f in finders:
-            if f.is_prover():
+            if f.isProver():
                 finders.remove(f)
         return finders
     
@@ -92,3 +114,13 @@ class ReasonerSet (Object):
 #            return codes
 #        else:
 #            return self.finders_codes.get(name)
+
+if __name__ == '__main__':
+    rs = ReasonerSet()
+    m = ClifModule("dim\dim_basic.clif",0)
+    rs.constructAllCommands([m,], "dim\dim_basic")
+    print "ReasonerSet contains the following reasoners:"
+    for r in rs:
+        print r.name + " -- " + r.command
+    
+    

@@ -10,7 +10,7 @@ class Reasoner (object):
     
     name = ''
     
-    type = Reasoner.PROVER
+    type = PROVER
     
     command = ''
     
@@ -33,8 +33,8 @@ class Reasoner (object):
             self.identifier = id
         else:
             self.identifier = name
-        self.positive_returncodes = commands.get_positive_returncodes(r)
-        self.unknown_returncodes = commands.get_unknown_returncodes(r)
+        self.positive_returncodes = commands.get_positive_returncodes(self.name)
+        self.unknown_returncodes = commands.get_unknown_returncodes(self.name)
         self.return_code = None
 
     def __eq__ (self, other):
@@ -48,36 +48,36 @@ class Reasoner (object):
     def __ne__ (self, other):
         return not self.eq(other)
 
-    def construct_command (self, modules, outfile_stem):
+    def constructCommand (self, modules, outfile_stem):
         """Construct the command to invoke the reasoner."""
         self.modules = modules
         self.outfile_stem = outfile_stem
         self.command = commands.get_system_command(self.name, self.modules, self.outfile_stem)
         return self.command
     
-    def get_command (self, modules=None, outfile_stem=None):
+    def getCommand (self, modules=None, outfile_stem=None):
         """Return the command (includes constructing it if necessary) to invoke the reasoner."""
         if not modules:
             return self.command
         else:
             return self.construct_command(modules, outfile_stem)
 
-    def is_prover (self):
-        if self.type==Reasoner.PROVER: return true
-        else: return false
+    def isProver (self):
+        if self.type==Reasoner.PROVER: return True
+        else: return False
         
-    def terminated_successfully (self):
+    def terminatedSuccessfully (self):
         if self.return_code:
             if self.return_code in self.positive_returncodes:
                 return true
         return false
             
-    def terminated_unknowingly (self):
+    def terminatedUnknowingly (self):
         if self.return_code:
             if self.return_code in self.unknown_returncodes:
                 return true
         return false
         
             
-    def is_done (self):
+    def isDone (self):
         return self.return_code
