@@ -4,10 +4,12 @@ Refactored on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, filemgt, process, clif, commands
+import os, filemgt, process, clif, commands, ladr
 
 class ClifModule(object):
 
+    module_set = None
+    
     module_name = ''
     
     depth = 0
@@ -24,6 +26,8 @@ class ClifModule(object):
     clif_processed_file_name = ''
     
     p9_file_name = None
+    
+    tptp_file_name = None
     
     # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
     nonlogical_symbols = set([])
@@ -118,7 +122,6 @@ class ClifModule(object):
     # extract all nonlogical symbols (predicate and function symbols) from the preprocessed clif file
     def compute_nonlogical_symbols (self,input_file_name):
         
-
         cl_file = open(input_file_name, 'r')
         line = cl_file.readline()
         while line:
@@ -155,6 +158,19 @@ class ClifModule(object):
             print "CREATED LADR TRANSLATION: " + self.p9_file_name
              
         return self.p9_file_name
+
+    def get_tptp_file_name (self):
+        """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
+        self.get_p9_file_name()
+        
+        if not self.tptp_file_name:
+            self.tptp_file_name =  filemgt.get_full_path(self.module_name, 
+                                                       folder=filemgt.read_config('tptp','folder'), 
+                                                       ending=filemgt.read_config('tptp','ending'))
+            
+            ladr.translate_to_tptp_file(self.p9_file_name, self.tptp_file_name, self.nonlogical_symbols)
+             
+        return self.tptp_file_name
     
         
 if __name__ == '__main__':

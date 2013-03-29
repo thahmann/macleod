@@ -1,6 +1,46 @@
-import os, ladr, filemgt
+import os, ladr, filemgt, commands, process
 
 replaced = False
+
+def translate_to_tptp_file (input_file, output_file, symbols = None):
+    # hack: replace iff's (<->) by <- to do a correct windows translation; revert it afterwards
+    replace_equivalences(input_file)
+    
+    # convert LADR file to lower case, only temporarily for TPTP translation
+    file = open(input_file, 'r')
+    text = file.readlines()
+    file.close()
+    temp_file = input_file +'.tmp'
+    file = open(temp_file, 'w')
+    text = [s.strip().lower() for s in text]
+    newtext = []
+    for s in text:
+        if len(s)>0: newtext.append(s+'\n')
+    newtext = comment_imports(newtext)
+    file.writelines(newtext)
+    file.close()
+    
+    cmd = commands.get_ladr_to_tptp_cmd(temp_file, output_file)
+    
+    process.executeSubprocess(cmd)  
+
+    #delete temp file
+    if os.path.exists(temp_file) and os.path.isfile(temp_file):
+        os.remove(temp_file)
+
+    number_tptp_axioms(output_file)
+
+    # complete hack
+    replace_equivalences_back(output_file)
+
+    if symbols:
+        get_lowercase_tptp_file(output_file, symbols)
+
+    print "CREATED TPTP TRANSLATION: " + output_file
+    
+    return output_file
+
+
 
 def cumulate_ladr_files (input_files, output_file):    
     """write all axioms from a set of p9 files to a single file without any change in the content itself except for the replacement of certain symbols"""
@@ -76,6 +116,7 @@ def get_lowercase_tptp_file (tptp_file, nonlogical_symbols):
     out_file = open(tptp_file, 'w+')
     out_file.write(text)
     out_file.close()
+    return out_file
 
 
 def replace_equivalences(ladr_file):

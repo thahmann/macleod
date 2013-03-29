@@ -1,23 +1,22 @@
 '''
-Created on 2013-03-22
+Created on 2013-03-28
 
 @author: Torsten Hahmann
 '''
 
 import sys
-from src.ClifModuleSet import ClifModuleSet
+from src import *
 
 if __name__ == '__main__':
-    import sys
     # global variables
     options = sys.argv
     options.reverse()
     options.pop()
     m = ClifModuleSet(options.pop())
-
+       
     if '-cumulate' in options:
         # translate into a single tptp file
-        file = m.get_single_ladr_file()
+        file = m.get_single_tptp_file()
         print ""
         print "+++++++++++++++++++++"
         print "Files created:"
@@ -25,7 +24,7 @@ if __name__ == '__main__':
         print file
         print "+++++++++++++++++++++"
     else:
-        files = m.get_ladr_files()
+        files = m.get_tptp_files()
         print ""
         print "+++++++++++++++++++++"
         print "Files created:"
@@ -33,4 +32,4 @@ if __name__ == '__main__':
         for file in files:
             print file
         print "+++++++++++++++++++++"
-   
+

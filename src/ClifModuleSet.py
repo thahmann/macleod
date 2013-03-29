@@ -44,13 +44,11 @@ class ClifModuleSet(object):
     
     reasoners = []
     
-    provers = {}
-    finders = {}
-
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
         
         m = ClifModule(name,0)
+        m.module_set = self
         self.imports.add(m)
         self.module_name=m.get_simple_module_name()
 
@@ -58,7 +56,7 @@ class ClifModuleSet(object):
 
         while len(self.unprocessed_imports)>0:
             m = ClifModule(self.unprocessed_imports.pop(),0)
-            
+            m.module_set = self
             # Link the module to all its parents
             for cm in self.imports:
                 if m.get_simple_module_name() in cm.get_imports():
@@ -443,58 +441,37 @@ class ClifModuleSet(object):
    
     def get_single_ladr_file (self):
         """get the ClifModuleSet as a single file in LADR syntax."""
-        import ladr
         p9_files = self.get_ladr_files()
 
         self.p9_file_name = filemgt.get_full_path(self.module_name, 
                                            folder=filemgt.read_config('ladr','folder'), 
                                            ending=filemgt.read_config('ladr','all_ending'))
+        #print "FILE NAME:" + self.p9_file_name
         # TODO: need to initialize self.replaceable_symbols
-        ladr.cumulate_ladr_files(p9_files, self.p9_file_name)
-        print "CREATED LADR TRANSLATION: " + self.p9_file_name
+        self.p9_file_name = ladr.cumulate_ladr_files(p9_files, self.p9_file_name)
+        print "CREATED SINGLE LADR TRANSLATION: " + self.p9_file_name
         return self.p9_file_name
    
 
+    def get_tptp_files (self):
+        """ get a list of translations of all associated ClifModules in TPTP syntax."""
+        tptp_files = []
+        for m in self.imports:
+            tptp_files.append(m.get_tptp_file_name())
+        return tptp_files
+    
+
     def get_single_tptp_file (self):
         """translate the module and all imported modules to a single TPTP file. Uses the LADR format as intermediate step."""
-        import ladr
-
         self.get_single_ladr_file()
-
-        # hack: replace iff's (<->) by <- to do a correct windows translation; revert it afterwards
-        ladr.replace_equivalences(self.p9_file_name)
-        
-        # convert LADR file to lower case, only temporarily for TPTP translation
-        file = open(self.p9_file_name, 'r')
-        text = file.readlines()
-        file.close()
-        file = open(self.p9_file_name, 'w')
-        text = [s.strip().lower() for s in text]
-        newtext = []
-        for s in text:
-            if len(s)>0: newtext.append(s+'\n')
-        file.writelines(newtext)
-        file.close()
-        #print "".join(newtext)
 
         self.tptp_file_name = filemgt.get_full_path(self.module_name,
                                                     folder=filemgt.read_config('tptp','folder'),
                                                     ending=filemgt.read_config('tptp','all_ending'))
-        
-        cmd = commands.get_ladr_to_tptp_cmd(self.p9_file_name, self.tptp_file_name)
-        process.executeSubprocess(cmd)  
 
-        ladr.number_tptp_axioms(self.tptp_file_name)
 
-        # complete hack
-        ladr.replace_equivalences_back(self.tptp_file_name)
+        ladr.translate_to_tptp_file(self.p9_file_name, self.tptp_file_name, self.get_list_of_nonlogical_symbols())
 
-        # restore LADR file with proper case and equivalences
-        self.get_single_ladr_file()
-        
-        print "CREATED TPTP TRANSLATION: " + self.tptp_file_name
-        
-        self.tptp_file_name = ladr.get_lowercase_tptp_file(self.tptp_file_name, self.get_list_of_nonlogical_symbols())
         return self.tptp_file_name    
 
 

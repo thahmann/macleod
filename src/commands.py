@@ -71,12 +71,13 @@ def get_m4_cmd (imports,output_stem):
     return cmd + ' > ' + output_stem + filemgt.read_config('mace4','ending')
 
 
-def get_paradox_cmd (imports,ouput_stem):
+def get_paradox_cmd (imports,output_stem):
+    """ we only care about the first element in the list of imports, which indicates the ontology"""
     cmd = (filemgt.read_config('paradox','command') +
                   ' --verbose 2 --model --tstp ' +
-                  imports[0].tptp_file_name)
-        
-    return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
+                  imports[0].get_tptp_file_name())
+    return cmd   
+    #return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
 
 
 def get_vampire_cmd (imports,ouput_stem):
