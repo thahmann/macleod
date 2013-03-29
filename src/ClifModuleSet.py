@@ -8,7 +8,7 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 import sys
 from src import *
 from src.ReasonerSet import * 
-import os, datetime
+import os, datetime, logging
 #import atexit
 
 
@@ -47,6 +47,10 @@ class ClifModuleSet(object):
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
         
+        filemgt.start_logging()
+        
+        logging.getLogger(__name__).info("Creating ClifModuleSet " + name)
+
         m = ClifModule(name,0)
         m.module_set = self
         self.imports.add(m)
@@ -67,7 +71,7 @@ class ClifModuleSet(object):
             # add all the names of imported modules that have not yet been processed
             new_imports = set(m.get_imports()) - set([i.get_simple_module_name() for i in self.imports])
             for i in new_imports:
-                print '|-- imports: ' + m.get_simple_module_name(i) + ' (depth ' + str(m.get_depth()+1) + ')'
+                logging.getLogger(__name__).info('|-- imports: ' + m.get_simple_module_name(i) + ' (depth ' + str(m.get_depth()+1) + ')')
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
@@ -126,7 +130,7 @@ class ClifModuleSet(object):
         import_names = set([])  # list of the names of modules directly or indirectly imported by module
         imports = set([module,])   # list of modules directly or indirectly imported by module
         new_imports = set(module.get_imports()) # list of the names of modules directly imported by module
-        #print "direct imports: " + str(new_imports)
+        logging.getLogger(__name__).debug("new direct imports: " + str(new_imports))
         while len(new_imports)>0:
             name = new_imports.pop()
             i = self.get_import_by_name(name)
@@ -181,7 +185,7 @@ class ClifModuleSet(object):
         # would be better to create a temporary file or read the output stream directly
         temp_file = self.get_module_name() + '_order' + filemgt.read_config('ladr','ending')
         prover9args += ' > ' + temp_file
-        print prover9args
+        logging.getLogger(__name__).debug(prover9args)
         process.createSubprocess(prover9args)
         p9.wait()
         
@@ -239,9 +243,9 @@ class ClifModuleSet(object):
                 if predicate not in functions:
                     self.defined_predicates.append([predicate, count, depth_min, depth_max])
         
-        print 'all primitive predicates: ' + str(self.primitive_predicates)
-        print 'all defined predicates: ' + str(self.defined_predicates)
-        print 'all functions: ' + str(self.nonskolem_functions)
+        logging.getLogger(__name__).debug("all primitive predicates of " + self.module_name  + " : " + str(self.primitive_predicates))
+        logging.getLogger(__name__).debug( "all defined predicates " + self.module_name  + " : " +  str(self.defined_predicates))
+        logging.getLogger(__name__).debug( "all defined predicates " + self.module_name  + " : " + str(self.nonskolem_functions))
     
                 
                 
@@ -296,7 +300,7 @@ class ClifModuleSet(object):
         if return_value==-1 or return_value==0:
             safe_imports = self.get_consistent_modules()
             if len(safe_imports)==len(modules):
-                print "All modules are consistent."
+                logging.getLogger(__name__).info("All modules of " + self.module_name + " are consistent.")
                 # starting checking increasingly larger subontology, starting with the deepest ontologies first
                 #self.run_consistency_check_by_depth()
                 self.run_consistency_check_by_subset()
@@ -309,7 +313,7 @@ class ClifModuleSet(object):
         imports = list(modules)
         # start with the second deepest depth and examine each ontology and its imports
         max_depth = max(0, max([s.get_depth() for s in imports]))
-        print "max_depth=" + str(max_depth)
+        ng.getLogger(__name__).debug("Consistency check by subset; max_depth=" + str(max_depth))
         for reverse_depth in range(max_depth,0,-1):
             current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
             for i in current_imports:
@@ -327,7 +331,7 @@ class ClifModuleSet(object):
             s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
             return_value = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
             if return_value==-1:    # this set is inconsistent
-                print "Found inconsistent subontology."
+                logging.getLogger(__name__).info("Found inconsistent subontology.")
                 break                
         
 
@@ -398,7 +402,7 @@ class ClifModuleSet(object):
                     # problem: a proof and a counterexample have been found
                     return_value == -100 
             elif r.terminatedUnknowingly:
-                print finder + ' returned with unknown result, return code ' + str(rc)
+                logging.getLogger(__name__).debug(finder + ' returned with unknown result, return code ' + str(rc))
     
         return return_value
         
@@ -449,7 +453,7 @@ class ClifModuleSet(object):
         #print "FILE NAME:" + self.p9_file_name
         # TODO: need to initialize self.replaceable_symbols
         self.p9_file_name = ladr.cumulate_ladr_files(p9_files, self.p9_file_name)
-        print "CREATED SINGLE LADR TRANSLATION: " + self.p9_file_name
+        logging.getLogger(__name__).info("CREATED SINGLE LADR TRANSLATION: " + self.p9_file_name)
         return self.p9_file_name
    
 
@@ -495,6 +499,7 @@ class ClifModuleSetError(Exception):
     def __init__(self, value, output=[]):
         self.value = value
         self.output = output
+        logging.getLogger(__name__).error(repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output))))
     def __str__(self):
         return repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output)))
 

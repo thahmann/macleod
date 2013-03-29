@@ -1,12 +1,11 @@
-import os, signal, time, subprocess
+import os, signal, time, subprocess, logging
 import process
 from multiprocessing import Queue
 
 def startSubprocess(command):
 	"""Start a new subprocess, but does not wait for the subprocess to complete. 
 	This method uses the os.setsid in Linux, which is not available in Windows"""
-	print("---")
-	print("STARTING: " + command)
+	logging.getLogger(__name__).info("STARTING: " + command)
 	if os.name == 'nt':
 		# Windows
 		p = subprocess.Popen(command, shell=True, close_fds=True)
@@ -41,8 +40,7 @@ def executeSubprocess(command, results = None):
 	if p.returncode==0:
 		# give a bit of time to finish the command line output
 		time.sleep(0.1)
-		print("FINISHED: " + command)
-		print("---")
+		logging.getLogger(__name__).info("FINISHED: " + command)
 		if results:
 			results.put((command, p.returncode))
 			return
@@ -54,7 +52,7 @@ def executeSubprocess(command, results = None):
 def terminateSubprocess (process):
 	"""terminate a sub process; needed for downwards compatibility with Python 2.5"""
 	def terminate_win (process):
-		print "Terminating Windows process " + str(process.pid)
+		logging.getLogger(__name__).debug("Terminating Windows process " + str(process.pid))
 		value = os.system("taskkill /F /T /PID " + str(process.pid))
 		#value = win32process.TerminateProcess(process._handle, -1)
 #		import win32api
@@ -66,7 +64,7 @@ def terminateSubprocess (process):
 		return value
 
 	def terminate_nix (process):
-		print "Terminating Linux process " + str(process.pid)
+		logging.getLogger(__name__).debug("Terminating Linux process " + str(process.pid))
 		#os.kill(process.pid, signal.SIGINT)
 		process.terminate()
 		if process.is_alive():
@@ -149,9 +147,9 @@ def raceProcesses (reasoners):
 			if code in r.positive_returncodes:
 				success = True
 				if r.isProver():
-					print name + " found an proof/inconsistency"
+					logging.getLogger(__name__).info(name + " found an proof/inconsistency")
 				else:
-					print name + " found a counterexample/model"
+					logging.getLogger(__name__).info(name + " found a counterexample/model")
 				
 					
 		if success:

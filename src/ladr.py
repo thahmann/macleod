@@ -1,4 +1,4 @@
-import os, ladr, filemgt, commands, process
+import os, logging, ladr, filemgt, commands, process
 
 replaced = False
 
@@ -36,7 +36,7 @@ def translate_to_tptp_file (input_file, output_file, symbols = None):
     if symbols:
         get_lowercase_tptp_file(output_file, symbols)
 
-    print "CREATED TPTP TRANSLATION: " + output_file
+    logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + output_file)
     
     return output_file
 
@@ -46,7 +46,7 @@ def cumulate_ladr_files (input_files, output_file):
     """write all axioms from a set of p9 files to a single file without any change in the content itself except for the replacement of certain symbols"""
     special_symbols = filemgt.get_tptp_symbols()
     
-    print str(special_symbols)
+    logging.getLogger(__name__).debug("Special symbols: " + str(special_symbols))
     
     filemgt.read_config('converters','clif-to-prover9')
     
@@ -99,7 +99,7 @@ def get_lowercase_tptp_file (tptp_file, nonlogical_symbols):
 
     # sort nonlogical symbols by length (descending) to avoid replacing parts of longer symbols
     nonlogical_symbols = sorted(nonlogical_symbols, key=lambda s: len(s), reverse=True) 
-    print nonlogical_symbols
+    logging.getLogger(__name__).debug("Nonlogical symbols: " + str(nonlogical_symbols))
 
     tptp_file = ladr.number_tptp_axioms(tptp_file)
 
@@ -130,9 +130,9 @@ def replace_equivalences(ladr_file):
         ladr.replaced = False
     
         if " <iff> " in "".join(text):
-            print "replacing equivalences"
+            logging.getLogger(__name__).debug("replacing equivalences")
             if "<-" in "".join(text):
-                print "Problem converting LADR files to TPTP syntax: cannot deal with <-> properly in Windows due to error in 2007 version of old ladr_to_tptp."
+                logging.getLogger(__name__).error("Problem converting LADR files to TPTP syntax: cannot deal with <-> properly in Windows due to error in 2007 version of old ladr_to_tptp.")
                 return
             else:
                 text = [s.replace("<iff>","<-") for s in text]

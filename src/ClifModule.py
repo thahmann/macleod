@@ -4,7 +4,7 @@ Refactored on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, filemgt, process, clif, commands, ladr
+import os, logging, filemgt, process, clif, commands, ladr
 
 class ClifModule(object):
 
@@ -32,7 +32,7 @@ class ClifModule(object):
     # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
     nonlogical_symbols = set([])
     nonlogical_variables = set([])
-        
+    
     '''
     classdocs
     '''
@@ -41,7 +41,7 @@ class ClifModule(object):
         Constructor
         '''
         self.module_name = self.get_simple_module_name(module = name)
-        print '+++\nprocessing module: ' + self.module_name
+        logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL prefix as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
             self.module_name = os.path.normpath(self.module_name.replace(filemgt.read_config('cl','ending'),''))
@@ -56,15 +56,15 @@ class ClifModule(object):
                                                               folder= filemgt.read_config('converters','tempfolder'), 
                                                               ending = filemgt.read_config('cl','ending'))
 
-        print self.clif_file_name
-        print self.clif_processed_file_name
+        logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
+        logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
         
         
         clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
         
         self.imports =  [self.get_simple_module_name(i) for i in clif.get_imports(self.clif_processed_file_name)]
         
-        print self.imports
+        logging.getLogger(__name__).debug("imports detected in " + self.module_name +  ": " + str(self.imports))
         
         self.compute_nonlogical_symbols(self.clif_processed_file_name)
 
@@ -132,8 +132,8 @@ class ClifModule(object):
         cl_file.close()
         
         self.nonlogical_symbols -= self.nonlogical_variables
-        print "Nonlogical symbols: " + str(self.nonlogical_symbols)
-        print "Variables: " + str(self.nonlogical_variables)
+        logging.getLogger(__name__).debug("Nonlogical symbols: " + str(self.nonlogical_symbols))
+        logging.getLogger(__name__).debug("Variables: " + str(self.nonlogical_variables))
         
 
     @staticmethod
@@ -155,7 +155,7 @@ class ClifModule(object):
                                                        ending=filemgt.read_config('ladr','ending'))
             cmd = commands.get_clif_to_ladr_cmd(self)
             process.executeSubprocess(cmd)
-            print "CREATED LADR TRANSLATION: " + self.p9_file_name
+            logging.getLogger(__name__).info("CREATED LADR TRANSLATION: " + self.p9_file_name)
              
         return self.p9_file_name
 
