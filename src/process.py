@@ -8,10 +8,10 @@ def startSubprocess(command):
 	logging.getLogger(__name__).info("STARTING: " + command)
 	if os.name == 'nt':
 		# Windows
-		p = subprocess.Popen(command, shell=True, close_fds=True)
+		p = subprocess.Popen(command, shell=True, stderr=subprocess.STDOUT)
 	else:
 		# Linux (and others)
-		p = subprocess.Popen(command, shell=True, close_fds=True, preexec_fn=os.setsid)
+		p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, stderr=subprocess.STDOUT)
 	
 	return p
 
@@ -36,16 +36,14 @@ def executeSubprocess(command, results = None):
 	"""start a new subprocess and wait for it to terminate"""
 	p = process.startSubprocess(command)
 	p.wait()
-	#print str(p.returncode) + '\n'
-	if p.returncode==0:
-		# give a bit of time to finish the command line output
-		time.sleep(0.1)
-		logging.getLogger(__name__).info("FINISHED: " + command)
-		if results:
-			results.put((command, p.returncode))
-			return
-		else:
-			return p
+	# give a bit of time to finish the command line output
+	time.sleep(0.1)
+	logging.getLogger(__name__).info("FINISHED: " + command)
+	if results:
+		results.put((command, p.returncode))
+		return p
+	else:
+		return p
 
 		
 
