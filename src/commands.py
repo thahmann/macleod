@@ -36,8 +36,9 @@ def get_returncodes (name,type="positive_returncode"):
 def get_empty_cmd():
     return ""
 
-# get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance
 def get_p9_cmd (imports,output_stem, option_files = None):
+    """get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance. 
+    This invokes the clif_to_ladr translation if necessary."""
     
     cmd = (filemgt.read_config('prover9','command') +
                 ' -t ' + filemgt.read_config('prover9','timeout') +
@@ -52,10 +53,11 @@ def get_p9_cmd (imports,output_stem, option_files = None):
     return cmd + ' > ' + output_stem + filemgt.read_config('prover9','ending')
     
 
-# get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance
 def get_m4_cmd (imports,output_stem):
+    """get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance. 
+    This invokes the clif_to_ladr translation if necessary."""
 
-    cmd = (filemgt.read_config('mace4','command') + ' -c ' +
+    cmd = (filemgt.read_config('mace4','command') + ' -c -v 0' +
                 ' -t ' + filemgt.read_config('mace4','timeout') +
                 ' -s ' + filemgt.read_config('mace4','timeout_per') +
                 ' -n ' + filemgt.read_config('mace4','start_size') +
@@ -63,7 +65,7 @@ def get_m4_cmd (imports,output_stem):
                 ' -f ')
     # append all ladr input files
     for m in imports:
-        cmd += m.p9_file_name + ' '
+        cmd += m.get_p9_file_name() + ' '
 #        if self.options_files:
 #            for f in self.options_files:
 #                mace4args += f + ' '
@@ -75,7 +77,7 @@ def get_paradox_cmd (imports,output_stem):
     """ we only care about the first element in the list of imports, which indicates the ontology"""
     cmd = (filemgt.read_config('paradox','command') +
                   ' --verbose 2 --model --tstp ' +
-                  imports[0].get_tptp_file_name())
+                  imports.get_module_set().get_single_tptp_file_name(imports))
     return cmd   
     #return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
 
@@ -84,7 +86,7 @@ def get_vampire_cmd (imports,ouput_stem):
     cmd = (filemgt.read_config('vampire','command') + 
              ' --mode casc --proof tptp' +
              ' -t ' + repr(filemgt.read_config('vampire','timeout')) +
-             ' < ' + m.tptp_file_name)
+             ' < ' + imports.get_module_set().get_single_tptp_file_name(imports))
 
     return cmd + ' > ' + output_stem + filemgt.read_config('vampire','ending')
 
@@ -101,61 +103,12 @@ def get_ladr_to_tptp_cmd (input_file_name, output_file_name):
     return cmd
 
 
+
+
 #-------------------------------
 #---Clean up below--------------
 #-------------------------------
 
-# take a lemma file in the LADR format and split it into individual goals that can be feed into Prover9
-def get_individual_p9_sentences(sentence_set_name, sentence_set_file):
-    
-    input_file = open(sentence_set_file, 'r')
-    print 'sentences in : ' + sentence_set_file
-    
-    sentences = []
-    imports = []
-    
-    # split the input file into several sentences
-    line = input_file.readline()
-    started = False
-    while line:
-        lineparts = line.strip().split('%')
-        #print lineparts
-        if lineparts[0]:
-            if not started:
-                if line.find('formulas(sos).') > -1 or line.find('formulas(assumptions).') > -1:
-                    started  = True
-            else:
-                if line.find('end_of_list.') > -1:
-                    break
-                else:
-                    sentences.append(lineparts[0])
-        elif len(lineparts)>=2 and lineparts[1].find('cl-imports')>-1:
-            imports.append(line)
-        line = input_file.readline()
-    input_file.close()
-
-
-    # write each lemma file
-    sentences_names = []
-    sentences_files = []
-    i = 1
-    for lemma in sentences:
-        name = sentence_set_name + '_' + str(i)
-        filename = ColoreFileManager.get_name_with_subfolder(name, 
-                                                             filemgt.read_config('ladr','p9'), 
-                                                             filemgt.read_config('ladr','ending'))
-        output_file = open(filename, 'w')
-        output_file.write('formulas(goals).\n')
-        for single_import in imports:
-            output_file.write(single_import)
-        output_file.write(lemma + '\n')
-        output_file.write('end_of_list.\n')
-        output_file.close()
-        sentences_names.append(name)
-        sentences_files.append(filename)
-        i += 1
-    
-    return sentences_names, sentences_files
 
 
 def cleanup_option_files():

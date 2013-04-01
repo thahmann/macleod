@@ -1,4 +1,5 @@
 import os, logging, ladr, filemgt, commands, process
+#from ClifModuleSet import *
 
 replaced = False
 
@@ -160,13 +161,56 @@ def replace_equivalences_back(tptp_file):
     
     
 def strip_inner_commands(text):
-    text = ''.join(text)    # convert list of lines into a single string
+    text = "".join(text)    # convert list of lines into a single string
     """remove all "formulas(sos)." and "end_of_list." from a p9 file assembled from multiple axiom files; leaving a single block of axioms"""
-    parts = text.split('formulas(sos).\n',1)
-    text = parts[0] +'formulas(sos).\n' + parts[1].replace('formulas(sos).\n','')
-    i = text.count('end_of_list.\n')
-    text = text.replace('end_of_list.\n','',i-1)
-    return [(t + '\n') for t in text.split('\n')]   # convert back into a list of lines
+    parts = text.split("end_of_list.")
+    # get the goal clauses
+    goals = []
+    for i in range(0,len(parts)):
+        gparts = parts[i].split("formulas(goals).\n")
+        if len(gparts)>2:
+            # Problem!!
+            raise LadrParsingError("Syntax error in ladr input: mismatch of 'formulas(goals).' and 'end_of_list.' keywords in" + ("".join(gparts)))
+        elif len(gparts)==2:
+            goals.extend([g.strip() + "\n" for g in gparts[1].split("\n")])
+            parts[i] = parts[i].replace(parts[i],"").strip("\n").strip()
+    # get the axioms
+    axioms = []
+    for i in range(0,len(parts)):
+        aparts = parts[i].split("formulas(sos).\n")
+        if len(aparts)>2:
+            # Problem!!
+            raise LadrParsingError("Syntax error in ladr input: mismatch of 'formulas(sos).' and 'end_of_list.' keywords in" + ("".join(aparts)))
+        elif len(aparts)==2:
+            axioms.extend([a.strip() + "\n" for a in aparts[1].split("\n")])
+            parts[i] = parts[i].replace(parts[i],"").strip("\n").strip()
+        
+    # comment remainder
+    for p in parts:
+        text = ["% "+s.strip() +"\n" for s in p.split("\n")]
+
+    # add axioms and goals
+    if len(axioms)>0:
+        text.append("formulas(sos).\n")
+        text.extend(axioms)
+        text.append("end_of_list.\n")
+    if len(goals)>0: 
+        text.append("formulas(goals).\n")
+        text.extend(goals)
+        text.append("end_of_list.\n")
+
+    for p in text:
+        if p == "%\n":
+            text.remove(p)
+
+    print text
+    return text
+    #return [(t + '\n') for t in text.split('\n')]   # convert back into a list of lines
+#    parts = text.split('formulas(sos).\n',1)
+#    text = parts[0] +'formulas(sos).\n' + parts[1].replace('formulas(sos).\n','')
+#    i = text.count('end_of_list.\n')
+#    text = text.replace('end_of_list.\n','',i-1)
+#    return [(t + '\n') for t in text.split('\n')]   # convert back into a list of lines
 
 
 def comment_imports (text):
@@ -174,12 +218,91 @@ def comment_imports (text):
     for i in range(0,len(text)):
         keyword = 'imports('    # this is the syntax used by the clif-to-prover9 converter
         if text[i].strip().find(keyword) > -1:
-            #print 'module import found: ' + text[i]
+            logging.getLogger(__name__).debug("module import found: " + text[i].strip('\n'))
             text[i] = '% ' + text[i]
             #new_module_name = line.strip()[len(keyword)+1:-3].strip()
         else:
             pass
     return text
         
+        
+def get_ladr_goal_files (lemmas_file,  lemmas_name):
+    """break a single lemma file into individual lemma files (with lemmas_name in its file name), each containing a single lemma."""
+    sentences = split_lemma_into_sentences(lemmas_file)
+    return get_lemma_files_from_sentences(lemmas_name, sentences)
+
+
+def split_lemma_into_sentences(lemmas_file):
+    """take a lemma file in the LADR format and split it into individual goals that can be feed into Prover9."""
+    input_file = open(lemmas_file, 'r')
+    lines = input_file.readlines()
+    input_file.close()
+    
+    # comment all the imports
+    logging.getLogger(__name__).debug("commenting all imports in " + lemmas_file)
+    lines = comment_imports(lines)
+        
+    sentences = []
+
+    started = False
+    for line in lines:
+        lineparts = line.strip().split('%')
+        #print lineparts
+        if lineparts[0]:
+            lineparts[0] = lineparts[0].strip('\n').strip()
+            if len(lineparts[0])>0:
+                if not started:
+                    if line.find('formulas(sos).') > -1 or line.find('formulas(assumptions).') > -1:
+                        started  = True
+                else:
+                    if line.find('end_of_list.') > -1:
+                        break
+                    else:
+                        sentences.append(lineparts[0])
+    
+    logging.getLogger(__name__).info("Split " + lemmas_file + " into " + str(len(sentences)) + " individual lemma files")
+    return sentences
+
+
+
+def get_lemma_files_from_sentences (lemmas_name, sentences):
+
+    sentences_files = []
+    sentences_names = []
+
+    import math
+    # determine maximal number of digits
+    digits = int(math.log10(len(sentences)))+1
+    
+    i = 1
+
+    for lemma in sentences:
+        name = lemmas_name + '_goal' + ('{0:0'+ str(digits) +  'd}').format(i)
+        
+        filename = filemgt.get_full_path(name, 
+                              folder=filemgt.read_config('ladr','folder'), 
+                              ending=filemgt.read_config('ladr','ending'))        
+        output_file = open(filename, 'w')
+        output_file.write('formulas(goals).\n')
+        output_file.write(lemma + '\n')
+        output_file.write('end_of_list.\n')
+        output_file.close()
+        sentences_files.append(filename)
+        sentences_names.append(name)
+        i += 1
+    
+    return (sentences_names, sentences_files)
+
+
+class LadrParsingError(Exception):
+    
+    output = []
+    
+    def __init__(self, value, output=[]):
+        self.value = value
+        self.output = output
+        logging.getLogger(__name__).error(repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output))))
+    def __str__(self):
+        return repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output)))
 
 

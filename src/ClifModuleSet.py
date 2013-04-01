@@ -19,6 +19,9 @@ class ClifModuleSet(object):
     # list of ClifModules that are imported and have been processed already   
     imports = set([])
     
+    # keeps track of the lemma that needs to be proved; this is None if no lemma needs to be proved 
+    lemma_module = None
+    
     # list of imports that still require processing
     unprocessed_imports = set([])
 
@@ -167,6 +170,27 @@ class ClifModuleSet(object):
                 #a NEW meaningful named entity has been found
                 self.nonlogical_symbols.append([symbol, 1, depth, depth])
             
+            
+    def add_lemma_module (self, lemma_module):
+        """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwriten."""
+        for m in self.imports:
+            m.depth = m.depth + 1
+        self.module_name = lemma_module.get_simple_module_name()
+        
+        # delete old lemma module if one exists
+        if self.lemma_module:
+            self.imports.remove(self.lemma_module)
+        self.lemma_module = lemma_module
+        self.imports.add(lemma_module)
+        return self.lemma_module
+        
+    def remove_lemma_module (self):
+        # delete old lemma module if one exists
+        if self.lemma_module:
+            self.imports.remove(self.lemma_module)
+        self.lemma_module = None
+        return True
+    
 
     # extract the predicates and functions from prover9 mock run
     def extract_p9_predicates_and_functions (self):
@@ -280,14 +304,14 @@ class ClifModuleSet(object):
         return_value = self.consolidate_results(self.reasoners)    
 
         if len(modules)==0:
-            self.pretty_print_consistency_result(module_name + " (without imports)", return_value)
+            self.pretty_print_result(module_name + " (without imports)", return_value)
         else:
-            self.pretty_print_consistency_result(module_name + " (with imports = " + str(modules) + ")", return_value)
+            self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
         
         return return_value
 
 
-    def run_full_consistency_check (self, modules = None, options_files = None):
+    def run_full_consistency_check (self, modules = None, options_files = None, abort=False):
         """ test the input for consistency by trying to find a model or an inconsistency.
         If consistency is not established, check first individual modules for consistency and then increasingly larger subontologies."""
 
@@ -303,36 +327,52 @@ class ClifModuleSet(object):
                 logging.getLogger(__name__).info("All modules of " + self.module_name + " are consistent.")
                 # starting checking increasingly larger subontology, starting with the deepest ontologies first
                 #self.run_consistency_check_by_depth()
-                self.run_consistency_check_by_subset()
+                results = self.run_consistency_check_by_subset(abort = abort)
+        else:
+            results = {tuple(modules): return_value}
+        return results
 
-    def run_consistency_check_by_subset (self, modules=None):
+
+    def run_consistency_check_by_subset (self, modules=None, options_files = None, abort=False):
         """run consistency checks by successively examining larger subontologies."""
         if not modules:
             modules = self.imports
 
         imports = list(modules)
+        results = {}
         # start with the second deepest depth and examine each ontology and its imports
         max_depth = max(0, max([s.get_depth() for s in imports]))
-        ng.getLogger(__name__).debug("Consistency check by subset; max_depth=" + str(max_depth))
+        logging.getLogger(__name__).debug("Consistency check by subset; max_depth=" + str(max_depth))
         for reverse_depth in range(max_depth,0,-1):
             current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
             for i in current_imports:
-                self.run_simple_consistency_check(i.get_simple_module_name(), self.get_import_closure(i))
+                (m, r) = self.run_simple_consistency_check(i.get_simple_module_name(), self.get_import_closure(i), options_files=options_files)
+                results[tuple(m)] = r
+                if r==-1:    # this set is inconsistent
+                    logging.getLogger(__name__).info("Found proof/inconsistency in subontology " + str(m))
+                    if abort: return results
+        return results   
         #self.run_simple_consistency_check(self.module_name)
             
         
 
 
-    def run_consistency_check_by_depth (self, modules=None):
+    def run_consistency_check_by_depth (self, modules=None, options_files = None):
         """run consistency checks by successively testing a larger subontology by increasing the depth cutoff."""
+        if not modules:
+            modules = self.imports
+
         imports = list(modules)
+        results = {}
         max_depth = max([s.get_depth() for s in imports])
         for reverse_depth in range(max_depth,0,-1):
             s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
-            return_value = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
-            if return_value==-1:    # this set is inconsistent
-                logging.getLogger(__name__).info("Found inconsistent subontology.")
-                break                
+            (m, r) = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
+            results[tuple(m)] = r
+            if r==-1:    # this set is inconsistent
+                logging.getLogger(__name__).info("Found proof/inconsistency in subontology " + str(m))    
+                if abort: return results
+        return results   
         
 
 
@@ -361,7 +401,7 @@ class ClifModuleSet(object):
         for m in self.imports: # check each imported module for consistency
             m_return_value = self.run_module_consistency_check(m)
             if m_return_value == -1:
-                self.pretty_print_consistency_result(m.get_simple_module_name(), m_return_value)
+                self.pretty_print_result(m.get_simple_module_name(), m_return_value)
             else:    # keep all imports that are consistent by themselves
                 safe_imports.add(m)
 
@@ -379,39 +419,72 @@ class ClifModuleSet(object):
         (prc, frc) = process.raceProcesses(provers, finders)
 
         return_value = self.consolidate_results(provers, finders)
-        self.pretty_print_consistency_result(module.get_simple_module_name(), return_value)  
+        self.pretty_print_result(module.get_simple_module_name(), return_value)  
         
         
-
-    def consolidate_results(self, reasoners):
-        """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found
+    def consolidate_results (self, reasoners):
+        """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found.
         return values:
-        consistent (-1) -- an inconsistency has been found in the ontology
+        consistent (-1) -- model found, the ontology is consistent
         unknown (0) -- unknown result (no model and no inconsistency found)
-        inconsistent (1) -- model found, the ontology is consistent
+        inconsistent (1) -- an inconsistency has been found in the ontology
          """
         return_value = 0
+        successful_reasoner = None
          
         for r in reasoners:
             if not r.isProver() and r.terminatedSuccessfully:
                 return_value = 1
+                successful_reasoner = r.name
             elif r.isProver() and r.terminatedSuccessfully:
                 if not return_value==1:
                     return_value = -1
+                    successful_reasoner = r.name
                 else:
                     # problem: a proof and a counterexample have been found
                     return_value == -100 
+                    logging.getLogger(__name__).error(self.module_name +': ' + r.name + ' and ' + successful_reasoner + ' returned with contradictory results')
             elif r.terminatedUnknowingly:
-                logging.getLogger(__name__).debug(finder + ' returned with unknown result, return code ' + str(rc))
+                logging.getLogger(__name__).info(r + ' returned with unknown result, return code ' + str(rc))
     
         return return_value
+
+
+    def pretty_print_result (self, module_name, return_value):
+        """ render the results in a human readable format"""
+        if self.lemma_module:
+            return self.pretty_print_proof_result(module_name, return_value)
+        else:
+            return self.pretty_print_consistency_result(module_name, return_value)
+        
         
     def pretty_print_consistency_result (self, module_name, return_value):
+        """
+        consistent (-1) -- model found, the ontology is consistent
+        unknown (0) -- unknown result (no model and no inconsistency found)
+        inconsistent (1) -- an inconsistency has been found in the ontology
+        """
         if return_value==-1:  s="inconsistent"
         elif return_value==1: s="consistent"
         elif return_value==0: s="unknown"
         else: s="contradiction"
-        print str(module_name) + ": " + s
+        
+        logging.getLogger(__name__).info(module_name + ": " + s + " (return value = " + str(return_value) + ")")
+
+
+    def pretty_print_proof_result (self, module_name, return_value):
+        """
+        counterexample (-1) -- a counterexample has been found
+        unknown (0) -- unknown result (no proof and no counterexample found)
+        lemma (1) -- a proof has been found
+        """
+        if return_value==-1:  s="counterexample"
+        elif return_value==1: s="lemma proved"
+        elif return_value==0: s="unknown"
+        else: s="contradiction"
+
+        logging.getLogger(__name__).info(module_name + ": " + s + " (return value = " + str(return_value) + ")")
+
         
         
 #    def check_consistency(self):
@@ -436,16 +509,21 @@ class ClifModuleSet(object):
 #                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
         
        
-    def get_ladr_files (self):
+    def get_ladr_files (self, imports = None):
         """get a list of translations of all associated ClifModules in LADR syntax."""
+        
+        if not imports:
+            imports = self.imports
+        
         p9_files = []
-        for m in self.imports:
+        for m in imports:
             p9_files.append(m.get_p9_file_name())
         return p9_files
    
-    def get_single_ladr_file (self):
+    def get_single_ladr_file (self, imports = None):
         """get the ClifModuleSet as a single file in LADR syntax."""
-        p9_files = self.get_ladr_files()
+        
+        p9_files = self.get_ladr_files(imports)
 
         self.p9_file_name = filemgt.get_full_path(self.module_name, 
                                            folder=filemgt.read_config('ladr','folder'), 
@@ -457,27 +535,38 @@ class ClifModuleSet(object):
         return self.p9_file_name
    
 
-    def get_tptp_files (self):
+    def get_tptp_files (self, imports = None):
         """ get a list of translations of all associated ClifModules in TPTP syntax."""
+        
+        if not imports:
+            imports = self.imports
+        
         tptp_files = []
-        for m in self.imports:
+        for m in imports:
             tptp_files.append(m.get_tptp_file_name())
         return tptp_files
     
 
-    def get_single_tptp_file (self):
+    def get_single_tptp_file (self, imports = None):
         """translate the module and all imported modules to a single TPTP file. Uses the LADR format as intermediate step."""
-        self.get_single_ladr_file()
+        
+        p9_file_name = self.get_single_ladr_file(imports)
 
-        self.tptp_file_name = filemgt.get_full_path(self.module_name,
-                                                    folder=filemgt.read_config('tptp','folder'),
-                                                    ending=filemgt.read_config('tptp','all_ending'))
+        if not imports:
+            # use the entire ClifModuleSet
+            self.tptp_file_name = filemgt.get_full_path(self.module_name,
+                                                        folder=filemgt.read_config('tptp','folder'),
+                                                        ending=filemgt.read_config('tptp','all_ending'))
+            tptp_file_name = self.tptp_file_name
+        else:
+            # use the modules; in particular the name of the first module
+            tptp_file_name = filemgt.get_full_path(imports[0].get_simple_module_name(),
+                                                   folder=filemgt.read_config('tptp','folder'),
+                                                   ending=filemgt.read_config('tptp','all_ending'))
+            
+        ladr.translate_to_tptp_file(p9_file_name, tptp_file_name, self.get_list_of_nonlogical_symbols())
 
-
-        ladr.translate_to_tptp_file(self.p9_file_name, self.tptp_file_name, self.get_list_of_nonlogical_symbols())
-
-        return self.tptp_file_name    
-
+        return tptp_file_name    
 
 
 #    # delete unnecessary files at the end

@@ -84,10 +84,13 @@ def start_logging():
   
 def get_full_path (module_name, folder=None, ending=''):
     """determines the suitable subfolder for a given file_name."""
-    path = filemgt.read_config('cl','path') + os.sep + module_name
-    if folder:
-        path = os.path.dirname(path) + os.sep + folder + os.sep + os.path.basename(path)
-    # create this folder if it does not exist yet
+    if os.path.isabs(module_name):
+        path = module_name
+    else:
+        path = filemgt.read_config('system','path') + os.sep + module_name
+        if folder:
+            path = os.path.dirname(path) + os.sep + folder + os.sep + os.path.basename(path)
+        # create this folder if it does not exist yet
     path = os.path.normpath(path)
     if not os.path.isdir(os.path.dirname(path)):
         if os.mkdir(os.path.dirname(path)):

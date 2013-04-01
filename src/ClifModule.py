@@ -75,6 +75,10 @@ class ClifModule(object):
 #            parent.nonlogical_symbols.append[self.nonlogical_symbols]
 #            parent.nonlogical_variables.append[self.nonlogical_variables]
 
+    def get_module_set (self):
+        """ return the set of modules (ClifModuleSet) to which this module belongs."""
+        return self.module_set
+
     def get_simple_module_name (self,module=None):
         if not module:
             module= self.module_name
@@ -89,7 +93,7 @@ class ClifModule(object):
         import re
         prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
         prefix.sub('', module)
-        return os.path.normpath(module)
+        return os.path.abspath(module)
                 
     def add_parent (self,name,depth):
         #print "adding parent: " + str(name) + ' (' + str(depth) + ')' + ' to ' + self.module_name
