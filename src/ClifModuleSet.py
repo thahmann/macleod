@@ -284,11 +284,14 @@ class ClifModuleSet(object):
     
                 
                 
-    def get_list_of_nonlogical_symbols (self):
+    def get_list_of_nonlogical_symbols (self, imports=None):
         """returns a simple list of nonlogical symbols without additional information.
         This is different from self.nonlogical_symbols, which stores additional information about frequency, depth, etc."""
         s = set([])
-        for m in self.imports:
+        if not imports:
+            imports = self.imports
+        
+        for m in imports:
             s.update(m.get_nonlogical_symbols())
         return s
       
@@ -553,7 +556,6 @@ class ClifModuleSet(object):
         unknown (0) -- unknown result (no model and no inconsistency found)
         inconsistent (-1) -- an inconsistency has been found in the ontology
         """
-        print "VALUE = " + return_value
         if return_value==ClifModuleSet.CONSISTENT:  s="consistent"
         elif return_value==ClifModuleSet.INCONSISTENT: s="inconsistent"
         elif return_value==ClifModuleSet.UNKNOWN: s="unknown"
@@ -609,20 +611,42 @@ class ClifModuleSet(object):
         for m in imports:
             p9_files.append(m.get_p9_file_name())
         return p9_files
+
    
     def get_single_ladr_file (self, imports = None):
         """get the ClifModuleSet as a single file in LADR syntax."""
+
+        # if the given imports are identical to the modules imports, treat it as the modules imports were used
+        if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
+            imports = None
+
+        # avoid redundant work if we already have the ladr file
+        if not imports and len(self.p9_file_name)>0:
+            return self.p9_file_name
+
+        ending = ""
+        if not imports:
+            ending = filemgt.read_config('ladr','all_ending')
+            name = self.module_name
+        else:
+            ending = filemgt.read_config('ladr','select_ending')
+            name = imports[0].get_simple_module_name()
+        # construct the final ending
+        ending += filemgt.read_config('ladr','ending')
         
         p9_files = self.get_ladr_files(imports)
 
-        self.p9_file_name = filemgt.get_full_path(self.module_name, 
+        p9_file_name = filemgt.get_full_path(name, 
                                            folder=filemgt.read_config('ladr','folder'), 
-                                           ending=filemgt.read_config('ladr','all_ending'))
+                                           ending=ending)
+        if not imports:
+            self.p9_file_name = p9_file_name
+            
         #print "FILE NAME:" + self.p9_file_name
         # TODO: need to initialize self.replaceable_symbols
-        self.p9_file_name = ladr.cumulate_ladr_files(p9_files, self.p9_file_name)
-        logging.getLogger(__name__).info("CREATED SINGLE LADR TRANSLATION: " + self.p9_file_name)
-        return self.p9_file_name
+        ladr.cumulate_ladr_files(p9_files, p9_file_name)
+        logging.getLogger(__name__).info("CREATED SINGLE LADR TRANSLATION: " + p9_file_name)
+        return p9_file_name
    
 
     def get_tptp_files (self, imports = None):
@@ -640,35 +664,38 @@ class ClifModuleSet(object):
     def get_single_tptp_file (self, imports = None):
         """translate the module and all imported modules to a single TPTP file. Uses the LADR format as intermediate step."""
         
+        # if the given imports are identical to the modules imports, treat it as the modules imports were used
+        if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
+            imports = None
+
+        # avoid redundant work if we already have the tptp file
+        if not imports and len(self.tptp_file_name)>0:
+            return self.tptp_file_name
+
         p9_file_name = self.get_single_ladr_file(imports)
 
+        ending = ""
         if not imports:
-            # use the entire ClifModuleSet
-            self.tptp_file_name = filemgt.get_full_path(self.module_name,
-                                                        folder=filemgt.read_config('tptp','folder'),
-                                                        ending=filemgt.read_config('tptp','all_ending'))
-            tptp_file_name = self.tptp_file_name
+            ending = filemgt.read_config('tptp','all_ending')
+            name = self.module_name
         else:
-            # use the modules; in particular the name of the first module
-            tptp_file_name = filemgt.get_full_path(imports[0].get_simple_module_name(),
-                                                   folder=filemgt.read_config('tptp','folder'),
-                                                   ending=filemgt.read_config('tptp','all_ending'))
+            ending = filemgt.read_config('tptp','select_ending')
+            name = imports[0].get_simple_module_name()
+        # construct the final ending
+        ending += filemgt.read_config('tptp','ending')
+
+        tptp_file_name = filemgt.get_full_path(name, 
+                                           folder=filemgt.read_config('tptp','folder'), 
+                                           ending=ending)
+
+        if not imports:
+            self.tptp_file_name = tptp_file_name
             
-        ladr.translate_to_tptp_file(p9_file_name, tptp_file_name, self.get_list_of_nonlogical_symbols())
+        ladr.translate_to_tptp_file(p9_file_name, 
+                                    tptp_file_name, 
+                                    self.get_list_of_nonlogical_symbols(imports))
 
-        return tptp_file_name    
-
-
-#    # delete unnecessary files at the end
-#    def cleanup(self):
-#        if self.tidy:          
-#            LADR.cleanup_option_files()  
-#            for m in self.imports:
-#                if os.path.exists(m.p9_intermediary_file_name):
-#                    os.remove(m.p9_intermediary_file_name)
-#                if os.path.exists(m.clif_processed_file_name):
-#                    os.remove(m.clif_processed_file_name)
-            
+        return tptp_file_name                
 
 
 class ClifModuleSetError(Exception):

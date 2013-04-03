@@ -74,19 +74,20 @@ def get_m4_cmd (imports,output_stem):
 
 
 def get_paradox_cmd (imports,output_stem):
-    """ we only care about the first element in the list of imports, which indicates the ontology"""
+    """ we only care about the first element in the list of imports, which will we use as base name to obtain a single tptp file of the imports,
+    which is the input for paradox."""
     cmd = (filemgt.read_config('paradox','command') +
                   ' --verbose 2 --model --tstp ' +
-                  imports.get_module_set().get_single_tptp_file_name(imports))
-    return cmd   
-    #return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
+                  list(imports)[0].get_module_set().get_single_tptp_file(imports))
+    
+    return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
 
 
 def get_vampire_cmd (imports,ouput_stem):
     cmd = (filemgt.read_config('vampire','command') + 
              ' --mode casc --proof tptp' +
              ' -t ' + repr(filemgt.read_config('vampire','timeout')) +
-             ' < ' + imports.get_module_set().get_single_tptp_file_name(imports))
+             ' < ' + list(imports)[0].get_module_set().get_single_tptp_file_name(imports))
 
     return cmd + ' > ' + output_stem + filemgt.read_config('vampire','ending')
 
