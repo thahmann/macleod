@@ -67,17 +67,19 @@ class Reasoner (object):
         else: return False
         
     def terminatedSuccessfully (self):
-        if self.return_code:
+        if not self.return_code==None:
             if self.return_code in self.positive_returncodes:
-                return true
-        return false
+                return True
+        return False
             
     def terminatedUnknowingly (self):
-        if self.return_code:
+        if not self.return_code==None:
             if self.return_code in self.unknown_returncodes:
-                return true
-        return false
+                return True
+        return False
         
-            
+    def setReturnCode(self, rc):
+        self.return_code = rc
+                
     def isDone (self):
         return self.return_code
