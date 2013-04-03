@@ -151,6 +151,42 @@ class ClifModule(object):
         else:  #x < y
            return -1
 
+    def __eq__(self, other):
+        """checking whether the module is identical to another module based on name, depth, imports, and parents."""
+        if not isinstance(other, ClifModule):
+            return False
+        # first compare name and depth
+        elif self.module == other.module_name and self.depth == other.depth:
+            # simple length checks to avoid unnecessary work
+            if len(self.imports)!=len(other.imports):
+                return False
+            if len(self.parents)!=len(other.parents):
+                return False
+            # base case (no other imports)
+            if len(self.imports)==1:
+                return True
+            # compare the imports
+            for i in self.imports:
+                if i not in other.imports:
+                    return False
+            for i in other.imports:
+                if i not in self.imports:
+                    return False
+            # compare the parents
+            for i in self.parents:
+                if i not in other.parents:
+                    return False
+            for i in other.parents:
+                if i not in self.parents:
+                    return False
+        # if we made it here, name, depth, imports, and parents are identical
+        return true
+
+
+    def __ne__ (self, other):
+        return not self.eq(other)
+
+
     def get_p9_file_name (self):
         """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
         if not self.p9_file_name:   # do the translation

@@ -39,11 +39,11 @@ class Reasoner (object):
 
     def __eq__ (self, other):
         if not isinstance(other, Reasoner):
-            return false
+            return False
         if self.identifier == other.identifier:
-            return true
+            return True
         else:
-            return false
+            return False
         
     def __ne__ (self, other):
         return not self.eq(other)
