@@ -7,12 +7,17 @@ Major revision (restructed as a module with new name filemgt) on 2013-03-14
 
 import os, filemgt, logging, logging.config
 from ConfigParser import SafeConfigParser
+import datetime
 
 LOGGER = None
 CONFIG_PARSER = None
 log_config_file = 'logging.conf'
 config_file = 'macleod.conf'
 config_dir = 'conf'
+
+subprocess_log_file = None
+
+FORMATTER = None
 
 def find_config (filename):
     """tries to find some configuration file."""
@@ -22,15 +27,15 @@ def find_config (filename):
                 loc = ""
             loc = os.path.join(loc,filename)
             if filemgt.LOGGER: 
-                filemgt.LOGGER.debug("Looking for configuration file at: " + loc)
+                filemgt.LOGGER.debug("Looking for " + filename + " at: " + loc)
             #else:
             #    print("Looking for configuration file at: " + loc)
             if os.path.isfile(loc):
                 filename = loc
                 if filemgt.LOGGER: 
-                    filemgt.LOGGER.debug("Configuration file found at: " + filename)
+                    filemgt.LOGGER.debug(filename + " found at: " + filename)
                 else:
-                    print("Configuration file found at: " + filename)
+                    print("File " + filename + " found")
                 break
         except IOError:
             pass
@@ -80,6 +85,47 @@ def start_logging():
             filemgt.LOGGER.debug('Logging started')
             filemgt.LOGGER.debug('Logging configuration read from ' + filemgt.log_config_file)
 
+
+def find_subprocess_log_file():
+    if not filemgt.subprocess_log_file:
+        find_log_config()
+        parser = SafeConfigParser()
+        log = parser.read(filemgt.log_config_file)    
+        filemgt.subprocess_log_file = filemgt.read_config("system","subprocess_log")
+
+    
+def add_to_subprocess_log(entries):
+    filemgt.find_subprocess_log_file()   
+    filemgt.LOGGER.debug("Writing " + str(len(entries)) + " lines to subprocess log file " + filemgt.subprocess_log_file)
+    if os.path.exists(filemgt.subprocess_log_file):
+        file = open(filemgt.subprocess_log_file, 'a')
+    else:
+        file = open(filemgt.subprocess_log_file, 'w')
+    #for e in entries:
+    #    filemgt.LOGGER.info("____WRITING " + e)
+    file.writelines([e + "\n" for e in entries])
+    file.close()
+    return True    
+    
+
+def construct_log_formatter():
+    """Constructs the default formatter from the logging configuration.
+    Assumes we already started logging and the log file has been found."""
+    filemgt.find_log_config()
+    parser = SafeConfigParser()
+    log = parser.read(filemgt.log_config_file)    
+    # read from config
+    first_handler = parser.get("handlers","keys").split(",")[0].strip()
+    filemgt.FORMATTER = first_formatter = parser.get("handler_"+first_handler,"formatter")
+    
+def format(record):
+    formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
+    return formatter.format(record)
+#    if not filemgt.FORMATTER:
+#        filemgt.construct_log_formatter()
+#    parser = SafeConfigParser()
+#    log = parser.read(filemgt.log_config_file)    
+#    return parser.get("formatter_"+filemgt.FORMATTER,"format" % (datetime.datetime, name, level, msg))
 
   
 def get_full_path (module_name, folder=None, ending=''):
