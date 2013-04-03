@@ -180,7 +180,7 @@ class ClifModuleSet(object):
             
             
     def add_lemma_module (self, lemma_module):
-        """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwriten."""
+        """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwritten."""
         self.module_name = lemma_module.get_simple_module_name()
         
         # delete old lemma module if one exists
@@ -322,9 +322,18 @@ class ClifModuleSet(object):
         return return_value
 
 
-    def run_full_consistency_check (self, modules = None, options_files = None, abort=False):
+    def run_full_consistency_check (self, modules = None, options_files = None, abort=True, abort_signal=CONSISTENT, increasing = False):
         """ test the input for consistency by trying to find a model or an inconsistency.
-        If consistency is not established, check first individual modules for consistency and then increasingly larger subontologies."""
+        If consistency is not established, check first individual modules for consistency and then increasingly larger subontologies.
+        parameters:
+        modules -- the set of modules to check consistency for; if not specified all modules of this ClifModuleSet will be used.
+        option_files -- currently unused (default: None)
+        abort -- boolean value indicating whether to abort when one set of modules return with the abort_signal (default: True).
+        abort_signal -- code used to decide whether we are looking for a proof or an inconsistency (Default: ClifModuleSet.CONSISTENT).
+        increasing -- boolean value indicating whether to start with the largest (increasing=False) or the smallest (increasing=True) sets of modules (default: False).   
+        return value:
+        dictionary with sets of imports as key and the return_code as value
+        """
 
         if not modules:
             modules = self.imports
@@ -332,20 +341,33 @@ class ClifModuleSet(object):
         # first do simple consistency check
         return_value = self.run_simple_consistency_check(modules= modules, options_files = options_files)   
 
-        if return_value==ClifModuleSet.INCONSISTENT or return_value==ClifModuleSet.UNKNOWN:
+        if return_value!=abort_signal or return_value==ClifModuleSet.UNKNOWN:
             safe_imports = self.get_consistent_modules()
             if len(safe_imports)==len(modules):
                 logging.getLogger(__name__).info("All modules of " + self.module_name + " are consistent.")
                 # starting checking increasingly larger subontology, starting with the deepest ontologies first
                 #self.run_consistency_check_by_depth()
-                results = self.run_consistency_check_by_subset(abort = abort)
+                results = self.run_consistency_check_by_subset(modules = modules, 
+                                                               options_files = options_files,
+                                                               abort = abort, 
+                                                               abort_signal = abort_signal, 
+                                                               increasing= increasing)
         else:
             results = {tuple(modules): return_value}
         return results
 
 
     def run_consistency_check_by_subset (self, modules=None, options_files = None, abort=True, abort_signal=CONSISTENT, increasing = False):
-        """run consistency checks by successively examining larger subontologies."""
+        """run consistency checks by successively examining larger subontologies.
+        parameters:
+        modules -- the set of modules to check consistency for; if not specified all modules of this ClifModuleSet will be used.
+        option_files -- currently unused (default: None)
+        abort -- boolean value indicating whether to abort when one set of modules return with the abort_signal (default: True).
+        abort_signal -- code used to decide whether we are looking for a proof or an inconsistency (Default: ClifModuleSet.CONSISTENT).
+        increasing -- boolean value indicating whether to start with the largest (increasing=False) or the smallest (increasing=True) sets of modules (default: False).   
+        return value:
+        dictionary with sets of imports as key and the return_code as value
+        """
         if not modules:
             modules = self.imports
 
@@ -361,17 +383,17 @@ class ClifModuleSet(object):
         logging.getLogger(__name__).debug("Consistency check by subset; max_depth=" + str(max_depth))
         if increasing:
             # starting with the smallest modules first
-            r = range(max_depth,min_depth,-1)
+            ran = range(max_depth,min_depth,-1)
         else:
-            r = range(min_depth,max_depth,1)
-        for reverse_depth in r:
-            print "-----------------------"
-            print " LEVEL = " + str(reverse_depth)
-            print "-----------------------"
+            ran = range(min_depth,max_depth,1)
+        for reverse_depth in ran:
+            #print "-----------------------"
+            #print " LEVEL = " + str(reverse_depth)
+            #print "-----------------------"
             current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
-            print "-----------------------"
-            print "Next Try: " + str(current_imports)
-            print "-----------------------"
+            #print "-----------------------"
+            #print "Next Try: " + str(current_imports)
+            #print "-----------------------"
             for i in current_imports:
                 tmp_imports = self.get_import_closure(i)
                 if self.lemma_module:
@@ -393,21 +415,51 @@ class ClifModuleSet(object):
         
 
 
-    def run_consistency_check_by_depth (self, modules=None, options_files = None, abort=False):
-        """run consistency checks by successively testing a larger subontology by increasing the depth cutoff."""
+    def run_consistency_check_by_depth (self, modules=None, options_files = None, abort=True, abort_signal=CONSISTENT, increasing = False):
+        """run consistency checks by successively testing a larger subontology by increasing the depth cutoff.
+        parameters:
+        modules -- the set of modules to check consistency for; if not specified all modules of this ClifModuleSet will be used.
+        option_files -- currently unused (default: None)
+        abort -- boolean value indicating whether to abort when one set of modules return with the abort_signal (default: True).
+        abort_signal -- code used to decide whether we are looking for a proof or an inconsistency (Default: ClifModuleSet.CONSISTENT).
+        increasing -- boolean value indicating whether to start with the largest (increasing=False) or the smallest (increasing=True) sets of modules (default: False).   
+        return value:
+        dictionary with sets of imports as key and the return_code as value
+        """
         if not modules:
             modules = self.imports
 
         imports = list(modules)
         results = {}
-        max_depth = max([s.get_depth() for s in imports])
-        for reverse_depth in range(max_depth,0,-1):
-            s = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
-            r = self.run_simple_consistency_check(module_name=str(s), modules=s, options_files=options_files)
+        
+        if self.lemma_module:
+            min_depth = 0
+        else:
+            min_depth = -1
+
+        max_depth = max(min_depth, max([s.get_depth() for s in imports]))
+
+        if increasing:
+            # starting with the smallest modules first
+            ran = range(max_depth,min_depth,-1)
+        else:
+            ran = range(min_depth,max_depth,1)
+
+        for reverse_depth in ran:
+            tmp_imports = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
+            if self.lemma_module:
+                tmp_imports.append(self.lemma_module)
+            r = self.run_simple_consistency_check(module_name=str(s), modules=tmp_imports, options_files=options_files)
             results[tuple(s)] = r
-            if r==ClifModuleSet.INCONSISTENT:    # this set is inconsistent
-                logging.getLogger(__name__).info("Found proof/inconsistency in subontology " + str(m))    
-                if abort: return results
+            if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
+                logging.getLogger(__name__).info("Found model for subontology at import level " + str(reverse_depth))
+                if abort and abort_signal==ClifModuleSet.CONSISTENT: 
+                    return results
+            if r==ClifModuleSet.INCONSISTENT:    # this set is consistent 
+                logging.getLogger(__name__).info("Found proof/inconsistency in subontology at import level " + str(reverse_depth))
+                if abort and abort_signal==ClifModuleSet.INCONSISTENT:
+                    return results
+
         return results   
         
 
