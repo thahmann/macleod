@@ -215,7 +215,7 @@ def raceProcesses (reasoners):
 			#print name + " finished; positive returncodes are " + str(provers[name])
 			r = reasoners.getByCommand(name)
 			r.setReturnCode(code)
-			print str(r.return_code) + " ++++ CODES: " + str(r.positive_returncodes)
+			#print str(r.return_code) + " ++++ CODES: " + str(r.positive_returncodes)
 			if r.terminatedSuccessfully():
 				success = True
 				if r.isProver():

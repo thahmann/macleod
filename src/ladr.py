@@ -203,14 +203,8 @@ def strip_inner_commands(text):
         if p == "%\n":
             text.remove(p)
 
-    print text
+    #print text
     return text
-    #return [(t + '\n') for t in text.split('\n')]   # convert back into a list of lines
-#    parts = text.split('formulas(sos).\n',1)
-#    text = parts[0] +'formulas(sos).\n' + parts[1].replace('formulas(sos).\n','')
-#    i = text.count('end_of_list.\n')
-#    text = text.replace('end_of_list.\n','',i-1)
-#    return [(t + '\n') for t in text.split('\n')]   # convert back into a list of lines
 
 
 def comment_imports (text):
@@ -242,6 +236,7 @@ def split_lemma_into_sentences(lemmas_file):
     logging.getLogger(__name__).debug("commenting all imports in " + lemmas_file)
     lines = comment_imports(lines)
         
+    #print(lines)    
     sentences = []
 
     started = False
