@@ -4,7 +4,7 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
-import sys
+import sys, logging
 from src import *
 
 if __name__ == '__main__':

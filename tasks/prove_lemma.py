@@ -6,6 +6,7 @@ Created on 2013-03-29
 
 import sys
 from src import *
+from src.ClifModuleSet import *
 
 if __name__ == '__main__':
     # global variables
@@ -20,7 +21,10 @@ if __name__ == '__main__':
         m.get_single_tptp_file()
         
         if '-module' in options:
-            m.run_consistency_check_by_subset()
+            results = m.run_consistency_check_by_subset(abort_signal = ClifModuleSet.PROOF, increasing=True)
+            for (i, r) in results.iteritems():
+                if r==ClifModuleSet.PROOF:
+                    print l.get_simple_module_name() + " proved  by " + str(i) 
         elif '-depth' in options:
             m.run_consistency_check_by_depth()
         elif '-simple' in options:
