@@ -411,7 +411,7 @@ class ClifModuleSet(object):
                 tmp_imports = self.get_import_closure(i)
                 if self.lemma_module:
                     tmp_imports.append(self.lemma_module)
-                r = self.run_simple_consistency_check(i.get_simple_module_name(), tmp_imports, options_files=options_files).popitem()
+                (i, r) = self.run_simple_consistency_check(i.get_simple_module_name(), tmp_imports, options_files=options_files).popitem()
                 results[tuple(tmp_imports)] = r
                 if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                     logging.getLogger(__name__).info("FOUND MODEL AT FOR SUBONTOLOGY IMPORT LEVEL " + str(reverse_depth))
@@ -462,7 +462,7 @@ class ClifModuleSet(object):
             tmp_imports = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
             if self.lemma_module:
                 tmp_imports.append(self.lemma_module)
-            r = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files).popitem()
+            (i, r) = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files).popitem()
             results[tuple(tmp_imports)] = r
             if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                 logging.getLogger(__name__).info("FOUND MODEL AT DEPTH LEVEL " + str(reverse_depth))
@@ -551,6 +551,7 @@ class ClifModuleSet(object):
             if r.terminatedUnknowingly():
                 logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(return_value) + "): " + r.name)
     
+        logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
         return return_value
 
 
