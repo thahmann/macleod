@@ -265,7 +265,7 @@ def raceProcesses (reasoners):
 				if r.isProver():
 					logging.getLogger(__name__).info("FOUND PROOF: " + name)
 				else:
-					logging.getLogger(__name__).info("FOUND MOUDEL: " + name)
+					logging.getLogger(__name__).info("FOUND MODEL: " + name)
 			else:
 				logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
 				logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))

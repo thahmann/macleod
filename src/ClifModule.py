@@ -79,7 +79,10 @@ class ClifModule(object):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
         from src.ClifLemmaSet import *
         
+        print "IMPORTS = " + str(imports)
+        
         if not isinstance(self, LemmaModule):
+            if self.module_set is None: print "RETURNING NONE"
             return self.module_set
         else:
             for i in imports:
