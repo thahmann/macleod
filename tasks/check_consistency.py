@@ -23,12 +23,22 @@ if __name__ == '__main__':
     else:
         results = m.run_full_consistency_check(abort=True)
         
-    if -1 in results.values():
-        for r in results:
-            if results[r]==-1:
-                logging.getLogger(__name__).info(str(r) + " is inconsistent")
+    if len(results)==0:
+        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")        
+    elif -1 in results.values():
+        for (r, value) in results:
+            if value==-1:
+                logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
     else:
-        logging.getLogger(__name__).info(str(m.get_imports()) + " is consistent")
-    
-    #print str(m.get_imports())
-    #m.run_consistency_check_by_subset()
+        result_sets = results.keys()
+        result_sets.sort(lambda x,y: cmp(len(x), len(y)))
+#        print result_sets[0]
+#        print results
+#        print "+++++" + str(value)
+        if results.get(result_sets[0])==1:
+            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
+        else:
+            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(r) +"\n")
+            for (r, value) in result_sets:
+                if value==1:
+                    logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r) +"\n")
