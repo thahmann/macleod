@@ -17,13 +17,13 @@ if __name__ == '__main__':
     m = ClifModuleSet(options.pop())
        
     if '-module' in options:
-        results = m.run_consistency_check_by_subset(abort=True)
+        results = m.run_consistency_check_by_subset(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
     elif '-depth' in options:
-        results = m.run_consistency_check_by_depth(abort=True)
+        results = m.run_consistency_check_by_depth(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
     elif '-simple' in options:
         results = m.run_simple_consistency_check()
     else:
-        results = m.run_full_consistency_check(abort=True)
+        results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
         
     if len(results)==0:
         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")        
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         if results.get(result_sets[0])==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
         else:
-            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(r) +"\n")
+            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
             for (r, value) in result_sets:
                 if value==1:
-                    logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r) +"\n")
+                    logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")

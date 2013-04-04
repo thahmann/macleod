@@ -57,7 +57,7 @@ if __name__ == '__main__':
                 logging.getLogger(__name__).info("+++ SENTENCE NEITHER PROVED NOR REFUTED " +m.get_lemma_module().get_simple_module_name() + " in AXIOMS: " + str(m.get_axioms())  +"\n")
 
 def run_simple_check(m):
-    r = m.run_simple_consistency_check()
+    (i, r) = m.run_simple_consistency_check().popitem()
     if r==ClifModuleSet.PROOF:
         logging.getLogger(__name__).info("+++ LEMMA PROVED " +m.get_lemma_module().get_simple_module_name() + " from AXIOMS: " + str(m.get_axioms())  +"\n")
     elif r==ClifModuleSet.COUNTEREXAMPLE:
