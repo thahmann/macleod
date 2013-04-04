@@ -16,7 +16,7 @@ class ReasonerProcess(multiprocessing.Process):
 		self.done = multiprocessing.Event()
 		self.output_filename = output_filename
 		
-		print str(args) + " > " + self.output_filename
+		#print str(args) + " > " + self.output_filename
 
 	def isDone (self):
 		return self.done.is_set()
@@ -41,7 +41,7 @@ class ReasonerProcess(multiprocessing.Process):
 		while sp.poll() is None and not self.exit.is_set():		
 			#logging.getLogger(__name__).info("WAITING: " + self.command)
 			time.sleep(1)
-			limit = 1000000000
+			limit = 1024 # each reasoning process is not allowed to use up more than 1GB of memory
 			memory = get_memory(sp.pid)
 			#print memory
 			if memory>limit:
@@ -102,19 +102,12 @@ def get_memory(pid):
 	    if not result:
 	    	return 0
 	    else:
-	    	#print str(result)
-	    	#print result[0].Name + " " + result[0].VirtualBytes + " " + result[0].WorkingSet 
-	    	return int(result[0].WorkingSet)
+	    	return int(result[0].WorkingSet) // (1024*1024) # convert from Bytes to MB
 
 	def memory_nix(pid):
-		
-#		self.process = subprocess.Popen("ps -u %s -o rss | awk '{sum+=$1} END {print sum}'" % self.username,
-#                                        shell=True,
-#                                        stdout=subprocess.PIPE,
-#                                        )
-#        self.stdout_list = self.process.communicate()[0].split('\n')
-#        return int(self.stdout_list[0])
-		return 0
+		ps_process = subprocess.Popen("ps -p " + str(pid) + " -o rss", shell=True, stdout=subprocess.PIPE)
+		stdout_list = ps_process.communicate()[0].split('\n')
+		return int(stdout_list[1]) // 1024 # convert to MB
 
 	memory_default = memory_nix
 	
@@ -135,7 +128,7 @@ def startSubprocessWithOutput(args, output_file):
 		p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT)
 	else:
 		# Linux (and others)
-		p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
+		p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
 	#print p.__class__
 	return p
 
@@ -197,7 +190,7 @@ def terminateSubprocess (process):
 		#os.kill(process.pid, signal.SIGINT)
 		return_value = process.terminate()
 		(stdout, _ ) = process.communicate()
-		if process.is_alive():
+		if process.poll() is None:
 			return_value = os.kill(process.pid, signal.SIGINT)
 			time.sleep(0.2)
 		if not stdout:
@@ -265,18 +258,10 @@ def raceProcesses (reasoners):
 		while not results.empty():
 			num_running += - 1
 			(name, code, _) = results.get()
-#			if stdout:
-#				logging.getLogger(__name__).debug("STDOUT from " + name.split()[0] + ": " + ("".join([s.strip("\n") for s in stdout])))
-			#name = proverDict[name]		# mapping the number back to the real command name
-			#print str(name) + " returned with " + str(code)
-			
-			#print name + " finished; positive returncodes are " + str(provers[name])
 			r = reasoners.getByCommand(name)
 			r.setReturnCode(code)
-			#print str(r.return_code) + " ++++ CODES: " + str(r.positive_returncodes)
 			if r.terminatedSuccessfully():
 				success = True
-				print "+++ SUCCESSFUL +++"
 				if r.isProver():
 					logging.getLogger(__name__).info("FOUND PROOF: " + name)
 				else:
@@ -302,32 +287,10 @@ def raceProcesses (reasoners):
 
 	return reasoners
 
-		#num_running = len(active)
-#		print(str(num_running) + " active processses")
-#		time.sleep(0.5)
-#		for p in reasonerProcesses:
-#			if p not in active:
-#				print p
-#				if p.returncode in p.provers[p.name()]:
-#					success = True
-#		for p in finderProcesses:
-#			if p not in active:
-#				print p
-#				if p.returncode in p.finders[p.name()]:
-#					success = True
-
-#	for r in reasonerProcesses:
-#		provers[r.name()]=r.returncode
-#	for finder in finderProcesses:
-#		modelfinders[finder.name()]=find.returncode
 
 def merge(logs):
 	""" simple sort algorithm for merging the log queues from multiple processes"""
 
-	#for log in logs:
-	#	if not log.empty():
-	#		print "Log ENTRY found\n\n"
-	
 	merged_log = []
 
 	# combine everything into a single list
