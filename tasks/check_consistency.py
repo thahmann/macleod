@@ -4,10 +4,12 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
+from tasks import *
 import sys, logging
 from src import *
 
 if __name__ == '__main__':
+    licence.print_terms()
     # global variables
     options = sys.argv
     options.reverse()

@@ -4,6 +4,7 @@ Created on 2013-03-29
 @author: Torsten Hahmann
 '''
 
+from tasks import *
 import sys
 from src import *
 from src.ClifModuleSet import *
@@ -11,6 +12,7 @@ from prove_lemma import *
 
 if __name__ == '__main__':
     # global variables
+    licence.print_terms()
     options = sys.argv
     options.reverse()
     options.pop()
