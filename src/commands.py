@@ -39,55 +39,62 @@ def get_empty_cmd():
 def get_p9_cmd (imports,output_stem, option_files = None):
     """get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance. 
     This invokes the clif_to_ladr translation if necessary."""
-    
-    cmd = (filemgt.read_config('prover9','command') +
-                ' -t ' + filemgt.read_config('prover9','timeout') +
-                ' -f ')
-    # append all ladr input files       
+
+    args = []
+    args.append(filemgt.read_config('prover9','command'))
+    args.append('-t' + filemgt.read_config('prover9','timeout'))
+    args.append('-f')
+    # append all ladr input files
     for m in imports:
-        cmd += m.get_p9_file_name() + ' '
+        args.append(m.get_p9_file_name())
     if option_files:
         for f in option_files:
-            cmd += f + ' '
-
-    return cmd + ' > ' + output_stem + filemgt.read_config('prover9','ending')
+            args.append(f)
+    
+    return args
     
 
 def get_m4_cmd (imports,output_stem):
     """get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance. 
     This invokes the clif_to_ladr translation if necessary."""
 
-    cmd = (filemgt.read_config('mace4','command') + ' -c -v 0' +
-                ' -t ' + filemgt.read_config('mace4','timeout') +
-                ' -s ' + filemgt.read_config('mace4','timeout_per') +
-                ' -n ' + filemgt.read_config('mace4','start_size') +
-                ' -N ' + filemgt.read_config('mace4','end_size') +
-                ' -f ')
+    args = []
+    args.append(filemgt.read_config('mace4','command'))
+    args.append('-v0')
+    args.append('-t' + filemgt.read_config('mace4','timeout'))
+    args.append('-s' + filemgt.read_config('mace4','timeout_per'))
+    args.append('-n' + filemgt.read_config('mace4','start_size'))
+    args.append('-N' + filemgt.read_config('mace4','end_size'))
+    args.append('-f')
     # append all ladr input files
     for m in imports:
-        cmd += m.get_p9_file_name() + ' '
-#        if self.options_files:
-#            for f in self.options_files:
-#                mace4args += f + ' '
+        args.append(m.get_p9_file_name())
     
-    return cmd + ' > ' + output_stem + filemgt.read_config('mace4','ending')
+    return args
 
 
 def get_paradox_cmd (imports,output_stem):
     """ we only care about the first element in the list of imports, which will we use as base name to obtain a single tptp file of the imports,
     which is the input for paradox."""
-    cmd = (filemgt.read_config('paradox','command') +
-                  ' --verbose 2 --model --tstp ' +
-                  list(imports)[0].get_module_set().get_single_tptp_file(imports))
-    
-    return cmd + ' > ' + output_stem + filemgt.read_config('paradox','ending')
+    args = []
+    args.append(filemgt.read_config('paradox','command'))
+    args.append('--time')
+    args.append(filemgt.read_config('paradox','timeout'))
+    args.append('--verbose')
+    args.append('2')
+    args.append('--model')
+    args.append('--tstp')
+    # append all ladr input files
+    args.append(list(imports)[0].get_module_set(imports).get_single_tptp_file(imports))
+
+    return args
 
 
 def get_vampire_cmd (imports,ouput_stem):
     cmd = (filemgt.read_config('vampire','command') + 
              ' --mode casc --proof tptp' +
              ' -t ' + repr(filemgt.read_config('vampire','timeout')) +
-             ' < ' + list(imports)[0].get_module_set().get_single_tptp_file_name(imports))
+             ' < ' + list(imports)[0].get_module_set(imports).get_single_tptp_file_name(imports))
 
     return cmd + ' > ' + output_stem + filemgt.read_config('vampire','ending')
 

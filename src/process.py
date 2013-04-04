@@ -1,4 +1,4 @@
-import os, signal, time, subprocess, logging, re
+import os, signal, time, subprocess, logging, re, sys
 import process, filemgt
 import multiprocessing
 from multiprocessing import Queue
@@ -6,40 +6,51 @@ from multiprocessing import Event
 
 class ReasonerProcess(multiprocessing.Process):
 	
-	def __init__(self, command, result_queue, log_queue):
+	def __init__(self, args, output_filename, result_queue, log_queue):
 		multiprocessing.Process.__init__(self)
 
-		self.command = command
+		self.args = args
 		self.result_queue = result_queue
 		self.log_queue = log_queue
 		self.exit = multiprocessing.Event()
 		self.done = multiprocessing.Event()
+		self.output_filename = output_filename
+		
+		print str(args) + " > " + self.output_filename
 
 	def isDone (self):
 		return self.done.is_set()
 
 	def shutdown (self):
-		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "RECEIVED ABORT SIGNAL: "  + self.name + ", command = " + self.command, None, None))
+		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "RECEIVED ABORT SIGNAL: "  + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		self.exit.set()
 		
 	def terminate (self):
-		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TERMINATING: " + self.name + ", command = " + self.command, None, None))
+		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TERMINATING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		self.shutdown()
 		time.sleep(1)
 		multiprocessing.Process.terminate (self)
 				
 	def run (self):
-		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.command, None, None))
+		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
-		sp = process.startSubprocess(self.command, True)
+		file = open (self.output_filename, 'w')
+		sp = process.startSubprocessWithOutput(self.args, file)
 		while sp.poll() is None and not self.exit.is_set():		
 			#logging.getLogger(__name__).info("WAITING: " + self.command)
 			time.sleep(1)
+			limit = 1000000000
+			memory = get_memory(sp.pid)
+			#print memory
+			if memory>limit:
+				record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
+				self.log_queue.put(record)
+				self.shutdown()
 		if self.exit.is_set():
 			# interrupted
-			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.command, None, None))
+			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
 			(p, stdoutdata) = process.terminateSubprocess(sp)
@@ -55,47 +66,90 @@ class ReasonerProcess(multiprocessing.Process):
 #				stdoutdata = ' '.join(stdoutdata.split())
 #				record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
 #				self.log_queue.put(record)
-			self.result_queue.put((self.command, sp.returncode, stdoutdata))
-			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.command, None, None))
+			# default return code for aborted process: -1
+			self.result_queue.put((self.args[0], -1, stdoutdata))
+			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 			#print "+++ HERE +++"
+			file.close()
 			self.done.set()
 			return True
 		# finished
-		stdoutdata = sp.stdout.read()
-		if sp.stderr:
-			stdoutdata += sp.stderr.read()
-		stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
-		stdoutdata = ' '.join(stdoutdata.split())
-		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
+#		stdoutdata = sp.stdout.read()
+#		if sp.stderr:
+#			stdoutdata += sp.stderr.read()
+#		stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
+#		stdoutdata = ' '.join(stdoutdata.split())
+#		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
+#		self.log_queue.put(record)
+		self.result_queue.put((self.args[0], sp.returncode, None))
+		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
-		self.result_queue.put((self.command, sp.returncode, stdoutdata))
-		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.command, None, None))
-		self.log_queue.put(record)
+		file.close()
 		self.done.set()
 		return True
 	
-		
 
-def startSubprocess(command, piping = False):
+
+def get_memory(pid):
+
+	def memory_win(pid):
+	    from wmi import WMI
+	    #print pid
+	    w = WMI('.')
+	    result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
+	    #print str(result)
+	    if not result:
+	    	return 0
+	    else:
+	    	#print str(result)
+	    	#print result[0].Name + " " + result[0].VirtualBytes + " " + result[0].WorkingSet 
+	    	return int(result[0].WorkingSet)
+
+	def memory_nix(pid):
+		
+#		self.process = subprocess.Popen("ps -u %s -o rss | awk '{sum+=$1} END {print sum}'" % self.username,
+#                                        shell=True,
+#                                        stdout=subprocess.PIPE,
+#                                        )
+#        self.stdout_list = self.process.communicate()[0].split('\n')
+#        return int(self.stdout_list[0])
+		return 0
+
+	memory_default = memory_nix
+	
+	handlers = {
+		"nt": memory_win, 
+		"linux": memory_nix
+	}
+
+	return handlers.get(os.name, memory_default)(pid)
+	
+
+
+def startSubprocessWithOutput(args, output_file):
 	"""Start a new subprocess, but does not wait for the subprocess to complete. 
 	This method uses the os.setsid in Linux, which is not available in Windows"""
 	if os.name == 'nt':
 		# Windows
-		if piping:
-			#logging.getLogger(__name__).debug(command.split()[0] +  "redirecting STDERR to STDOUT")
-			p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		else:
-			#logging.getLogger(__name__).debug(command.split()[0] + " -- no piping")
-			#logging.getLogger(__name__).info("STARTING: " + command)
-			p = subprocess.Popen(command, shell=True, stderr=subprocess.STDOUT)
+		p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT)
 	else:
 		# Linux (and others)
-		if piping:
-			p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		else:
-			logging.getLogger(__name__).info("STARTING: " + command)
-			p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True)
+		p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
+	#print p.__class__
+	return p
+
+
+def startSubprocess(command):
+	"""Start a new subprocess, but does not wait for the subprocess to complete. 
+	This method uses the os.setsid in Linux, which is not available in Windows"""
+	if os.name == 'nt':
+		# Windows
+		p = subprocess.Popen(command, shell=True, stderr=subprocess.STDOUT)				
+	else:
+		# Linux (and others)
+		logging.getLogger(__name__).info("STARTING: " + command)
+		p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True)
 	
 	#print p.__class__
 	return p
@@ -115,9 +169,9 @@ def startInteractiveProcess():
 	
 			
 
-def executeSubprocess(command, piping = False):
+def executeSubprocess(command):
 	"""start a new subprocess and wait for it to terminate"""
-	p = process.startSubprocess(command, piping=piping)
+	p = process.startSubprocess(command)
 	p.wait()
 	time.sleep(0.1)
 	return p
@@ -126,7 +180,7 @@ def executeSubprocess(command, piping = False):
 def terminateSubprocess (process):
 	"""terminate a sub process."""
 	def terminate_win (process):
-		p = startSubprocess("taskkill /F /T /PID " + str(process.pid), piping=True)
+		p = startSubprocessWithOutput("taskkill /F /T /PID " + str(process.pid), subprocess.PIPE)
 		(stdout, _ ) = process.communicate()
 		(stdout2, _ ) = p.communicate()
 		#print "TYPE = " + stdout.__class__.__name__
@@ -183,7 +237,7 @@ def raceProcesses (reasoners):
 	# start all processes
 	for r in reasoners:
 		log = Queue()
-		p = ReasonerProcess(r.getCommand(),results,log)
+		p = ReasonerProcess(r.getCommand(),r.getOutfile(), results, log)
 		reasonerProcesses.append(p)
 		processLogs.append(log)
 		#p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.getCommand(),results,))
@@ -202,13 +256,17 @@ def raceProcesses (reasoners):
 			if len(merged_log)>0:
 				filemgt.add_to_subprocess_log(merged_log)
 				#print "\n\n" + l + "\n\n"
-			time.sleep(1.0)
+			time.sleep(1)
+			sys.stdout.write(".")
+			#print "WAITING"
 			#active=multiprocessing.active_children()	# poll for active processes
 		# at least one process has terminated
+		sys.stdout.write("\n")
 		while not results.empty():
 			num_running += - 1
-			(name, code, stdout) = results.get()
-			logging.getLogger(__name__).debug("STDOUT from " + name.split()[0] + ": " + ("".join([s.strip("\n") for s in stdout])))
+			(name, code, _) = results.get()
+#			if stdout:
+#				logging.getLogger(__name__).debug("STDOUT from " + name.split()[0] + ": " + ("".join([s.strip("\n") for s in stdout])))
 			#name = proverDict[name]		# mapping the number back to the real command name
 			#print str(name) + " returned with " + str(code)
 			
@@ -218,23 +276,29 @@ def raceProcesses (reasoners):
 			#print str(r.return_code) + " ++++ CODES: " + str(r.positive_returncodes)
 			if r.terminatedSuccessfully():
 				success = True
+				print "+++ SUCCESSFUL +++"
 				if r.isProver():
-					logging.getLogger(__name__).info(name + " found a proof/inconsistency")
+					logging.getLogger(__name__).info("FOUND PROOF: " + name)
 				else:
-					logging.getLogger(__name__).info(name + " found a counterexample/model")
+					logging.getLogger(__name__).info("FOUND MOUDEL: " + name)
+			else:
+				logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
+				logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))
 				
+			# END OF PROCESSING QUEUE
+			
 		if success:
 			for p in reasonerProcesses:
-				logging.getLogger(__name__).debug("SENDING ABORT SIGNAL to " + p.command)				
+				logging.getLogger(__name__).debug("SENDING ABORT SIGNAL to " + p.args[0])				
 				p.shutdown()
 				while not p.isDone():
 					time.sleep(0.1)
 			logging.getLogger(__name__).debug("Final processing of subprocess log queue")
-			time.sleep(0.1)
+			time.sleep(0.5)
 			merged_log = merge(processLogs)
 			filemgt.add_to_subprocess_log(merged_log)
 			merged_log = []
-		break
+			break
 
 	return reasoners
 

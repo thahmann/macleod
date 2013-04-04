@@ -75,9 +75,16 @@ class ClifModule(object):
 #            parent.nonlogical_symbols.append[self.nonlogical_symbols]
 #            parent.nonlogical_variables.append[self.nonlogical_variables]
 
-    def get_module_set (self):
+    def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
-        return self.module_set
+        from src.ClifLemmaSet import *
+        
+        if not isinstance(self, LemmaModule):
+            return self.module_set
+        else:
+            for i in imports:
+                if not isinstance(self, LemmaModule):
+                    return i.module_set
 
     def get_simple_module_name (self,module=None):
         if not module:
@@ -117,11 +124,15 @@ class ClifModule(object):
         return self.depth
                 
     def __repr__ (self):
+        return self.module_name
+
+    def __str__(self):
         return (self.module_name 
                 + ' (depth=' + str(self.depth) 
                 + ', parents: ' + str(self.parents) + ')')  
 
-
+    def shortstr(self):
+        return self.__repr__()
 
     # extract all nonlogical symbols (predicate and function symbols) from the preprocessed clif file
     def compute_nonlogical_symbols (self,input_file_name):

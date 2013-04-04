@@ -12,7 +12,7 @@ class Reasoner (object):
     
     type = PROVER
     
-    command = ''
+    args = []
     
     positive_returncodes = []
     
@@ -23,6 +23,8 @@ class Reasoner (object):
     outfile_stem = ''
     
     return_code = None
+    
+    output = None
     
     # initialize
     def __init__(self, name, type=None, id=None):
@@ -51,16 +53,20 @@ class Reasoner (object):
     def constructCommand (self, modules, outfile_stem):
         """Construct the command to invoke the reasoner."""
         self.modules = modules
-        self.outfile_stem = outfile_stem
-        self.command = commands.get_system_command(self.name, self.modules, self.outfile_stem)
-        return self.command
+        self.outfile_stem = outfile_stem + filemgt.read_config(self.name,'ending')
+        self.args = commands.get_system_command(self.name, self.modules, self.outfile_stem)
+        return self.args
     
     def getCommand (self, modules=None, outfile_stem=None):
         """Return the command (includes constructing it if necessary) to invoke the reasoner."""
         if not modules:
-            return self.command
+            return self.args
         else:
-            return self.construct_command(modules, outfile_stem)
+            self.construct_command(modules, outfile_stem)
+            return self.args
+    
+    def getOutfile(self):
+        return self.outfile_stem        
 
     def isProver (self):
         if self.type==Reasoner.PROVER: return True
