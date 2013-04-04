@@ -33,7 +33,7 @@ def find_config (filename):
             if os.path.isfile(loc):
                 filename = loc
                 if filemgt.LOGGER: 
-                    filemgt.LOGGER.debug(filename + " found at: " + filename)
+                    filemgt.LOGGER.debug(filename + " FOUND")
                 else:
                     print("File " + filename + " found")
                 break
