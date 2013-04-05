@@ -7,32 +7,7 @@ Refactored on 2013-03-16
 import os, logging, filemgt, process, clif, commands, ladr
 
 class ClifModule(object):
-
-    module_set = None
-    
-    module_name = ''
-    
-    depth = 0
-    
-    """set of all imported module names """
-    imports = set([])
-    
-    """ set of all parent module names"""
-    parents = set([])
-    
-    clif_file_name = ''
-    
-    """Location of the clif input file that has undergone preprocessing"""
-    clif_processed_file_name = ''
-    
-    p9_file_name = None
-    
-    tptp_file_name = None
-    
-    # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
-    nonlogical_symbols = set([])
-    nonlogical_variables = set([])
-    
+   
     '''
     classdocs
     '''
@@ -40,6 +15,32 @@ class ClifModule(object):
         '''
         Constructor
         '''
+        self.module_set = None
+        
+        self.module_name = ''
+        
+        self.depth = 0
+        
+        """set of all imported module names """
+        self.imports = set([])
+        
+        """ set of all parent module names"""
+        self.parents = set([])
+        
+        self.clif_file_name = ''
+        
+        """Location of the clif input file that has undergone preprocessing"""
+        self.clif_processed_file_name = ''
+        
+        self.p9_file_name = None
+        
+        self.tptp_file_name = None
+        
+        # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
+        self.nonlogical_symbols = set([])
+
+        self.sentences = set([])
+        
         self.module_name = self.get_simple_module_name(module = name)
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL prefix as specified in the configuration file
@@ -70,10 +71,6 @@ class ClifModule(object):
 
         self.parents = set([])
         
-        # push nonlogical symbols and variables upwards (VERY LAST STEP)
-#        if isinstance(parent, ClifModule):
-#            parent.nonlogical_symbols.append[self.nonlogical_symbols]
-#            parent.nonlogical_variables.append[self.nonlogical_variables]
 
     def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
@@ -141,17 +138,15 @@ class ClifModule(object):
     def compute_nonlogical_symbols (self,input_file_name):
         
         cl_file = open(input_file_name, 'r')
-        line = cl_file.readline()
-        while line:
-            self.nonlogical_symbols |= clif.get_logical_symbols_from_single_line(line)
-            self.nonlogical_variables |= clif.get_quantified_variables_from_single_line(line)
-            line = cl_file.readline()
-
+        text = cl_file.readlines()
         cl_file.close()
-        
-        self.nonlogical_symbols -= self.nonlogical_variables
+        text = "".join(text)    # compile into a single string
+        quantified_terms = clif.get_quantified_terms(text)
+        self.sentences = clif.get_sentences(quantified_terms)
+        for sentence in self.sentences:
+            print "SENTENCE = " + sentence
+            self.nonlogical_symbols.update(clif.get_nonlogical_symbols(sentence))
         logging.getLogger(__name__).debug("Nonlogical symbols: " + str(self.nonlogical_symbols))
-        logging.getLogger(__name__).debug("Variables: " + str(self.nonlogical_variables))
         
 
     @staticmethod

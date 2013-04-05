@@ -4,14 +4,14 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, logging, clif
+import os, logging, clif, filemgt
 
 # logical connectives in CLIF
-CLIF_LOGICAL_CONNECTIVES = ['not', 'and', 'or', 'iff', 'if', 'exists', 'forall', '=']
+CLIF_LOGICAL_CONNECTIVES = set(['not', 'and', 'or', 'iff', 'if', 'exists', 'forall', '='])
 # CLIF symbols that are logically irrelevant
-CLIF_OTHER_SYMBOLS = ['cl-text', 'cl-module', 'cl-imports']
+CLIF_OTHER_SYMBOLS = set(['cl-text', 'cl-module', 'cl-imports'])
 # CLIF quantifiers
-CLIF_QUANTIFIERS = ['forall', 'exists']
+CLIF_QUANTIFIERS = set(['forall', 'exists'])
 
 CLIF_IMPORT = 'cl-imports'
 
@@ -19,7 +19,10 @@ CLIF_COMMENT = 'cl-comment'
 
 
 def remove_all_comments(input_file, output_file):
-    """Remove all comments (multi-line and single-line comments), including cl-comment blocks from the given file"""
+    """Remove all comments (multi-line and single-line comments), including cl-comment blocks from the given CLIF file.
+    Parameters:
+    input_file -- filename of the CLIF input
+    output_file -- filename where to write the CLIF file removed of comments."""
 
     lines = []
 
@@ -48,6 +51,21 @@ def remove_all_comments(input_file, output_file):
             file.close()
         finally:
             file.close()
+
+
+def reformat_urls(lines):
+    """Delete URL prefixes from all imports declarations.""" 
+    lines = list(lines)
+    prefixes = filemgt.read_config('cl','prefix').split(',')
+    prefixes = [p.strip().strip('"') for p in prefixes]
+    prefixes = sorted([p.strip() for p in prefixes], key=lambda s: len(s), reverse=True) 
+    for i in range(0,len(lines)):
+        for prefix in prefixes:
+            lines[i] = lines[i].replace(prefix,'')
+            lines[i] = lines[i].strip('/')
+            #print lines[i]
+    return lines
+
 
 
 def strip_lines (lines, begin_symbol):
@@ -163,97 +181,103 @@ def strip_sections (lines, begin_symbol, end_symbol):
             else: return output        
             
 
-
-# get the named entities (functions and relations) from a string
-def get_logical_symbols_from_single_line(line):
-    #print 'line: ' + line 
-    
-    symbols = set([])
-    
-    s = line.find('(')
-    while  s > -1:
-        #print 'line before: ' + line
-        line = line[s+1:]
-        #print 'reduced line: ' + xline
-
-        # we need the first closing parenthesis 
-        e = line.find(')')
-        
-        if e<0:
-            # no closing parenthesis
-            activepart = line
-            line = ''
-        else:
-            # find last  open parenthesis before the closing one
-            s2 = line.rfind('(', 0, e)
-            if s2<0:
-                # no other parenthesis
-                # split the line into an active parts that is immediately processed and the remainder of the line
-                activepart = line[0:e]
-                line = line[e+1:]
+def get_quantified_terms(text):
+    """Extracts all quantified terms from a string that contains the content of a CLIF file"""
+    text = text.replace("\t","")   # remove tabs
+    text = text.replace("\n","")   # remove linebreaks
+    pieces = [text]
+    for q in clif.CLIF_QUANTIFIERS:
+        old_pieces = pieces
+        pieces = [p.split(q) for p in old_pieces]
+        new_pieces = []
+        for i in range(0,len(pieces)):
+            if len(pieces[i])==1:
+                new_pieces.append(old_pieces[i])
             else:
-                activepart = line[s2+1:e]
-                line = line[0:s2] + ' ' + line[e+1:]
-                
-        #print 'active part: ' + activepart
-        
-        if len(activepart)!=0:
-        #print 'remainder of line: ' + line
-        # split the active part into words
-            words = activepart.split()
-            
-            if words[0] in clif.CLIF_LOGICAL_CONNECTIVES:
-                # remove the connective, add the remainder to the remaining line
-                line = activepart[len(words[0]):] + line
-                #print 'line after processing connectives: ' + line
-            elif words[0] not in clif.CLIF_OTHER_SYMBOLS:
-                symbols.add(words[0])
-        # next one 
-        s = line.find('(')
+                new_pieces.append(pieces[i].pop(0)) # copy the first one as-is
+                new_pieces.extend(['(' + q + ' ' + p.strip() for p in pieces[i]])
+        pieces = new_pieces
+        for i in range(0,len(pieces)-1):
+            #print pieces[i]
+            if pieces[i].endswith("("):
+                pieces[i] = pieces[i][:-1]  # remove last character, the opening parenthesis
+
+    pieces.pop(0)   # delete non-relevant part
+    return pieces
+
+
+def get_sentences(quantified_terms):
+    """Reconstruct the sentences from a list of quantified terms in CLIF notation by matching parentheses.
+    Returns a set of strings, each is a logical sentence surrounded by parentheses."""
+    new_pieces = []
+    pieces = quantified_terms
+    #print pieces
+    for i in range (0,len(pieces)):
+        print pieces[i]
+        open_parentheses = pieces[i].count('(') - pieces[i].count(')')
+        if i==len(pieces)-1:
+            #print "last piece, removing parentheses " + str(open_parentheses)
+            for n in range(0,open_parentheses):
+                pieces[i] = pieces[i].rsplit(')',1)[0]
+            new_pieces.append(pieces[i])
+        elif open_parentheses == 0:
+            #print pieces[i]
+            new_pieces.append(pieces[i])  # end of quantified term
+        else:
+            pieces[i+1] = pieces[i] + pieces[i+1]
+    return new_pieces
+              
+
+def get_variables(sentence):
+    """Extract the variables from a logical sentence in CLIF notation."""
+    variables = set([])
+    pieces = [sentence[1:-1].strip()] # crop outer parentheses
+    for q in clif.CLIF_QUANTIFIERS:
+        pieces = [p.split(q) for p in pieces]
+        pieces = [p.strip() for sublist in pieces for p in sublist]   # flatten list
+    pieces = set(pieces)
+    pieces.discard('')
+    #print pieces
+    for p in pieces:
+        new_vars = p.split('(',1)[1].split(')',1)[0].split()
+        variables.update(new_vars)
+    #print variables
+    return variables
     
-    return symbols
+def get_nonlogical_symbols(sentence):
+    """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
+    variables = get_variables(sentence)
+
+    pieces = sentence.split()
+    pieces = [p.split('(') for p in pieces]
+    pieces = [item for sublist in pieces for item in sublist] # flatten list
+    pieces = [p.split(')') for p in pieces]
+    pieces = [item for sublist in pieces for item in sublist] # flatten list
+    pieces = [p.strip() for p in pieces]
+    print "removing variables " + str(variables) 
+    pieces = set(pieces) - set(clif.CLIF_LOGICAL_CONNECTIVES) - set(clif.CLIF_OTHER_SYMBOLS) -set(['']) - set(variables)
+    return pieces
+     
 
 
-def get_quantified_variables_from_single_line (line):
-    #print 'line (initial) = ' + line
-    line = line.strip()
-    #print 'all variables: ' + str(logical_vars)
-
-    vars = set([])
-    
-    for keyword in clif.CLIF_QUANTIFIERS:
-        
-        i = line.find(keyword+ " ")
-        while  i > -1:
-            #print 'line: ' + line
-            s = line.find('(',i)
-            e = line.find(')', s)
-            var_string = line[s+1:e]
-            #print var_string
-            remainder = line[e:]
-            #print 'logical_vars: ' + var_string
-            #print 'remainder: ' + remainder                   
-            for var in var_string.split():
-                vars.add(var)
-            line = remainder
-            i = line.find(keyword)
-    return vars
-
-        
 def get_imports(input_file):
-    """Find all the imported modules"""
+    """Find all the imported modules from a CLIF file.
+    Parameters:
+    input_file -- filename of the CLIF input."""
 
     imports = set([])
     
     cl_file = open(input_file, 'r')
-    line = cl_file.readline()
-    while line:           
-        c1 = line.find(clif.CLIF_IMPORT)
-        if c1>-1:
-            
-            imports.add(line[c1:].split(' ',1)[1].split(')')[0].strip())
-        line = cl_file.readline()
+    text = "".join(cl_file.readlines())
+    #print text
     cl_file.close()
+
+    text = text.split(clif.CLIF_IMPORT)
+    for i in range(1,len(text)):
+        line = text[i].split(")",1) # find first closing parenthesis
+        imports.add(line[0].strip())
+    imports = reformat_urls(imports)
+    #print imports
     return imports
 
 
