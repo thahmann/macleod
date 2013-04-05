@@ -21,37 +21,6 @@ class ClifModuleSet(object):
     UNKNOWN = 0
     CONTRADICTION = -100
     
-
-    module_name = ''
-
-    # list of ClifModules that are imported and have been processed already   
-    imports = set([])
-    
-    # keeps track of the lemma that needs to be proved; this is None if no lemma needs to be proved 
-    lemma_module = None
-    
-    # list of imports that still require processing
-    unprocessed_imports = set([])
-
-    # list of nonlogical symbols that occur in any imported files
-    # it is a tuple [symbol, count, d_min, d_max] where
-    # symbol: name of the symbol
-    # count: total number of Occurrences
-    # d_min: minimal depth in the CL-import tree where it occurs
-    # d_max: maximal depth in the CL-import tree where it occurs
-    nonlogical_symbols = set([])
-    
-    # the primitive and potentially some defined predicates occurring in any imported files
-    primitive_predicates = set([])
-
-    # a list of predicates that are definitively defined predicates occurring in any imported files
-    defined_predicates = set([])
-    
-    # the functions occurring in any imported files
-    nonskolem_functions = set([])
-    
-    p9_file_name = ''
-    tptp_file_name = ''
     
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
@@ -59,6 +28,37 @@ class ClifModuleSet(object):
         filemgt.start_logging()
         
         logging.getLogger(__name__).info("Creating ClifModuleSet " + name)
+
+        self.module_name = ''
+    
+        # list of ClifModules that are imported and have been processed already   
+        self.imports = set([])
+        
+        # keeps track of the lemma that needs to be proved; this is None if no lemma needs to be proved 
+        self.lemma_module = None
+        
+        # list of imports that still require processing
+        self.unprocessed_imports = set([])
+    
+        # list of nonlogical symbols that occur in any imported files
+        # it is a tuple [symbol, count, d_min, d_max] where
+        # symbol: name of the symbol
+        # count: total number of Occurrences
+        # d_min: minimal depth in the CL-import tree where it occurs
+        # d_max: maximal depth in the CL-import tree where it occurs
+        self.nonlogical_symbols = set([])
+        
+        # the primitive and potentially some defined predicates occurring in any imported files
+        self.primitive_predicates = set([])
+    
+        # a list of predicates that are definitively defined predicates occurring in any imported files
+        self.defined_predicates = set([])
+        
+        # the functions occurring in any imported files
+        self.nonskolem_functions = set([])
+        
+        self.p9_file_name = ''
+        self.tptp_file_name = ''
 
         m = ClifModule(name,0)
         m.module_set = self
