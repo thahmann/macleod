@@ -37,16 +37,10 @@ class LemmaModule(ClifModule):
 
 
 class ClifLemmaSet(object):
-
-    module = None
-
-    lemmas = []
-    
-    p9_file_name = ''
-    
-    tptp_file_name = ''
     
     def __init__ (self, name):
+        self.p9_file_name = ''
+        self.tptp_file_name = ''
         
         self.module = ClifModule(name,0)
         logging.getLogger(__name__).info('constructed clif module for lemma file: ' + self.module.module_name)

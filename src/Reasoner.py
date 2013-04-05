@@ -5,29 +5,27 @@ class Reasoner (object):
     MODEL_FINDER = 'MODEL_FINDER'
     
     PROVER = 'PROVER'
-    
-    identifier = ''
-    
-    name = ''
-    
-    type = PROVER
-    
-    args = []
-    
-    positive_returncodes = []
-    
-    unknown_returncodes = []
-    
-    modules = []
-    
-    outfile_stem = ''
-    
-    return_code = None
-    
-    output = None
-    
+        
     # initialize
     def __init__(self, name, type=None, id=None):
+        self.identifier = ''
+        
+        self.type = Reasoner.PROVER
+        
+        self.args = []
+        
+        self.positive_returncodes = []
+        
+        self.unknown_returncodes = []
+        
+        self.modules = []
+        
+        self.outfile_stem = ''
+        
+        self.return_code = None
+        
+        self.output = None
+
         self.name = name
         if type:
             self.type = type
