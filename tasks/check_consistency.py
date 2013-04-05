@@ -8,14 +8,11 @@ from tasks import *
 import sys, logging
 from src import *
 
-if __name__ == '__main__':
-    licence.print_terms()
-    # global variables
-    options = sys.argv
-    options.reverse()
-    options.pop()
-    m = ClifModuleSet(options.pop())
-       
+
+    
+def consistent(filename, options=[]):  
+    m = ClifModuleSet(filename)
+     
     if '-module' in options:
         results = m.run_consistency_check_by_subset(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
     elif '-depth' in options:
@@ -31,6 +28,7 @@ if __name__ == '__main__':
         for (r, value) in results:
             if value==-1:
                 logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
+                return False
     else:
         result_sets = results.keys()
         result_sets.sort(lambda x,y: cmp(len(x), len(y)))
@@ -39,8 +37,19 @@ if __name__ == '__main__':
 #        print "+++++" + str(value)
         if results.get(result_sets[0])==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
+            return True
         else:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
             for (r, value) in result_sets:
                 if value==1:
                     logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")
+            return None
+
+if __name__ == '__main__':
+    licence.print_terms()
+    # global variables
+    options = sys.argv
+    options.reverse()
+    options.pop()
+    filename = options.pop()
+    consistent(filename, options)
