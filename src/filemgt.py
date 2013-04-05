@@ -43,13 +43,30 @@ def find_config (filename):
         filename = os.path.normpath(os.path.join(os.path.abspath(os.path.curdir), filename))
     return filename
 
+
 def find_macleod_config():
     """tries to find the MacLeod configuration file."""
-    filemgt.config_file = find_config(filemgt.config_file)
+    filename = filemgt.config_file
+    filemgt.config_file = find_config(filename)
+
+    if  not os.path.exists(filemgt.config_file) or not os.path.isfile(filemgt.config_file):
+        # backup solution: with _win or _linux in the name
+        basename = os.path.basename(filename).rsplit(".",1)
+        if len(basename)==2:
+            new_basename = basename[0]
+            if os.name == 'nt':
+                new_basename += "_win"
+            else:
+                new_basename += "_linux"
+            new_basename += "." + basename[1]
+            filename = os.path.join(os.path.dirname(filename), new_basename)
+            filemgt.config_file = find_config(filename)
+
 
 def find_log_config():
     """tries to find the MacLeod logging configuration file."""
     filemgt.log_config_file = find_config(filemgt.log_config_file)
+         
 
 def read_config(section, key):
     """read a value from the MacLeod configuration file."""     
