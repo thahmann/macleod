@@ -30,7 +30,7 @@ class ReasonerProcess(multiprocessing.Process):
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TERMINATING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		self.shutdown()
-		time.sleep(1)
+		time.sleep(0.2)
 		multiprocessing.Process.terminate (self)
 				
 	def run (self):
@@ -38,9 +38,12 @@ class ReasonerProcess(multiprocessing.Process):
 		self.log_queue.put(record)
 		file = open (self.output_filename, 'w')
 		sp = process.startSubprocessWithOutput(self.args, file)
+		self.cputime = 0
 		while sp.poll() is None and not self.exit.is_set():		
 			#logging.getLogger(__name__).info("WAITING: " + self.command)
-			time.sleep(1)
+			self.cputime = max(self.cputime, get_cputime(sp.pid))
+			#print self.cputime
+			time.sleep(0.5)
 			limit = 1024 # each reasoning process is not allowed to use up more than 1GB of memory
 			memory = get_memory(sp.pid)
 			#print memory
@@ -53,6 +56,7 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
+			self.cputime = max(self.cputime, get_cputime(sp.pid))
 			(p, stdoutdata) = process.terminateSubprocess(sp)
 			if stdoutdata:
 				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
@@ -71,24 +75,53 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 			#print "+++ HERE +++"
+			# for the record, write the CPU time to the end of the file
+			self.cputime = max(self.cputime, get_cputime(sp.pid))
+			file.write("TOTAL CPU TIME USAGE = " + str(self.cputime))
 			file.close()
 			self.done.set()
 			return True
-		# finished
-#		stdoutdata = sp.stdout.read()
-#		if sp.stderr:
-#			stdoutdata += sp.stderr.read()
-#		stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
-#		stdoutdata = ' '.join(stdoutdata.split())
-#		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
-#		self.log_queue.put(record)
+		# finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
 		self.result_queue.put((self.args[0], sp.returncode, None))
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
+		# for the record, write the CPU time to the end of the file
+		self.cputime = max(self.cputime, get_cputime(sp.pid))
+		file.write("TOTAL CPU TIME USAGE = " + str(self.cputime))
 		file.close()
 		self.done.set()
 		return True
 	
+
+def get_cputime(pid):
+	"""Returns the CPU time a process has used so far in seconds as a float (one floating point digit)."""
+	
+	def cputime_win(pid):
+	    from wmi import WMI
+	    #print pid
+	    w = WMI('.')
+#	    result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
+	    result = w.query("SELECT * FROM Win32_Process WHERE ProcessId=%d" % pid)
+	    #print str(result)
+	    if not result:
+	    	return 0
+	    else:
+	    	return round((float(result[0].UserModeTime)) / 10000000, 1) # convert to seconds
+			
+		
+	def cputime_nix(pid):
+		# TODO: implement
+		return 0
+
+	cputime_default = cputime_nix
+	
+	handlers = {
+		"nt": cputime_win, 
+		"linux": cputime_nix
+	}
+
+	return handlers.get(os.name, cputime_default)(pid)
+		
 
 
 def get_memory(pid):
@@ -138,7 +171,7 @@ def startSubprocess(command):
 	This method uses the os.setsid in Linux, which is not available in Windows"""
 	if os.name == 'nt':
 		# Windows
-		p = subprocess.Popen(command, shell=True, stderr=subprocess.STDOUT)				
+		p = subprocess.Popen(command, shell=True, close_fds=True)				
 	else:
 		# Linux (and others)
 		logging.getLogger(__name__).info("STARTING: " + command)
@@ -177,7 +210,7 @@ def terminateSubprocess (process):
 		(stdout, _ ) = process.communicate()
 		(stdout2, _ ) = p.communicate()
 		#print "TYPE = " + stdout.__class__.__name__
-		time.sleep(0.2)
+		time.sleep(0.1)
 		if not stdout:
 			stdout = ""
 		if not stdout2:
@@ -192,7 +225,7 @@ def terminateSubprocess (process):
 		(stdout, _ ) = process.communicate()
 		if process.poll() is None:
 			return_value = os.kill(process.pid, signal.SIGINT)
-			time.sleep(0.2)
+			time.sleep(0.1)
 		if not stdout:
 			stdout = ""
 		re.sub(r'[^\w]', '', stdout)
@@ -249,7 +282,7 @@ def raceProcesses (reasoners):
 			if len(merged_log)>0:
 				filemgt.add_to_subprocess_log(merged_log)
 				#print "\n\n" + l + "\n\n"
-			time.sleep(1)
+			time.sleep(0.5)
 			sys.stdout.write(".")
 			#print "WAITING"
 			#active=multiprocessing.active_children()	# poll for active processes
