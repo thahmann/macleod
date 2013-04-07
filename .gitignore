@@ -7,6 +7,8 @@ LADR-2009-11A
 paradox3.exe
 # Ignore all bin directories
 bin
+# Ignore all log directories
+log
 # Ignore all files ending with ~
 *~
 # Ignore generated latex files

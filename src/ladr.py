@@ -1,19 +1,27 @@
 import os, logging, ladr, filemgt, commands, process
 #from ClifModuleSet import *
 
-replaced = False
-
 def translate_to_tptp_file (input_file, output_file, symbols = None):
     # hack: replace iff's (<->) by <- to do a correct windows translation; revert it afterwards
-    replace_equivalences(input_file)
+    replaced = substitute_iffs(input_file)
     
-    # convert LADR file to lower case, only temporarily for TPTP translation
+    print "translating " + input_file + " using " + str(symbols)
+    
+    # convert LADR file to lower case and surround all symbols by "", only temporarily for TPTP translation
     file = open(input_file, 'r')
     text = file.readlines()
     file.close()
     temp_file = input_file +'.tmp'
     file = open(temp_file, 'w')
-    text = [s.strip().lower() for s in text]
+    text = [line.replace('(',' ( ') for line in text]
+    text = [line.replace(')',' ) ') for line in text]
+    symbols = sorted([sym.strip() for sym in symbols], key=lambda s: len(s), reverse=True)
+    # for the LADR to TPTP translation to work properly, we need upper-case symbols.
+    # However, then the names are all destroyed afterwards -> need a better way of dealing with this.
+    for sym in symbols:
+        text = [line.replace(' '+sym+' ',' '+sym.upper()+' ') for line in text]
+        #text = [line.replace(' '+sym+' ',' "'+sym + '" ') for line in text]
+    #text = [line.strip().lower() for line in text]
     newtext = []
     for s in text:
         if len(s)>0: newtext.append(s+'\n')
@@ -32,10 +40,10 @@ def translate_to_tptp_file (input_file, output_file, symbols = None):
     number_tptp_axioms(output_file)
 
     # complete hack
-    replace_equivalences_back(output_file)
+    if replaced: restore_iffs(output_file)
 
-    if symbols:
-        get_lowercase_tptp_file(output_file, symbols)
+    #if symbols:
+    #    get_lowercase_tptp_file(output_file, symbols)
 
     logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + output_file)
     
@@ -109,6 +117,7 @@ def get_lowercase_tptp_file (tptp_file, nonlogical_symbols):
     file.close()
     
     for symbol in nonlogical_symbols:
+        print symbol
         text = text.replace('\"'+symbol[0]+'\"', ' '+symbol[0].lower())
     for symbol in nonlogical_symbols:
         text = text.replace(symbol[0], symbol[0].lower())
@@ -120,44 +129,46 @@ def get_lowercase_tptp_file (tptp_file, nonlogical_symbols):
     return out_file
 
 
-def replace_equivalences(ladr_file):
-    if os.name == 'nt': 
+def substitute_iffs(ladr_file):
+    """ replace all equivalence ("iff" or "<=>" statements) by "<=" to circumvent an error in the ladr_to_tptp translator in Windows."""
+    if not os.name == 'nt':
+        return
+    else: 
         file = open(ladr_file, 'r')
         text = file.readlines()
         file.close()   
         
-            # ensure proper spacing
+        # ensure proper spacing
         text = [s.replace("<->"," <iff> ") for s in text]
-        ladr.replaced = False
+        replaced = False
     
         if " <iff> " in "".join(text):
             logging.getLogger(__name__).debug("replacing equivalences")
             if "<-" in "".join(text):
                 logging.getLogger(__name__).error("Problem converting LADR files to TPTP syntax: cannot deal with <-> properly in Windows due to error in 2007 version of old ladr_to_tptp.")
-                return
+                return replaced
             else:
                 text = [s.replace("<iff>","<-") for s in text]
-                ladr.replaced = True
+                replaced = True
     
         file = open(ladr_file, 'w+')
         file.writelines(text) 
         file.close()
-        return ladr_file
+        return replaced
     
 
 
-def replace_equivalences_back(tptp_file):
-    """ correct equivalences in the TPTP output"""
-    if not os.name == 'nt' or not ladr.replaced:
-        return
-    ladr.replaced = False
+def restore_iffs(tptp_file):
+    """restore equivalences in the TPTP output from "<=" to "<=>"."""
+    if not os.name == 'nt':
+        return False
     file = open(tptp_file, 'r')
     text = file.readlines()
     file.close()   
     file = open(tptp_file, 'w+')
     file.writelines([s.replace("<=","<=>") for s in text]) 
     file.close()
-    return tptp_file
+    return True
     
     
 def strip_inner_commands(text):
@@ -207,17 +218,17 @@ def strip_inner_commands(text):
     return text
 
 
-def comment_imports (text):
+def comment_imports (lines):
     #print "Commenting imports in LADR file"
-    for i in range(0,len(text)):
+    for i in range(0,len(lines)):
         keyword = 'imports('    # this is the syntax used by the clif-to-prover9 converter
-        if text[i].strip().find(keyword) > -1:
-            logging.getLogger(__name__).debug("module import found: " + text[i].strip('\n'))
-            text[i] = '% ' + text[i]
+        if lines[i].strip().find(keyword) > -1:
+            logging.getLogger(__name__).info("module import found: " + lines[i].strip('\n'))
+            lines[i] = '% ' + lines[i]
             #new_module_name = line.strip()[len(keyword)+1:-3].strip()
         else:
             pass
-    return text
+    return lines
         
         
 def get_ladr_goal_files (lemmas_file,  lemmas_name):
