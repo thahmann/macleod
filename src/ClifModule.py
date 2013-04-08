@@ -74,7 +74,7 @@ class ClifModule(object):
 
     def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
-        from src.ClifLemmaSet import *
+        from src.ClifLemmaSet import LemmaModule
         
         print "IMPORTS = " + str(imports)
         
@@ -196,7 +196,7 @@ class ClifModule(object):
             lines = file.readlines()
             file.close()
             lines = ladr.comment_imports(lines)
-            print "".join(lines)
+            #print "".join(lines)
             file = open(self.p9_file_name,'w')
             file.writelines(lines)
             file.close()

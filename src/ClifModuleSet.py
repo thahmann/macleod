@@ -90,7 +90,7 @@ class ClifModuleSet(object):
     
     def pretty_print (self):
 
-        print "\n++++++++++++\nall modules of "+ self.module_name +":\n++++++++++++"
+        print "\n+++++++++++++++++++++\nall modules of "+ self.module_name +":\n+++++++++++++++++++++"
 
         imports = self.get_sorted_imports()
 
@@ -100,7 +100,7 @@ class ClifModuleSet(object):
                 indent += "-"
             print '|-'+indent+ str(n)+'\n|'
 
-        print "++++++++++++\n"
+        print "+++++++++++++++++++++\n"
     
           
     def set_module_name (self,module_name):  
