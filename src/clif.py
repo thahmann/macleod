@@ -342,7 +342,7 @@ def to_tptp (input_file_names):
     tptp_sentences = []
 #    for i in range(0, 1):
     for i in range(0, len(sentences)):
-        #print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
+        print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
         translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=True)
         # replace non-standard symbols
         for s in auto_keys:
@@ -366,87 +366,87 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
     assume nonlogical_symbols are sorted by length in decreasing order
     """
     
-    def replace_logical_connectives (sentence):
+    def replace_logical_connectives (pieces):
     
-        from pyparsing import nestedExpr   
-        
-        #print "INCOMING SENTENCE = " + str(sentence)
-        
-        pieces = sentence
-        
-        while isinstance(pieces, list) and len(pieces)==1:
-            #print "removing extra parentheses"
-            pieces = pieces[0]
+        #print "INCOMING SENTENCE = " + str(pieces)
 
-        #print pieces
-        if len(pieces)==1:
-            return pieces[0]
+        # base case
+        if not isinstance(pieces,list):
+            #print "DONE: " + str(pieces)
+            return pieces
 
-        if not isinstance(pieces, list):
-            if "(" not in pieces:
-                return pieces
-            pieces = nestedExpr('(',')').parseString(pieces).asList()
-
-        while isinstance(pieces, list) and len(pieces)==1:
-            #print "removing extra parentheses"
-            pieces = pieces[0]
-                    
         while '' in pieces:
             pieces.remove('')
+
+        if len(pieces)==1:
+            return replace_logical_connectives(pieces[0])
+                
+        # special case: quantifiers; need to treat the second argument separate
+        for quantifier in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
+            if quantifier==pieces[0].strip().strip('(').strip():
+                if len(pieces)>3:
+                    # ensure it is really used in a binary way
+                    raise ClifParsingError("wrong use of quantifier '" + quantifier + "' in term '" + str(pieces) + "'"  )
+                sentence = "( "
+                for var in pieces[1]:
+                    sentence += TPTP_QUANTIFIER_SUBSTITUTIONS[quantifier] + " [" + var + "] : "
+                #print "QUANTIFIER REMAINDER: " + str(pieces[2])
+                remainder = replace_logical_connectives(pieces[2])
+                #print "QUANTIFIER REMAINDER: " + str(remainder)
+                sentence += remainder + ") "  
+                return sentence
         
-        #print str(len(pieces)) + ": " + str(pieces)
-        # base case
+        # recursion otherwise
+        for i in range(0,len(pieces)):
+            replacement = replace_logical_connectives(pieces[i])
+            if replacement is None:
+                raise ClifParsingError("could not parse: " + str(pieces[i]) + "")
+            pieces[i] = replacement
+            #print "RETURNING: " +  pieces[i]
+        
+        
         if len(pieces)==2:
-            sentence = pieces[0].strip('(').strip(')')
+            #sentence = pieces[0].strip('(').strip(')')
             # substitute unary connectives
             for connective in TPTP_UNARY_SUBSTITUTIONS.keys():
-                sentence = sentence.replace(connective, TPTP_UNARY_SUBSTITUTIONS[connective] + " ")
-            sentence = "(" + sentence + " ( " + replace_logical_connectives(pieces[1]) + ") )"
-            #print "UNARY: " + sentence
-            return sentence
+                if connective==pieces[0].strip().strip('(').strip():
+                    pieces[0] = pieces[0].replace(connective, TPTP_UNARY_SUBSTITUTIONS[connective] + " ")
+                    sentence = "(" + pieces[0] + pieces[1] + ")"
+                    #print "UNARY: " + sentence
+                    return sentence
+            
         
         for connective in TPTP_BINARY_SUBSTITUTIONS.keys():
             if connective==pieces[0].strip().strip('(').strip():
-                sentence = ("( (" + replace_logical_connectives(pieces[1]) + ") " + 
+                if len(pieces)>3:
+                    # ensure it is really used in a binary way
+                    raise ClifParsingError("wrong use of logical connective '" + connective + "' in term '" + str(pieces) + "'"  )
+                sentence = ("( (" + pieces[1] + ") " + 
                              TPTP_BINARY_SUBSTITUTIONS[connective] + 
-                             " (" + replace_logical_connectives(pieces[2]) + ") )")
+                             " (" + pieces[2] + ") )")
                 #print "BINARY: " + sentence
                 return sentence
         
         for connective in TPTP_NARY_SUBSTITUTIONS.keys():
             if connective==pieces[0].strip().strip('(').strip():
-                sentence = "(" + replace_logical_connectives(pieces[1])
+                sentence = "(" + pieces[1]
                 for i in range(2,len(pieces)):
-                    sentence += " " + TPTP_NARY_SUBSTITUTIONS[connective] + " " + replace_logical_connectives(pieces[i])
+                    sentence += " " + TPTP_NARY_SUBSTITUTIONS[connective] + " " + pieces[i]
                 sentence +=  ")"
                 #print "NARY: " +  sentence
                 return sentence
+
+        print "PROCESSING SYMBOLS: " + str(pieces)
+                
+        for symbol in nonlogical_symbols:
+            if symbol.lower()==pieces[0].strip().strip('(').strip().strip('"'):
+                sentence = '"'+symbol.lower()+'"' + "(" + pieces[1]
+                for i in range(2,len(pieces)):
+                    sentence += ", " + pieces[i]
+                sentence += ")"
+                print "DONE: " + sentence
+                return sentence 
         
-        for quantifier in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
-            if quantifier==pieces[0].strip().strip('(').strip():
-                sentence = "( "
-                for var in pieces[1]:
-                    sentence += TPTP_QUANTIFIER_SUBSTITUTIONS[quantifier] + " [" + var + "] : "
-                sentence += replace_logical_connectives(pieces[2]) + ")"
-                #print "QUANTIFIER: " + sentence
-                return sentence
-            
-        #flatten otherwise
-        #print "RECENT: " + str(pieces)
-        sentence = pieces[0] + "("
-        if isinstance(pieces[1], list):
-            pieces[1] = replace_logical_connectives(pieces[1])
-        #print str(pieces[1])
-        sentence += pieces[1]
-        for i in range(2,len(pieces)):
-            if isinstance(pieces[i], list):
-                pieces[i] = replace_logical_connectives(pieces[1])
-            #print str(pieces[i])
-            sentence += "," + pieces[i]
-        sentence += ") "
-        #print "RECENT as string: " + sentence
-        #pieces = [p.strip() for sublist in pieces for p in sublist]
-        return sentence
             
     # END OF replace_logical_connectives
 
@@ -473,10 +473,10 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
         #print "replacing " + s
         if s in variables:
             #print str(sentence_number + var_no)
-            sentence = sentence.replace("("+s+")","('X"+str(sentence_number + var_no)+"')")
-            sentence = sentence.replace("("+s+" ","('X"+str(sentence_number + var_no)+"' ")
-            sentence = sentence.replace(" "+s+")"," 'X"+str(sentence_number + var_no)+"')")
-            sentence = sentence.replace(" "+s+" "," 'X"+str(sentence_number + var_no)+"' ")
+            sentence = sentence.replace('('+s+')','("X'+str(sentence_number + var_no)+'")')
+            sentence = sentence.replace('('+s+' ','("X'+str(sentence_number + var_no)+'" ')
+            sentence = sentence.replace(' '+s+')',' "X'+str(sentence_number + var_no)+'")')
+            sentence = sentence.replace(' '+s+' ',' "X'+str(sentence_number + var_no)+'" ')
             var_no += 1
         else:
             sentence = sentence.replace('('+s+')','("'+s.lower()+'")')
@@ -484,7 +484,10 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
             sentence = sentence.replace(' '+s+')',' "'+s.lower()+'")')
             sentence = sentence.replace(' '+s+' ',' "'+s.lower()+'" ')
 
-    sentence = replace_logical_connectives(sentence)
+    from pyparsing import nestedExpr   
+    pieces = nestedExpr('(',')').parseString(sentence).asList()
+
+    sentence = replace_logical_connectives(pieces)
     #sentence = quantifiers_to_tptp(sentence)
     sentence = sentence.replace("'","")
     tptp_sentence = tptp_sentence + sentence
