@@ -87,6 +87,8 @@ class Reasoner (object):
             else:
                 if 'CounterSatisfiable' in output_lines[0]:
                     self.return_code = -1
+                elif 'Unsatisfiable' in output_lines[0]:
+                    self.return_code = -1
                 elif 'Satisfiable' in output_lines[0]:
                     self.return_code = 1
                 else:

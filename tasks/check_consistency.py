@@ -40,9 +40,10 @@ def consistent(filename, options=[]):
             return True
         else:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
-            for (r, value) in result_sets:
-                if value==1:
-                    logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")
+            if len(result_sets)>1:
+                for (r, value) in results:
+                    if value==1:
+                        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")
             return None
 
 if __name__ == '__main__':
