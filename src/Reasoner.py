@@ -20,7 +20,7 @@ class Reasoner (object):
         
         self.modules = []
         
-        self.outfile_stem = ''
+        self.output_file = ''
         
         self.return_code = None
         
@@ -51,8 +51,8 @@ class Reasoner (object):
     def constructCommand (self, modules, outfile_stem):
         """Construct the command to invoke the reasoner."""
         self.modules = modules
-        self.outfile_stem = outfile_stem + filemgt.read_config(self.name,'ending')
-        self.args = commands.get_system_command(self.name, self.modules, self.outfile_stem)
+        self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
+        self.args = commands.get_system_command(self.name, self.modules, self.output_file)
         return self.args
     
     def getCommand (self, modules=None, outfile_stem=None):
@@ -64,23 +64,75 @@ class Reasoner (object):
             return self.args
     
     def getOutfile(self):
-        return self.outfile_stem        
+        return self.output_file        
 
     def isProver (self):
         if self.type==Reasoner.PROVER: return True
         else: return False
         
     def terminatedSuccessfully (self):
-        if not self.return_code==None:
-            if self.return_code in self.positive_returncodes:
-                return True
-        return False
+    
+        def success_default (self):
+            if not self.return_code==None:
+                if self.return_code in self.positive_returncodes:
+                    return True
+            return False
+
+        def success_paradox (self):
+            file = open(self.output_file, 'r')
+            lines = file.readlines()
+            output_lines = filter(lambda x: x.startswith('+++ RESULT:'), lines)
+            if len(output_lines)!=1:
+                self.return_code = 0
+            else:
+                if 'CounterSatisfiable' in output_lines[0]:
+                    self.return_code = -1
+                elif 'Satisfiable' in output_lines[0]:
+                    self.return_code = 1
+                else:
+                    self.return_code = 0
             
+            mapping = {
+                -1: False,
+                0 : False,
+                1 : True,
+            }
+            
+            return mapping[self.return_code]
+        
+    
+        handlers = {
+            "paradox": success_paradox, 
+        }
+    
+        return handlers.get(self.name, success_default)(self)
+     
+     
     def terminatedUnknowingly (self):
-        if not self.return_code==None:
-            if self.return_code in self.unknown_returncodes:
-                return True
-        return False
+
+        def unknown_default (self):
+            if not self.return_code==None:
+                if self.return_code in self.unknown_returncodes:
+                    return True
+            return False
+        
+        def unknown_paradox (self):
+            self.terminatedSuccessfully()
+
+            mapping = {
+                -1: False,
+                0 : True,
+                1 : False,
+            }
+            
+            return mapping[self.return_code]
+        
+        handlers = {
+            "paradox": unknown_paradox, 
+        }
+    
+        return handlers.get(self.name, unknown_default)(self)
+        
         
     def setReturnCode(self, rc):
         self.return_code = rc

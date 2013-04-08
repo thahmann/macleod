@@ -532,7 +532,7 @@ class ClifModuleSet(object):
         unknown (0) -- unknown result (no model and no inconsistency found)
         inconsistent (-1) -- an inconsistency has been found in the ontology
          """
-        return_value = None
+        return_value = 0
         successful_reasoner = None
          
         for r in reasoners:
