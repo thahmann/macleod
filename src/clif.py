@@ -194,7 +194,7 @@ def get_all_nonlogical_symbols (filename):
     nonlogical_symbols = set([])
     sentences = clif.get_sentences_from_file(filename)
     for sentence in sentences:
-        print "SENTENCE = " + sentence
+        #print "SENTENCE = " + sentence
         nonlogical_symbols.update(clif.get_nonlogical_symbols(sentence))
     logging.getLogger(__name__).debug("Nonlogical symbols: " + str(nonlogical_symbols))
     return nonlogical_symbols
@@ -315,8 +315,11 @@ def to_tptp (input_file_names):
         (nonlogical_symbols, variables) = clif.get_nonlogical_symbols_and_variables (sentence)
         variables_list.append(variables)
         nonlogical_list.append(nonlogical_symbols)
-        
-    max_vars = max([len(v) for v in variables_list])
+    
+    if len(variables_list)>0:
+        max_vars = min(1,max([len(v) for v in variables_list]))
+    else:
+        max_vars = 1        
     import math
     digits = int(math.ceil((math.log10(max_vars))))
     #print "Max number of variables = " + str(max_vars)
@@ -339,12 +342,12 @@ def to_tptp (input_file_names):
     tptp_sentences = []
 #    for i in range(0, 1):
     for i in range(0, len(sentences)):
-        print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
+        #print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
         translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=True)
         # replace non-standard symbols
         for s in auto_keys:
             translation = translation.replace('"' +s.lower() +'"', '"'+auto_dict.get(s)+'"')
-            print translation       
+            #print translation       
         tptp_sentences.append(translation)
         
     return [t.replace('"','') for t in tptp_sentences]
@@ -369,15 +372,27 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
         
         #print "INCOMING SENTENCE = " + str(sentence)
         
-        if isinstance(sentence, list):
-            pieces = sentence
-        else:
-            if "(" not in sentence:
-                return sentence
-            pieces = nestedExpr('(',')').parseString(sentence).asList()
+        pieces = sentence
         
         while isinstance(pieces, list) and len(pieces)==1:
+            #print "removing extra parentheses"
             pieces = pieces[0]
+
+        #print pieces
+        if len(pieces)==1:
+            return pieces[0]
+
+        if not isinstance(pieces, list):
+            if "(" not in pieces:
+                return pieces
+            pieces = nestedExpr('(',')').parseString(pieces).asList()
+
+        while isinstance(pieces, list) and len(pieces)==1:
+            #print "removing extra parentheses"
+            pieces = pieces[0]
+                    
+        while '' in pieces:
+            pieces.remove('')
         
         #print str(len(pieces)) + ": " + str(pieces)
         # base case
@@ -474,7 +489,7 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
     sentence = sentence.replace("'","")
     tptp_sentence = tptp_sentence + sentence
     tptp_sentence += ")."
-    print "TPTP: " + tptp_sentence
+    #print "TPTP: " + tptp_sentence
     return tptp_sentence
 
          
