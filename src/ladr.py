@@ -278,7 +278,7 @@ def get_lemma_files_from_sentences (lemmas_name, sentences):
 
     import math
     # determine maximal number of digits
-    digits = int(math.log10(len(sentences)))+1
+    digits = int(math.ceil(math.log10(len(sentences))))
     
     i = 1
 

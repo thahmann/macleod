@@ -6,16 +6,28 @@ New module created on 2013-03-16
 '''
 import os, logging, clif, filemgt
 
-# logical connectives in CLIF
-CLIF_LOGICAL_CONNECTIVES = set(['not', 'and', 'or', 'iff', 'if', 'exists', 'forall', '='])
-# CLIF symbols that are logically irrelevant
-CLIF_OTHER_SYMBOLS = set(['cl-text', 'cl-module', 'cl-imports'])
-# CLIF quantifiers
-CLIF_QUANTIFIERS = set(['forall', 'exists'])
-
 CLIF_IMPORT = 'cl-imports'
 
 CLIF_COMMENT = 'cl-comment'
+
+CLIF_MODULE = 'cl-module'
+
+CLIF_TEXT = 'cl-text'
+
+# CLIF symbols that are logically irrelevant
+CLIF_OTHER_SYMBOLS = set([CLIF_IMPORT, CLIF_COMMENT, CLIF_MODULE, CLIF_TEXT])
+
+# logical connectives in CLIF
+CLIF_LOGICAL_CONNECTIVES = set(['not', 'and', 'or', 'iff', 'if', '=', 'exists', 'forall'])
+
+TPTP_UNARY_SUBSTITUTIONS = {'not': '~'}
+
+TPTP_NARY_SUBSTITUTIONS = {'and': '&', 'or': '|'}
+
+TPTP_BINARY_SUBSTITUTIONS = {'=': '=', 'iff': '<=>', 'if': '=>'}
+
+# CLIF quantifiers
+TPTP_QUANTIFIER_SUBSTITUTIONS = {'forall':'!', 'exists':"?"}
 
 
 def remove_all_comments(input_file, output_file):
@@ -23,7 +35,118 @@ def remove_all_comments(input_file, output_file):
     Parameters:
     input_file -- filename of the CLIF input
     output_file -- filename where to write the CLIF file removed of comments."""
+               
+    def strip_sections (lines, begin_symbol, end_symbol):           
+        """Remove sections that start with the begin_symbol and end with end_symbol"""
+        output = []
+        if len(lines)==0: return output
+        line = lines.pop(0)
+        within_section = False  # variable to denote that we are currently within a multiline section
+        outline = ""
+        start = ""
+        while True:
+            if within_section and end_symbol not in line:
+                # ignore line: do not write to output
+                if len(output)>0:
+                    output.append(outline)
+                outline = ""
+                if len(lines)>0: line = lines.pop(0)
+                else:
+                    output.append(start) 
+                    raise ClifParsingError('Syntax error in clif input: no matching' + end_symbol + ' for ' + begin_symbol + ' on line ' + str(len(output)+1),output)                    
+            elif within_section and end_symbol in line:
+                within_section = False
+                # normally process the remainder 
+                line = line.split(end_symbol,1)
+                if len(line)>0:
+                    line=line[1]
+            elif not within_section and begin_symbol in line:
+                within_section = True
+                line = line.split(begin_symbol,1)
+                start = line[0]
+                outline = line[0] + '\n'
+                if len(line[1])>1:
+                    line = line[1]
+            else:
+                # copy line to output
+                outline += line
+                output.append(outline)
+                outline = ""
+                if len(lines)>0: line = lines.pop(0)
+                else: return output        
+    
+    def strip_clif_comments (lines):
+        output = []
+        if len(lines)==0: return output
+        line = lines.pop(0)
+        outline = ""
+        search_end = False
+        start = ""
+        while True:
+            if search_end:
+                # searching for the closing quotes
+                line = line.split('\'',1)
+                if len(line)>1:
+                    # closing quotes found in line
+                    search_end = False
+                    line = line[1].split(')',1)
+                    if len(line)<2:
+                        output.append(start) 
+                        raise ClifParsingError('Syntax error in clif input: no closing parenthesis found for ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
+                    if len(line[0].strip())>0:
+                        output.append(start) 
+                        raise ClifParsingError('Syntax error in clif input: found illegal characters before closing parenthesis in ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)
+                    outline += line[1]
+                    output.append(outline)
+                    outline = ""
+                    if len(lines)>0: line = lines.pop(0)
+                    else: return output                        
+                else:
+                    # no closing quotes found in line, proceed to next line
+                    outline = ""
+                    if len(lines)>0: line = lines.pop(0)
+                    else:
+                        output.append(start) 
+                        raise ClifParsingError('Syntax error in clif input: missing closing quotes for ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
+            elif CLIF_COMMENT not in line:
+                # just copy the line to output
+                outline += line
+                output.append(outline)
+                outline = ""
+                if len(lines)>0: line = lines.pop(0)
+                else: return output        
+            else: 
+                # found a cl-comment
+                parts = line.split(CLIF_COMMENT,1)
+                parts2 = parts[0].rsplit('(',1)
+                start = line
+                if len(parts2)<2:
+                    output.append(start) 
+                    raise ClifParsingError('Syntax error in clif input: no opening parenthesis found before ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
+                search = True
+                if len(parts[0].strip())>1: 
+                    output.append(parts[0][0:-1] + '\n')
+                # searching for the begin of the comment quotes
+                line = parts[1].split('\'',1)
+                if len(line[0].strip())>0: 
+                    output.append(start) 
+                    raise ClifParsingError('Syntax error in clif input: found illegal characters after ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)      
+                line = line[1]
+                search_end = True
 
+    
+    def strip_lines (lines, begin_symbol):
+        """Remove comments that start with begin_symbol."""
+        output = []
+        for line in lines:
+            newline = line.split(begin_symbol,1)[0]
+            if len(newline)<len(line):
+                output.append(newline + '\n')
+            else:
+                output.append(newline)            
+        return output
+
+    # MAIN METHOD remove_all_comments()
     lines = []
 
     with open(input_file, 'r') as file:
@@ -52,9 +175,8 @@ def remove_all_comments(input_file, output_file):
         finally:
             file.close()
 
-
 def reformat_urls(lines):
-    """Delete URL prefixes from all imports declarations.""" 
+    """Delete URL prefixes from all import declarations.""" 
     lines = list(lines)
     prefixes = filemgt.read_config('cl','prefix').split(',')
     prefixes = [p.strip().strip('"') for p in prefixes]
@@ -66,127 +188,34 @@ def reformat_urls(lines):
             #print lines[i]
     return lines
 
-
-
-def strip_lines (lines, begin_symbol):
-    """Remove comments that start with begin_symbol"""
-    output = []
-    for line in lines:
-        newline = line.split(begin_symbol,1)[0]
-        if len(newline)<len(line):
-            output.append(newline + '\n')
-        else:
-            output.append(newline)            
-    return output
-
-
-def strip_clif_comments (lines):
-    output = []
-    if len(lines)==0: return output
-    line = lines.pop(0)
-    outline = ""
-    search_end = False
-    start = ""
-    while True:
-        if search_end:
-            # searching for the closing quotes
-            line = line.split('\'',1)
-            if len(line)>1:
-                # closing quotes found in line
-                search_end = False
-                line = line[1].split(')',1)
-                if len(line)<2:
-                    output.append(start) 
-                    raise ClifParsingError('Syntax error in clif input: no closing parenthesis found for ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
-                if len(line[0].strip())>0:
-                    output.append(start) 
-                    raise ClifParsingError('Syntax error in clif input: found illegal characters before closing parenthesis in ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)
-                outline += line[1]
-                output.append(outline)
-                outline = ""
-                if len(lines)>0: line = lines.pop(0)
-                else: return output                        
-            else:
-                # no closing quotes found in line, proceed to next line
-                outline = ""
-                if len(lines)>0: line = lines.pop(0)
-                else:
-                    output.append(start) 
-                    raise ClifParsingError('Syntax error in clif input: missing closing quotes for ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
-        elif CLIF_COMMENT not in line:
-            # just copy the line to output
-            outline += line
-            output.append(outline)
-            outline = ""
-            if len(lines)>0: line = lines.pop(0)
-            else: return output        
-        else: 
-            # found a cl-comment
-            parts = line.split(CLIF_COMMENT,1)
-            parts2 = parts[0].rsplit('(',1)
-            start = line
-            if len(parts2)<2:
-                output.append(start) 
-                raise ClifParsingError('Syntax error in clif input: no opening parenthesis found before ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
-            search = True
-            if len(parts[0].strip())>1: 
-                output.append(parts[0][0:-1] + '\n')
-            # searching for the begin of the comment quotes
-            line = parts[1].split('\'',1)
-            if len(line[0].strip())>0: 
-                output.append(start) 
-                raise ClifParsingError('Syntax error in clif input: found illegal characters after ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)      
-            line = line[1]
-            search_end = True
                 
 
-                
-def strip_sections (lines, begin_symbol, end_symbol):           
-    """Remove sections that start with the begin_symbol and end with end_symbol"""
-    output = []
-    if len(lines)==0: return output
-    line = lines.pop(0)
-    within_section = False  # variable to denote that we are currently within a multiline section
-    outline = ""
-    start = ""
-    while True:
-        if within_section and end_symbol not in line:
-            # ignore line: do not write to output
-            if len(output)>0:
-                output.append(outline)
-            outline = ""
-            if len(lines)>0: line = lines.pop(0)
-            else:
-                output.append(start) 
-                raise ClifParsingError('Syntax error in clif input: no matching' + end_symbol + ' for ' + begin_symbol + ' on line ' + str(len(output)+1),output)                    
-        elif within_section and end_symbol in line:
-            within_section = False
-            # normally process the remainder 
-            line = line.split(end_symbol,1)
-            if len(line)>0:
-                line=line[1]
-        elif not within_section and begin_symbol in line:
-            within_section = True
-            line = line.split(begin_symbol,1)
-            start = line[0]
-            outline = line[0] + '\n'
-            if len(line[1])>1:
-                line = line[1]
-        else:
-            # copy line to output
-            outline += line
-            output.append(outline)
-            outline = ""
-            if len(lines)>0: line = lines.pop(0)
-            else: return output        
-            
+def get_all_nonlogical_symbols (filename):
+    nonlogical_symbols = set([])
+    sentences = clif.get_sentences_from_file(filename)
+    for sentence in sentences:
+        print "SENTENCE = " + sentence
+        nonlogical_symbols.update(clif.get_nonlogical_symbols(sentence))
+    logging.getLogger(__name__).debug("Nonlogical symbols: " + str(nonlogical_symbols))
+    return nonlogical_symbols
 
-def get_quantified_terms(text):
+
+def get_sentences_from_file (input_file_name):
+        """ extract all Clif sentences from a Clif input file and returns the sentences as a list of strings."""
+        cl_file = open(input_file_name, 'r')
+        text = cl_file.readlines()
+        cl_file.close()
+        text = "".join(text)    # compile into a single string
+        quantified_terms = clif.get_quantified_terms(text)
+        return clif.get_sentences(quantified_terms)
+    
+
+def get_quantified_terms (text):
     """Extracts all quantified terms from a string that contains the content of a CLIF file"""
     text = text.replace("\t","")   # remove tabs
     text = text.replace("\n","")   # remove linebreaks
     pieces = [text]
-    for q in clif.CLIF_QUANTIFIERS:
+    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
         old_pieces = pieces
         pieces = [p.split(q) for p in old_pieces]
         new_pieces = []
@@ -206,14 +235,14 @@ def get_quantified_terms(text):
     return pieces
 
 
-def get_sentences(quantified_terms):
+def get_sentences (quantified_terms):
     """Reconstruct the sentences from a list of quantified terms in CLIF notation by matching parentheses.
     Returns a set of strings, each is a logical sentence surrounded by parentheses."""
     new_pieces = []
     pieces = quantified_terms
     #print pieces
     for i in range (0,len(pieces)):
-        print pieces[i]
+        #print pieces[i]
         open_parentheses = pieces[i].count('(') - pieces[i].count(')')
         if i==len(pieces)-1:
             #print "last piece, removing parentheses " + str(open_parentheses)
@@ -228,11 +257,11 @@ def get_sentences(quantified_terms):
     return new_pieces
               
 
-def get_variables(sentence):
+def get_variables (sentence):
     """Extract the variables from a logical sentence in CLIF notation."""
     variables = set([])
     pieces = [sentence[1:-1].strip()] # crop outer parentheses
-    for q in clif.CLIF_QUANTIFIERS:
+    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
         pieces = [p.split(q) for p in pieces]
         pieces = [p.strip() for sublist in pieces for p in sublist]   # flatten list
     pieces = set(pieces)
@@ -243,10 +272,10 @@ def get_variables(sentence):
         variables.update(new_vars)
     #print variables
     return variables
-    
-def get_nonlogical_symbols(sentence):
-    """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
-    variables = get_variables(sentence)
+
+def get_nonlogical_symbols_and_variables (sentence):
+    """Extract all nonlogical symbols and variables from a logical sentence in CLIF notation."""
+    variables = clif.get_variables(sentence)
 
     pieces = sentence.split()
     pieces = [p.split('(') for p in pieces]
@@ -254,10 +283,219 @@ def get_nonlogical_symbols(sentence):
     pieces = [p.split(')') for p in pieces]
     pieces = [item for sublist in pieces for item in sublist] # flatten list
     pieces = [p.strip() for p in pieces]
-    print "removing variables " + str(variables) 
+    #print "removing variables " + str(variables) 
     pieces = set(pieces) - set(clif.CLIF_LOGICAL_CONNECTIVES) - set(clif.CLIF_OTHER_SYMBOLS) -set(['']) - set(variables)
-    return pieces
-     
+    return (pieces, variables)
+
+
+def get_nonlogical_symbols (sentence):
+    """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
+    (_, non_logical_symbols) = clif.get_nonlogical_symbols_and_variables (sentence)
+    return non_logical_symbols
+
+
+
+def to_tptp (input_file_names):
+    """Translates a set of Clif files to TPTP syntax.
+    All sentences are treated as FOL sentences in the segregated dialect of CLIF.
+    Quantifying over relations or functions is currently not supported.
+    All nonlogical symbols are converted to lowercase. 
+    Nonlogical symbols that start with non-alphabetic characters are automatically replaced by symbols clifsymbN.
+    """
+    
+    sentences = []
+    for file_name in input_file_names:
+        sentences.extend(clif.get_sentences_from_file(file_name))
+    #variables_dict = {s: None for s in sentences}
+    #nonlogical_dict = variables_dict.copy()
+    variables_list = []
+    nonlogical_list = []
+    # obtain variables and nonlogical symbols for each sentence
+    for sentence in sentences:
+        (nonlogical_symbols, variables) = clif.get_nonlogical_symbols_and_variables (sentence)
+        variables_list.append(variables)
+        nonlogical_list.append(nonlogical_symbols)
+        
+    max_vars = max([len(v) for v in variables_list])
+    import math
+    digits = int(math.ceil((math.log10(max_vars))))
+    #print "Max number of variables = " + str(max_vars)
+    #print "Digits = " + str(digits)
+    
+    #automatic replacement symbols
+    auto_number = 1
+    auto_dict = {}
+    all_nonlogical_symbols = set([s for list in nonlogical_list for s in list])
+    for s in all_nonlogical_symbols:
+        if not s[0].isalpha():
+            auto_dict[s] = 'clifsym' + str(auto_number)
+            auto_number += 1 
+
+    auto_keys =  auto_dict.keys()
+    auto_keys.sort(key=lambda s: len(s), reverse=True)   
+    #print str(auto_keys)
+    
+    # translate sentences
+    tptp_sentences = []
+#    for i in range(0, 1):
+    for i in range(0, len(sentences)):
+        print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
+        translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=True)
+        # replace non-standard symbols
+        for s in auto_keys:
+            translation = translation.replace('"' +s.lower() +'"', '"'+auto_dict.get(s)+'"')
+            print translation       
+        tptp_sentences.append(translation)
+        
+    return [t.replace('"','') for t in tptp_sentences]
+    
+
+
+def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, axiom=True):
+    """Translate a single sentence to TPTP format and assign it the the sentence_number.
+    In the translation every nonlogical symbol is replaced and variables are numbered starting with start_number.
+    Parameters:
+    nonlogical_symbols -- dictionary of the nonlogical symbols and their replacement, sorted by length in decreasing order
+    variables -- list of all quantified variables in this sentence, sorted by length in decreasing order
+    sentence_number -- number to assign this sentence; must be a number 10^n with n>1 depending on the maximal 
+                       numbers of distinct variables in a single sentence in the translation.
+    axiom -- indicates whether this is an axiom (True) or a lemma (or conjecture, False)   
+    assume nonlogical_symbols are sorted by length in decreasing order
+    """
+    
+    def replace_logical_connectives (sentence):
+    
+        from pyparsing import nestedExpr   
+        
+        #print "INCOMING SENTENCE = " + str(sentence)
+        
+        if isinstance(sentence, list):
+            pieces = sentence
+        else:
+            if "(" not in sentence:
+                return sentence
+            pieces = nestedExpr('(',')').parseString(sentence).asList()
+        
+        while isinstance(pieces, list) and len(pieces)==1:
+            pieces = pieces[0]
+        
+        #print str(len(pieces)) + ": " + str(pieces)
+        # base case
+        if len(pieces)==2:
+            sentence = pieces[0].strip('(').strip(')')
+            # substitute unary connectives
+            for connective in TPTP_UNARY_SUBSTITUTIONS.keys():
+                sentence = sentence.replace(connective, TPTP_UNARY_SUBSTITUTIONS[connective] + " ")
+            sentence = "(" + sentence + " ( " + replace_logical_connectives(pieces[1]) + ") )"
+            #print "UNARY: " + sentence
+            return sentence
+        
+        for connective in TPTP_BINARY_SUBSTITUTIONS.keys():
+            if connective==pieces[0].strip().strip('(').strip():
+                sentence = ("( (" + replace_logical_connectives(pieces[1]) + ") " + 
+                             TPTP_BINARY_SUBSTITUTIONS[connective] + 
+                             " (" + replace_logical_connectives(pieces[2]) + ") )")
+                #print "BINARY: " + sentence
+                return sentence
+        
+        for connective in TPTP_NARY_SUBSTITUTIONS.keys():
+            if connective==pieces[0].strip().strip('(').strip():
+                sentence = "(" + replace_logical_connectives(pieces[1])
+                for i in range(2,len(pieces)):
+                    sentence += " " + TPTP_NARY_SUBSTITUTIONS[connective] + " " + replace_logical_connectives(pieces[i])
+                sentence +=  ")"
+                #print "NARY: " +  sentence
+                return sentence
+        
+        for quantifier in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
+            if quantifier==pieces[0].strip().strip('(').strip():
+                sentence = "( "
+                for var in pieces[1]:
+                    sentence += TPTP_QUANTIFIER_SUBSTITUTIONS[quantifier] + " [" + var + "] : "
+                sentence += replace_logical_connectives(pieces[2]) + ")"
+                #print "QUANTIFIER: " + sentence
+                return sentence
+            
+        #flatten otherwise
+        #print "RECENT: " + str(pieces)
+        sentence = pieces[0] + "("
+        if isinstance(pieces[1], list):
+            pieces[1] = replace_logical_connectives(pieces[1])
+        #print str(pieces[1])
+        sentence += pieces[1]
+        for i in range(2,len(pieces)):
+            if isinstance(pieces[i], list):
+                pieces[i] = replace_logical_connectives(pieces[1])
+            #print str(pieces[i])
+            sentence += "," + pieces[i]
+        sentence += ") "
+        #print "RECENT as string: " + sentence
+        #pieces = [p.strip() for sublist in pieces for p in sublist]
+        return sentence
+            
+    # END OF replace_logical_connectives
+
+    tptp_sentence = "fof(sos"
+    tptp_sentence += str(sentence_number) +","
+    if axiom:
+        tptp_sentence += "axiom,"
+    else:
+        tptp_sentence += "conjecture,"
+    
+    # join nonlogical symbols and variables and sort them decreasingly by length
+    replaced_symbols = nonlogical_symbols
+    replaced_symbols.update(variables)
+    replaced_symbols = list(replaced_symbols)
+    #replaced_symbols = [p.lower() for p in replaced_symbols]
+    replaced_symbols.sort(key=lambda s: len(s), reverse=True)
+
+    # update keys of non_logical symobls to all upper case
+    #upper_nonlogical_symbols = [s.lower() for s in nonlogical_symbols]
+    var_no = 1
+    
+    for i in range(0, len(replaced_symbols)):
+        s = replaced_symbols[i] 
+        #print "replacing " + s
+        if s in variables:
+            #print str(sentence_number + var_no)
+            sentence = sentence.replace("("+s+")","('X"+str(sentence_number + var_no)+"')")
+            sentence = sentence.replace("("+s+" ","('X"+str(sentence_number + var_no)+"' ")
+            sentence = sentence.replace(" "+s+")"," 'X"+str(sentence_number + var_no)+"')")
+            sentence = sentence.replace(" "+s+" "," 'X"+str(sentence_number + var_no)+"' ")
+            var_no += 1
+        else:
+            sentence = sentence.replace('('+s+')','("'+s.lower()+'")')
+            sentence = sentence.replace('('+s+' ','("'+s.lower()+'" ')
+            sentence = sentence.replace(' '+s+')',' "'+s.lower()+'")')
+            sentence = sentence.replace(' '+s+' ',' "'+s.lower()+'" ')
+
+    sentence = replace_logical_connectives(sentence)
+    #sentence = quantifiers_to_tptp(sentence)
+    sentence = sentence.replace("'","")
+    tptp_sentence = tptp_sentence + sentence
+    tptp_sentence += ")."
+    print "TPTP: " + tptp_sentence
+    return tptp_sentence
+
+         
+
+
+
+def get_variables (sentence):
+    """Extract the variables from a logical sentence in CLIF notation."""
+    variables = set([])
+    pieces = [sentence[1:-1].strip()] # crop outer parentheses
+    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
+        pieces = [p.split(q) for p in pieces]
+        pieces = [p.strip() for sublist in pieces for p in sublist]   # flatten list
+    pieces = set(pieces)
+    pieces.discard('')
+    #print pieces
+    for p in pieces:
+        new_vars = p.split('(',1)[1].split(')',1)[0].split()
+        variables.update(new_vars)
+    #print variables
+    return variables
 
 
 def get_imports(input_file):

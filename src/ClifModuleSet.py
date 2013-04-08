@@ -681,14 +681,11 @@ class ClifModuleSet(object):
         if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
             imports = None
 
-        # avoid redundant work if we already have the tptp file
-        if not imports and len(self.tptp_file_name)>0:
-            return self.tptp_file_name
-
-        p9_file_name = self.get_single_ladr_file(imports)
-
         ending = ""
+
+        # avoid redundant work if we already have the tptp file
         if not imports:
+            if len(self.tptp_file_name)>0: return self.tptp_file_name
             ending = filemgt.read_config('tptp','all_ending')
             name = self.module_name
         else:
@@ -703,10 +700,13 @@ class ClifModuleSet(object):
 
         if not imports:
             self.tptp_file_name = tptp_file_name
+            imports = self.get_imports()
             
-        ladr.translate_to_tptp_file(p9_file_name, 
-                                    tptp_file_name, 
-                                    self.get_list_of_nonlogical_symbols(imports))
+        
+        tptp_sentences = clif.to_tptp([i.clif_processed_file_name for i in imports])
+        file = open(tptp_file_name, 'w')
+        file.writelines([t+"\n" for t in tptp_sentences])
+        file.close()
 
         return tptp_file_name                
 

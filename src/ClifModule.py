@@ -67,7 +67,7 @@ class ClifModule(object):
         
         logging.getLogger(__name__).debug("imports detected in " + self.module_name +  ": " + str(self.imports))
         
-        self.compute_nonlogical_symbols(self.clif_processed_file_name)
+        self.nonlogical_symbols = clif.get_all_nonlogical_symbols(self.clif_processed_file_name)
 
         self.parents = set([])
         
@@ -134,20 +134,6 @@ class ClifModule(object):
     def shortstr(self):
         return self.__repr__()
 
-    # extract all nonlogical symbols (predicate and function symbols) from the preprocessed clif file
-    def compute_nonlogical_symbols (self,input_file_name):
-        
-        cl_file = open(input_file_name, 'r')
-        text = cl_file.readlines()
-        cl_file.close()
-        text = "".join(text)    # compile into a single string
-        quantified_terms = clif.get_quantified_terms(text)
-        self.sentences = clif.get_sentences(quantified_terms)
-        for sentence in self.sentences:
-            print "SENTENCE = " + sentence
-            self.nonlogical_symbols.update(clif.get_nonlogical_symbols(sentence))
-        logging.getLogger(__name__).debug("Nonlogical symbols: " + str(self.nonlogical_symbols))
-        
 
     @staticmethod
     def compare(x, y):
@@ -205,19 +191,33 @@ class ClifModule(object):
             cmd = commands.get_clif_to_ladr_cmd(self)
             process.executeSubprocess(cmd)
             logging.getLogger(__name__).info("CREATED LADR TRANSLATION: " + self.p9_file_name)
+            
+            file = open(self.p9_file_name,'r')
+            lines = file.readlines()
+            file.close()
+            lines = ladr.comment_imports(lines)
+            print "".join(lines)
+            file = open(self.p9_file_name,'w')
+            file.writelines(lines)
+            file.close()
+            logging.getLogger(__name__).info("COMMENTED IMPORTS IN LADR FILE: " + self.p9_file_name)
              
         return self.p9_file_name
 
+
     def get_tptp_file_name (self):
-        """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
-        self.get_p9_file_name()
+        """get the filename of the TPTP translation of the module and translate the ClifModule if not yet done so.
+        This version does not rely on the clif to ladr translation, but does a direct translation."""
         
         if not self.tptp_file_name:
             self.tptp_file_name =  filemgt.get_full_path(self.module_name, 
                                                        folder=filemgt.read_config('tptp','folder'), 
                                                        ending=filemgt.read_config('tptp','ending'))
             
-            ladr.translate_to_tptp_file(self.p9_file_name, self.tptp_file_name, self.nonlogical_symbols)
+            tptp_sentences = clif.to_tptp([self.clif_processed_file_name])
+            file = open(self.tptp_file_name, 'w')
+            file.writelines([t+"\n" for t in tptp_sentences])
+            file.close()
              
         return self.tptp_file_name
     
