@@ -252,7 +252,8 @@ def raceProcesses (reasoners):
 	provers -- dictionary of theorem provers to execute where the key is the command and the value a set of return codes that indicate success.
 	modelfinders -- dictionary of modelfinders to execute where the key is the command and the value a set of return codes that indicate success.
 	"""
-	time.sleep(0.1)
+	from src import ClifModuleSet
+	#time.sleep(0.1)
 	
 	results = Queue()
 
@@ -296,10 +297,16 @@ def raceProcesses (reasoners):
 			#if not r.name.lower()=="paradox":	# TODO: fix permanently: Paradox returns code 0 even though it did not find a model
 			if r.terminatedSuccessfully():
 				success = True
-				if r.isProver():
-					logging.getLogger(__name__).info("FOUND PROOF: " + name)
-				else:
-					logging.getLogger(__name__).info("FOUND MODEL: " + name)
+				if r.output==ClifModuleSet.INCONSISTENT:
+					if r.isProver():
+						logging.getLogger(__name__).info("FOUND PROOF: " + name)
+					else:
+						logging.getLogger(__name__).info("PROVED INCONSISTENCY: " + name)						
+				elif r.output==ClifModuleSet.CONSISTENT:
+					if r.isProver():
+						logging.getLogger(__name__).info("FOUND COUNTEREXAMPLE: " + name)
+					else:
+						logging.getLogger(__name__).info("FOUND MODEL: " + name)
 			else:
 				logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
 				logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))

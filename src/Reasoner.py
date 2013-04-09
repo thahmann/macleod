@@ -35,7 +35,7 @@ class Reasoner (object):
             self.identifier = name
         self.positive_returncodes = commands.get_positive_returncodes(self.name)
         self.unknown_returncodes = commands.get_unknown_returncodes(self.name)
-        self.return_code = None
+
 
     def __eq__ (self, other):
         if not isinstance(other, Reasoner):
@@ -71,10 +71,15 @@ class Reasoner (object):
         else: return False
         
     def terminatedSuccessfully (self):
+        from src import ClifModuleSet
     
         def success_default (self):
             if not self.return_code==None:
                 if self.return_code in self.positive_returncodes:
+                    if self.isProver():
+                        self.output = ClifModuleSet.PROOF
+                    else:
+                        self.output = ClifModuleSet.CONSISTENT
                     return True
             return False
 
@@ -83,24 +88,30 @@ class Reasoner (object):
             lines = file.readlines()
             output_lines = filter(lambda x: x.startswith('+++ RESULT:'), lines)
             if len(output_lines)!=1:
-                self.return_code = 0
-            else:
-                if 'CounterSatisfiable' in output_lines[0]:
-                    self.return_code = -1
-                elif 'Unsatisfiable' in output_lines[0]:
-                    self.return_code = -1
-                elif 'Satisfiable' in output_lines[0]:
-                    self.return_code = 1
+                if not self.return_code:
+                    self.output = None
                 else:
-                    self.return_code = 0
+                    self.output = ClifModuleSet.UNKNOWN                    
+            else:
+                if 'Theorem' in output_lines[0]:
+                    self.output = ClifModuleSet.PROOF
+                elif 'CounterSatisfiable' in output_lines[0]:
+                    self.output = ClifModuleSet.INCONSISTENT
+                elif 'Unsatisfiable' in output_lines[0]:
+                    self.output = ClifModuleSet.INCONSISTENT
+                elif 'Satisfiable' in output_lines[0]:
+                    self.output = ClifModuleSet.CONSISTENT
+                else:
+                    self.output = ClifModuleSet.UNKNOWN
             
             mapping = {
-                -1: False,
-                0 : False,
-                1 : True,
+                ClifModuleSet.CONSISTENT: True,
+                ClifModuleSet.INCONSISTENT : True,
+                ClifModuleSet.UNKNOWN : False,
+                None: False
             }
             
-            return mapping[self.return_code]
+            return mapping[self.output]
         
     
         handlers = {
@@ -111,28 +122,29 @@ class Reasoner (object):
      
      
     def terminatedUnknowingly (self):
+        from src import ClifModuleSet
 
         def unknown_default (self):
             if not self.return_code==None:
                 if self.return_code in self.unknown_returncodes:
+                    self.output = ClifModuleSet.UNKNOWN
                     return True
             return False
         
         def unknown_paradox (self):
-            self.terminatedSuccessfully()
+            success = self.terminatedSuccessfully()
+            if success:
+                return False
+            elif self.return_code==None:
+                return False
+            else: 
+                return True
 
-            mapping = {
-                -1: False,
-                0 : True,
-                1 : False,
-            }
-            
-            return mapping[self.return_code]
         
         handlers = {
             "paradox": unknown_paradox, 
         }
-    
+            
         return handlers.get(self.name, unknown_default)(self)
         
         
@@ -140,4 +152,7 @@ class Reasoner (object):
         self.return_code = rc
                 
     def isDone (self):
-        return self.return_code
+        if self.output is None:
+            return False
+        else:
+            return True

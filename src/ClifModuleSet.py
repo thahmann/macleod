@@ -119,6 +119,9 @@ class ClifModuleSet(object):
     def get_imports (self):
         return self.imports
     
+    def get_top_imports (self):
+        return filter(lambda x: x.depth == 1, self.imports)
+    
     def get_axioms (self):
         axioms = self.imports.copy()
         axioms.discard(self.lemma_module) 
@@ -185,9 +188,10 @@ class ClifModuleSet(object):
     def add_lemma_module (self, lemma_module):
         """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwritten."""
         self.module_name = lemma_module.get_simple_module_name()
+        logging.getLogger(__name__).debug("SETTING LEMMA MODULE: " + str(lemma_module) + " for " + self.module_name)        
         
         # delete old lemma module if one exists
-        if self.lemma_module:
+        if self.lemma_module is not None:
             self.imports.remove(self.lemma_module)
         else:
             for m in self.imports:
@@ -201,12 +205,25 @@ class ClifModuleSet(object):
         
     def remove_lemma_module (self):
         # delete old lemma module if one exists
-        if self.lemma_module:
+        if self.lemma_module is not None:
+            logging.getLogger(__name__).debug("REMOVING LEMMA MODULE: " + str(self.lemma_module) + " from " + self.module_name)        
             self.imports.remove(self.lemma_module)
             for m in self.imports:
                 m.depth = m.depth - 1
-        self.lemma_module = None
-        return True
+            self.lemma_module = None
+            return True
+        
+        return False
+
+    def remove_module (self, removal_module):
+        # delete old lemma module if one exists
+        if self.lemma_module == removal_module:
+            self.remove_lemma_module()
+        else:
+            if removal_module in self.imports:                    
+                self.imports.remove(removal_module)
+                return True
+            return False
     
 
     # extract the predicates and functions from prover9 mock run
@@ -330,6 +347,7 @@ class ClifModuleSet(object):
             self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
         
         results = {tuple(modules): return_value}
+        print str(results)
         return results
 
 
@@ -536,20 +554,18 @@ class ClifModuleSet(object):
         successful_reasoner = None
          
         for r in reasoners:
-            if not r.isProver() and r.terminatedSuccessfully():
-                return_value = ClifModuleSet.CONSISTENT
-                successful_reasoner = r.name
-                logging.getLogger(__name__).debug("TERMINATED SUCCESSFULLY (" + str(r.return_code) + "): " + r.name) 
-            if r.isProver() and r.terminatedSuccessfully():
-                if not return_value==ClifModuleSet.CONSISTENT:
-                    return_value = ClifModuleSet.PROOF
-                    successful_reasoner = r.name
-                else:
-                    # problem: a proof and a counterexample have been found
-                    return_value == ClifModuleSet.CONTRADICTION
+            if r.terminatedSuccessfully():
+                if return_value == 0:
+                    return_value = r.output
+                    logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                elif return_value == r.output:
+                    logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                elif return_value != r.output:
+                    return_value = ClifModuleSet.CONTRADICTION
+                    print "CONTRADICTION: " + str(return_value)
                     logging.getLogger(__name__).critical("CONTRADICTORY RESULTS from " + self.module_name +': ' + r.name + ' and ' + successful_reasoner)
             if r.terminatedUnknowingly():
-                logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(return_value) + "): " + r.name)
+                logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(r.output) + "): " + r.name)
     
         logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
         return return_value
@@ -683,9 +699,9 @@ class ClifModuleSet(object):
 
         ending = ""
 
-        # avoid redundant work if we already have the tptp file
+        # avoid redundant work if we already have the tptp file and didn't add a lemma module
         if not imports:
-            if len(self.tptp_file_name)>0: return self.tptp_file_name
+            if len(self.tptp_file_name)>0 and self.lemma_module is None: return self.tptp_file_name
             ending = filemgt.read_config('tptp','all_ending')
             name = self.module_name
         else:
@@ -700,10 +716,15 @@ class ClifModuleSet(object):
 
         if not imports:
             self.tptp_file_name = tptp_file_name
-            imports = self.get_imports()
-            
+            imports = self.get_imports().copy()
         
-        tptp_sentences = clif.to_tptp([i.clif_processed_file_name for i in imports])
+        tptp_sentences = []
+        if self.lemma_module:
+            imports.remove(self.lemma_module)
+            tptp_sentences.append(self.lemma_module.tptp_sentence)
+
+        files_to_translate = [i.clif_processed_file_name for i in imports]
+        tptp_sentences.extend(clif.to_tptp(files_to_translate))
         file = open(tptp_file_name, 'w')
         file.writelines([t+"\n" for t in tptp_sentences])
         file.close()

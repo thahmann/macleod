@@ -40,51 +40,59 @@ class ClifModule(object):
         self.nonlogical_symbols = set([])
 
         self.sentences = set([])
-        
+
+        self.parents = set([])
+
+        # stores the depth of the import hierarchy
+        self.depth = depth
+
         self.module_name = self.get_simple_module_name(module = name)
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL prefix as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
             self.module_name = os.path.normpath(self.module_name.replace(filemgt.read_config('cl','ending'),''))
         
-        # stores the depth of the import hierarchy
-        self.depth = depth
+        self.preprocess_clif_file()
         
+
+
+
+    def preprocess_clif_file (self):
         # add the standard ending for CLIF files to the module name
         self.clif_file_name = filemgt.get_full_path(self.module_name, ending=filemgt.read_config('cl','ending'))
 
         self.clif_processed_file_name = filemgt.get_full_path(self.module_name, 
-                                                              folder= filemgt.read_config('converters','tempfolder'), 
-                                                              ending = filemgt.read_config('cl','ending'))
+                                                      folder= filemgt.read_config('converters','tempfolder'), 
+                                                      ending = filemgt.read_config('cl','ending'))
 
         logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
-        logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
-        
+        logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)       
         
         clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
+        
         
         self.imports =  [self.get_simple_module_name(i) for i in clif.get_imports(self.clif_processed_file_name)]
         
         logging.getLogger(__name__).debug("imports detected in " + self.module_name +  ": " + str(self.imports))
         
         self.nonlogical_symbols = clif.get_all_nonlogical_symbols(self.clif_processed_file_name)
-
-        self.parents = set([])
         
 
     def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
         from src.ClifLemmaSet import LemmaModule
-        
-        print "IMPORTS = " + str(imports)
+        #print "IMPORTS = " + str(imports)
         
         if not isinstance(self, LemmaModule):
-            if self.module_set is None: print "RETURNING NONE"
+            if self.module_set is None: 
+                logging.getLogger(__name__).error("Cannot determine ModuleSet for " + self.module_name +  " with imports " + str(imports))
             return self.module_set
         else:
             for i in imports:
-                if not isinstance(self, LemmaModule):
+                if not isinstance(i, LemmaModule):
                     return i.module_set
+            logging.getLogger(__name__).error("Cannot determine ModuleSet for " + self.module_name +  " with imports " + str(imports))
+            return None
 
     def get_simple_module_name (self,module=None):
         if not module:
@@ -200,7 +208,7 @@ class ClifModule(object):
             file = open(self.p9_file_name,'w')
             file.writelines(lines)
             file.close()
-            logging.getLogger(__name__).info("COMMENTED IMPORTS IN LADR FILE: " + self.p9_file_name)
+            logging.getLogger(__name__).debug("COMMENTED IMPORTS IN LADR FILE: " + self.p9_file_name)
              
         return self.p9_file_name
 
@@ -218,6 +226,8 @@ class ClifModule(object):
             file = open(self.tptp_file_name, 'w')
             file.writelines([t+"\n" for t in tptp_sentences])
             file.close()
+
+            logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + self.tptp_file_name)
              
         return self.tptp_file_name
     
