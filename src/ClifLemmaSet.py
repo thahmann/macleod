@@ -15,25 +15,19 @@ class LemmaModule(ClifModule):
     '''
     classdocs
     '''
-    def __init__(self, module_name, ladr_file_name):
+    def __init__(self, module_name, ladr_file_name, tptp_sentence):
         '''
         Constructor
         '''
-        
-        self.p9_file_name = ladr_file_name
-
-        # remove any obsolete URL prefix as specified in the configuration file
-        #if ladr_file_name.endswith(filemgt.read_config('ladr','ending')):
-        #super(LemmaModule, self).__init__(name,0)
-        
+        #super(LemmaModule, self).preprocess_clif_file()
+        self.depth = 0
+        self.parents = []
         self.module_name = module_name
+        self.p9_file_name = ladr_file_name
+        # THIS IS UNIQUE to the LemmaModule
+        self.tptp_sentence = tptp_sentence
 
-
-        logging.getLogger(self.__module__ + "." + self.__class__.__name__).info('constructing lemma module: ' + self.module_name)
-        
-        # stores the depth of the import hierarchy
-        #self.depth = 0
-
+        logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('constructing lemma module: ' + self.module_name)
 
 
 class ClifLemmaSet(object):
@@ -43,7 +37,9 @@ class ClifLemmaSet(object):
         self.tptp_file_name = ''
         
         self.module = ClifModule(name,0)
-        logging.getLogger(__name__).info('constructed clif module for lemma file: ' + self.module.module_name)
+        logging.getLogger(__name__).debug('constructed clif module for lemma file: ' + self.module.module_name)
+        
+        self.module.get_p9_file_name()
         
         self.lemmas = []
         self.add_lemmas()
@@ -56,20 +52,24 @@ class ClifLemmaSet(object):
     def add_lemmas (self):
         
         # first get LADR translation of ClifModule
-
         # logging.getLogger(__name__).debug("CREATING LADR TRANSLATION OF LEMMA: " + self.module.module_name)
-        
-        logging.getLogger(__name__).debug("CREATED LADR TRANSLATION OF LEMMA: " + self.module.get_p9_file_name())
-        
         #self.module.get_p9_file_name()
-                
-        (lemma_names, ladr_files) = ladr.get_ladr_goal_files(self.module.p9_file_name, self.module.module_name)
+        
+        (lemma_names, ladr_files) = ladr.get_ladr_goal_files(self.module.get_p9_file_name(), self.module.module_name)
+        logging.getLogger(__name__).debug("CREATED LADR TRANSLATION OF LEMMA: " + self.module.get_p9_file_name())
+
+        # translate to tptp as goal
+        tptp_sentences = clif.to_tptp([self.module.clif_processed_file_name], axiom=False)
+        
+#        for t in tptp_sentences:
+#            print t
 
         # populate the list of lemmas        
-        for n in ladr_files:
-            name = os.path.join(os.path.dirname(self.module.module_name),
-                                os.path.basename(n.replace(filemgt.read_config('ladr','ending'),'')))
-            m = LemmaModule(name,n)
+        for i in range(0,len(ladr_files)):
+            name = os.path.join(os.path.dirname(lemma_names[i]),
+                                os.path.basename(ladr_files[i].replace(filemgt.read_config('ladr','ending'),'')))
+            #print "NAME = " + name
+            m = LemmaModule(name,ladr_files[i],tptp_sentences[i])
             self.lemmas.append(m)
         
     def get_lemmas (self):
