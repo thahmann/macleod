@@ -3,7 +3,7 @@ Created on 2010-11-26
 
 @author: Torsten Hahmann
 '''
-import os, subprocess, time
+import os, subprocess, time, logging
 import process, filemgt, commands
 
 options_files = []
@@ -17,6 +17,8 @@ def get_system_command(system_name, imports, output_stem):
         "paradox": get_paradox_cmd,
         "vampire": get_vampire_cmd
     }
+
+    logging.getLogger(__name__).debug("CONSTRUCTING COMMAND FOR: " + system_name + " FROM " + str(imports))
 
     return handlers.get(system_name, get_empty_cmd)(imports,output_stem)
 

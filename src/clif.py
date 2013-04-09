@@ -295,7 +295,7 @@ def get_nonlogical_symbols (sentence):
 
 
 
-def to_tptp (input_file_names):
+def to_tptp (input_file_names, axiom=True):
     """Translates a set of Clif files to TPTP syntax.
     All sentences are treated as FOL sentences in the segregated dialect of CLIF.
     Quantifying over relations or functions is currently not supported.
@@ -342,8 +342,8 @@ def to_tptp (input_file_names):
     tptp_sentences = []
 #    for i in range(0, 1):
     for i in range(0, len(sentences)):
-        print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
-        translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=True)
+        #print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
+        translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=axiom)
         # replace non-standard symbols
         for s in auto_keys:
             translation = translation.replace('"' +s.lower() +'"', '"'+auto_dict.get(s)+'"')
@@ -436,7 +436,7 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
                 #print "NARY: " +  sentence
                 return sentence
 
-        print "PROCESSING SYMBOLS: " + str(pieces)
+        #print "PROCESSING SYMBOLS: " + str(pieces)
                 
         for symbol in nonlogical_symbols:
             if symbol.lower()==pieces[0].strip().strip('(').strip().strip('"'):
@@ -444,13 +444,16 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
                 for i in range(2,len(pieces)):
                     sentence += ", " + pieces[i]
                 sentence += ")"
-                print "DONE: " + sentence
+                #print "DONE: " + sentence
                 return sentence 
         
             
     # END OF replace_logical_connectives
 
-    tptp_sentence = "fof(sos"
+    if axiom:
+        tptp_sentence = "fof(sos"
+    else:
+        tptp_sentence = "fof(goal"
     tptp_sentence += str(sentence_number) +","
     if axiom:
         tptp_sentence += "axiom,"

@@ -90,7 +90,7 @@ def comment_imports (lines):
     for i in range(0,len(lines)):
         keyword = 'imports('    # this is the syntax used by the clif-to-prover9 converter
         if lines[i].strip().find(keyword) > -1:
-            logging.getLogger(__name__).info("module import found: " + lines[i].strip('\n'))
+            logging.getLogger(__name__).debug("module import found: " + lines[i].strip('\n'))
             lines[i] = '% ' + lines[i]
             #new_module_name = line.strip()[len(keyword)+1:-3].strip()
         else:
