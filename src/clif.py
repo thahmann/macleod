@@ -4,7 +4,7 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, logging, clif, filemgt
+import os, logging, clif, filemgt, time
 
 CLIF_IMPORT = 'cl-imports'
 
@@ -24,7 +24,9 @@ TPTP_UNARY_SUBSTITUTIONS = {'not': '~'}
 
 TPTP_NARY_SUBSTITUTIONS = {'and': '&', 'or': '|'}
 
-TPTP_BINARY_SUBSTITUTIONS = {'=': '=', 'iff': '<=>', 'if': '=>'}
+TPTP_BINARY_SUBSTITUTIONS = {'iff': '<=>', 'if': '=>'}
+
+TPTP_EQUAL_SUBSTITUTIONS = {'=': '='}
 
 # CLIF quantifiers
 TPTP_QUANTIFIER_SUBSTITUTIONS = {'forall':'!', 'exists':"?"}
@@ -206,8 +208,50 @@ def get_sentences_from_file (input_file_name):
         text = cl_file.readlines()
         cl_file.close()
         text = "".join(text)    # compile into a single string
-        quantified_terms = clif.get_quantified_terms(text)
-        return clif.get_sentences(quantified_terms)
+        #print "TEXT = " + text
+        sentences = get_sentences_simplified(text)     
+#        quantified_terms = clif.get_quantified_terms(text)
+#        sentences = clif.get_sentences(quantified_terms)
+#        print sentences
+        return sentences
+
+    
+def get_sentences_simplified (text):
+
+    def flatten_sentence(pieces):
+        # base case: no list and just a single element
+        if isinstance(pieces, str):
+            #print pieces
+            return pieces
+        elif len(pieces)==1:
+            pieces = pieces[0]
+        # induction
+        #print "flattening " + str(pieces)
+        return [flatten_sentence(piece) for piece in pieces]
+    
+    from pyparsing import nestedExpr, pyparsing   
+    try:
+        pieces = nestedExpr('(',')').parseString(text).asList()
+    except pyparsing.ParseException as e:
+        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match")
+        return        
+    if len(pieces)!=1:
+        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match")
+        return
+    pieces = flatten_sentence(pieces)
+    while True:
+        #print str(piece) + " is " + str(type(piece))
+        if isinstance(pieces[0], str):
+            #print "REMOVING "+ pieces[0]
+            pieces.pop(0) #    remove "cl-module/ cl-text statement at the beginning"
+        else:
+            break
+        
+#    for piece in pieces:
+#        print 'SENTENCE: ' + str(piece) + '\n'
+    
+    return pieces
+    
     
 
 def get_quantified_terms (text):
@@ -254,44 +298,67 @@ def get_sentences (quantified_terms):
             new_pieces.append(pieces[i])  # end of quantified term
         else:
             pieces[i+1] = pieces[i] + pieces[i+1]
+    #print new_pieces
     return new_pieces
               
 
-def get_variables (sentence):
-    """Extract the variables from a logical sentence in CLIF notation."""
-    variables = set([])
-    pieces = [sentence[1:-1].strip()] # crop outer parentheses
-    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
-        pieces = [p.split(q) for p in pieces]
-        pieces = [p.strip() for sublist in pieces for p in sublist]   # flatten list
-    pieces = set(pieces)
-    pieces.discard('')
-    #print pieces
-    for p in pieces:
-        new_vars = p.split('(',1)[1].split(')',1)[0].split()
-        variables.update(new_vars)
-    #print variables
-    return variables
 
 def get_nonlogical_symbols_and_variables (sentence):
     """Extract all nonlogical symbols and variables from a logical sentence in CLIF notation."""
+    
+    def get_all_symbols (pieces):
+        symbols = set([])
+        for p in pieces:
+            if isinstance(p, str):
+                symbols.add(p)
+            else:
+                symbols.update(get_all_symbols(p))
+        return symbols
+    
+    symbols = get_all_symbols(sentence)
+    #print "SYMBOLS = " + str(symbols)
     variables = clif.get_variables(sentence)
+    
+    #print "ALL VARIABLES = " + str(variables)
 
-    pieces = sentence.split()
-    pieces = [p.split('(') for p in pieces]
-    pieces = [item for sublist in pieces for item in sublist] # flatten list
-    pieces = [p.split(')') for p in pieces]
-    pieces = [item for sublist in pieces for item in sublist] # flatten list
-    pieces = [p.strip() for p in pieces]
-    #print "removing variables " + str(variables) 
-    pieces = set(pieces) - set(clif.CLIF_LOGICAL_CONNECTIVES) - set(clif.CLIF_OTHER_SYMBOLS) -set(['']) - set(variables)
-    return (pieces, variables)
+    return (symbols - set(clif.CLIF_LOGICAL_CONNECTIVES) - set(clif.CLIF_OTHER_SYMBOLS) -set(['']) - variables, variables)
 
 
 def get_nonlogical_symbols (sentence):
     """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
     (_, non_logical_symbols) = clif.get_nonlogical_symbols_and_variables (sentence)
     return non_logical_symbols
+
+
+def get_variables (sentence):
+    """Extract the variables from a logical sentence in CLIF notation."""
+    variables = set([])
+    
+    #print "EXTRACTING VARIABLES FROM " + str(sentence)
+    pieces = sentence[:]
+
+    if len(pieces)==0 or isinstance(pieces, str):
+        return variables
+    
+    if isinstance(pieces[0], str):
+        #print sentence[0]
+        for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
+            if pieces[0]==q:
+                #print "FOUND " + q + ": " + str(pieces[1])
+                variables.update(pieces[1])
+                pieces.pop(0)
+                pieces.pop(0)
+                variables.update(get_variables(pieces))
+                return variables
+        pieces.pop(0)
+        if len(pieces)>0:
+            variables.update(get_variables(pieces))
+        return variables
+    
+    for i in range(0,len(pieces)):
+       variables.update(get_variables(pieces[i]))
+    #print "VARIABLES = " + str(variables)
+    return variables
 
 
 
@@ -302,22 +369,42 @@ def to_tptp (input_file_names, axiom=True):
     All nonlogical symbols are converted to lowercase. 
     Nonlogical symbols that start with non-alphabetic characters are automatically replaced by symbols clifsymbN.
     """
+
+    def remove_imports(sentences):
+
+        logical_sentences = []
+
+        for s in sentences:
+            if len(s)==2 and s[0]==clif.CLIF_IMPORT:
+                pass
+            else:
+                logical_sentences.append(s)
+        #for s in logical_sentences:
+        #    print "Sentence: " + str(s)
+        return logical_sentences
+
     
     sentences = []
     for file_name in input_file_names:
         sentences.extend(clif.get_sentences_from_file(file_name))
-    #variables_dict = {s: None for s in sentences}
-    #nonlogical_dict = variables_dict.copy()
+        
+       
+    sentences = remove_imports(sentences)
+    
     variables_list = []
     nonlogical_list = []
     # obtain variables and nonlogical symbols for each sentence
+    #print "ALL SENTENCES:"
     for sentence in sentences:
+        #print sentence
         (nonlogical_symbols, variables) = clif.get_nonlogical_symbols_and_variables (sentence)
+        print sentence
         variables_list.append(variables)
         nonlogical_list.append(nonlogical_symbols)
+    #print "-------"
     
     if len(variables_list)>0:
-        max_vars = min(1,max([len(v) for v in variables_list]))
+        max_vars = max(1,max([len(v) for v in variables_list]))
     else:
         max_vars = 1        
     import math
@@ -343,7 +430,7 @@ def to_tptp (input_file_names, axiom=True):
 #    for i in range(0, 1):
     for i in range(0, len(sentences)):
         #print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
-        translation = sentence_to_tptp(sentences[i], nonlogical_list[i], variables_list[i], int((i+1)*math.pow(10,digits)), axiom=axiom)
+        translation = sentence_to_tptp(sentences[i], variables_list[i], nonlogical_list[i], int((i+1)*math.pow(10,digits)), axiom=axiom)
         # replace non-standard symbols
         for s in auto_keys:
             translation = translation.replace('"' +s.lower() +'"', '"'+auto_dict.get(s)+'"')
@@ -354,7 +441,7 @@ def to_tptp (input_file_names, axiom=True):
     
 
 
-def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, axiom=True):
+def sentence_to_tptp (sentence, variables, nonlogical_symbols, sentence_number, axiom=True):
     """Translate a single sentence to TPTP format and assign it the the sentence_number.
     In the translation every nonlogical symbol is replaced and variables are numbered starting with start_number.
     Parameters:
@@ -366,24 +453,21 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
     assume nonlogical_symbols are sorted by length in decreasing order
     """
     
-    def replace_logical_connectives (pieces):
+    def replace_logical_connectives (pieces, nonlogical_symbols):
     
         #print "INCOMING SENTENCE = " + str(pieces)
 
         # base case
-        if not isinstance(pieces,list):
+        if isinstance(pieces,str):
             #print "DONE: " + str(pieces)
             return pieces
 
         while '' in pieces:
             pieces.remove('')
 
-        if len(pieces)==1:
-            return replace_logical_connectives(pieces[0])
-                
         # special case: quantifiers; need to treat the second argument separate
         for quantifier in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
-            if quantifier==pieces[0].strip().strip('(').strip():
+            if quantifier==pieces[0]:
                 if len(pieces)>3:
                     # ensure it is really used in a binary way
                     raise ClifParsingError("wrong use of quantifier '" + quantifier + "' in term '" + str(pieces) + "'"  )
@@ -391,14 +475,14 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
                 for var in pieces[1]:
                     sentence += TPTP_QUANTIFIER_SUBSTITUTIONS[quantifier] + " [" + var + "] : "
                 #print "QUANTIFIER REMAINDER: " + str(pieces[2])
-                remainder = replace_logical_connectives(pieces[2])
+                remainder = replace_logical_connectives(pieces[2], nonlogical_symbols)
                 #print "QUANTIFIER REMAINDER: " + str(remainder)
                 sentence += remainder + ") "  
                 return sentence
         
         # recursion otherwise
         for i in range(0,len(pieces)):
-            replacement = replace_logical_connectives(pieces[i])
+            replacement = replace_logical_connectives(pieces[i], nonlogical_symbols)
             if replacement is None:
                 raise ClifParsingError("could not parse: " + str(pieces[i]) + "")
             pieces[i] = replacement
@@ -409,7 +493,7 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
             #sentence = pieces[0].strip('(').strip(')')
             # substitute unary connectives
             for connective in TPTP_UNARY_SUBSTITUTIONS.keys():
-                if connective==pieces[0].strip().strip('(').strip():
+                if connective==pieces[0]:
                     pieces[0] = pieces[0].replace(connective, TPTP_UNARY_SUBSTITUTIONS[connective] + " ")
                     sentence = "(" + pieces[0] + pieces[1] + ")"
                     #print "UNARY: " + sentence
@@ -417,7 +501,7 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
             
         
         for connective in TPTP_BINARY_SUBSTITUTIONS.keys():
-            if connective==pieces[0].strip().strip('(').strip():
+            if connective==pieces[0]:
                 if len(pieces)>3:
                     # ensure it is really used in a binary way
                     raise ClifParsingError("wrong use of logical connective '" + connective + "' in term '" + str(pieces) + "'"  )
@@ -426,9 +510,17 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
                              " (" + pieces[2] + ") )")
                 #print "BINARY: " + sentence
                 return sentence
+
+        if '='==pieces[0]:
+            if len(pieces)>3:
+                # ensure it is really used in a binary way
+                raise ClifParsingError("wrong use of logical connective '" + connective + "' in term '" + str(pieces) + "'"  )
+            sentence = "(" + pieces[1] + '=' + pieces[2] + ")"
+            #print "BINARY: " + sentence
+            return sentence
         
         for connective in TPTP_NARY_SUBSTITUTIONS.keys():
-            if connective==pieces[0].strip().strip('(').strip():
+            if connective==pieces[0]:
                 sentence = "(" + pieces[1]
                 for i in range(2,len(pieces)):
                     sentence += " " + TPTP_NARY_SUBSTITUTIONS[connective] + " " + pieces[i]
@@ -437,19 +529,39 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
                 return sentence
 
         #print "PROCESSING SYMBOLS: " + str(pieces)
+        #print "SYMBOLS: " + str(nonlogical_symbols)
                 
         for symbol in nonlogical_symbols:
-            if symbol.lower()==pieces[0].strip().strip('(').strip().strip('"'):
-                sentence = '"'+symbol.lower()+'"' + "(" + pieces[1]
-                for i in range(2,len(pieces)):
-                    sentence += ", " + pieces[i]
-                sentence += ")"
-                #print "DONE: " + sentence
-                return sentence 
-        
-            
+            for i in range(0,len(pieces)):                    
+                if symbol==pieces[i]:
+                    #print "FOUND symbol " + pieces[i] + " in sentence"
+                    pieces[i]= '"'+symbol.lower()+'"'
+
+        sentence = pieces[0] + "(" + pieces[1]
+        for i in range(2,len(pieces)):
+            sentence += ", " + pieces[i]
+        sentence += ")"
+        #print "DONE: " + sentence
+        return sentence 
+                    
     # END OF replace_logical_connectives
 
+    def replace_variables (variables_dict, sentence):
+        #print "VARIABLES to replace: " + str(variables) + " in sentence " + str(sentence) + " (" + str(sentence_number) + ")"
+        
+        if isinstance(sentence, str):
+            if sentence in variables:
+                #print "replacing " + sentence + " by " + variables_dict[sentence]
+                return '"' + variables_dict[sentence] + '"'
+            else: 
+                return sentence
+        else:
+            for i in range(0,len(sentence)):
+                sentence[i] = replace_variables(variables_dict, sentence[i])
+            return sentence
+
+    # END of replace_symbols
+    
     if axiom:
         tptp_sentence = "fof(sos"
     else:
@@ -460,37 +572,17 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
     else:
         tptp_sentence += "conjecture,"
     
-    # join nonlogical symbols and variables and sort them decreasingly by length
-    replaced_symbols = nonlogical_symbols
-    replaced_symbols.update(variables)
-    replaced_symbols = list(replaced_symbols)
-    #replaced_symbols = [p.lower() for p in replaced_symbols]
-    replaced_symbols.sort(key=lambda s: len(s), reverse=True)
-
-    # update keys of non_logical symobls to all upper case
-    #upper_nonlogical_symbols = [s.lower() for s in nonlogical_symbols]
+    print "SENTENCE = " + str(sentence)
+    # construct a dictionary of all variables
     var_no = 1
+    var_dict = {}
+    for variable in variables:
+        var_dict[variable] = 'X' + str(sentence_number + var_no)
+        var_no += 1
+    #print "var_dict = " + str(var_dict)
     
-    for i in range(0, len(replaced_symbols)):
-        s = replaced_symbols[i] 
-        #print "replacing " + s
-        if s in variables:
-            #print str(sentence_number + var_no)
-            sentence = sentence.replace('('+s+')','("X'+str(sentence_number + var_no)+'")')
-            sentence = sentence.replace('('+s+' ','("X'+str(sentence_number + var_no)+'" ')
-            sentence = sentence.replace(' '+s+')',' "X'+str(sentence_number + var_no)+'")')
-            sentence = sentence.replace(' '+s+' ',' "X'+str(sentence_number + var_no)+'" ')
-            var_no += 1
-        else:
-            sentence = sentence.replace('('+s+')','("'+s.lower()+'")')
-            sentence = sentence.replace('('+s+' ','("'+s.lower()+'" ')
-            sentence = sentence.replace(' '+s+')',' "'+s.lower()+'")')
-            sentence = sentence.replace(' '+s+' ',' "'+s.lower()+'" ')
-
-    from pyparsing import nestedExpr   
-    pieces = nestedExpr('(',')').parseString(sentence).asList()
-
-    sentence = replace_logical_connectives(pieces)
+    sentence = replace_variables(var_dict, sentence)
+    sentence = replace_logical_connectives(sentence, nonlogical_symbols)
     #sentence = quantifiers_to_tptp(sentence)
     sentence = sentence.replace("'","")
     tptp_sentence = tptp_sentence + sentence
@@ -500,43 +592,24 @@ def sentence_to_tptp (sentence, nonlogical_symbols, variables, sentence_number, 
 
          
 
-
-
-def get_variables (sentence):
-    """Extract the variables from a logical sentence in CLIF notation."""
-    variables = set([])
-    pieces = [sentence[1:-1].strip()] # crop outer parentheses
-    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
-        pieces = [p.split(q) for p in pieces]
-        pieces = [p.strip() for sublist in pieces for p in sublist]   # flatten list
-    pieces = set(pieces)
-    pieces.discard('')
-    #print pieces
-    for p in pieces:
-        new_vars = p.split('(',1)[1].split(')',1)[0].split()
-        variables.update(new_vars)
-    #print variables
-    return variables
-
-
 def get_imports(input_file):
     """Find all the imported modules from a CLIF file.
     Parameters:
     input_file -- filename of the CLIF input."""
 
     imports = set([])
-    
+
     cl_file = open(input_file, 'r')
     text = "".join(cl_file.readlines())
     #print text
     cl_file.close()
 
-    text = text.split(clif.CLIF_IMPORT)
-    for i in range(1,len(text)):
-        line = text[i].split(")",1) # find first closing parenthesis
-        imports.add(line[0].strip())
-    imports = reformat_urls(imports)
-    #print imports
+    sentences = clif.get_sentences_simplified(text)
+    for s in sentences:
+        if len(s)==2 and s[0]==clif.CLIF_IMPORT:
+            imports.add(s[1])
+
+    #print "IMPORTS = " + str(imports)
     return imports
 
 
@@ -548,8 +621,18 @@ class ClifParsingError(Exception):
     def __init__(self, value, output=[]):
         self.value = value
         self.output = output
+        while None in self.output:
+            self.output.remove(None)
+        while '' in self.output:
+            self.output.remove('')
+        while '\r\n' in self.output:
+            self.output.remove('\r\n')
+        #print "ERROR OUTPUT = " + str(self.output)
     def __str__(self):
-        return repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output)))
+        if len(self.output)==0:
+            return repr(self.value) + '\n'
+        else:
+            return repr(self.value) + '\n' + (''.join(self.output))
 
     
 if __name__ == '__main__':

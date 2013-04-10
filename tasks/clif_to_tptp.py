@@ -5,7 +5,7 @@ Created on 2013-03-28
 '''
 
 from tasks import *
-import sys
+import sys, time
 from src import *
 
 def tptp(filename, options=[]):
