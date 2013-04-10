@@ -61,14 +61,14 @@ class ClifLemmaSet(object):
         # translate to tptp as goal
         tptp_sentences = clif.to_tptp([self.module.clif_processed_file_name], axiom=False)
         
-#        for t in tptp_sentences:
-#            print t
+        for t in tptp_sentences:
+            print t
 
         # populate the list of lemmas        
         for i in range(0,len(ladr_files)):
             name = os.path.join(os.path.dirname(lemma_names[i]),
                                 os.path.basename(ladr_files[i].replace(filemgt.read_config('ladr','ending'),'')))
-            #print "NAME = " + name
+            print "NAME = " + name
             m = LemmaModule(name,ladr_files[i],tptp_sentences[i])
             self.lemmas.append(m)
         
