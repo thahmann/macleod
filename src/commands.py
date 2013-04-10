@@ -30,8 +30,10 @@ def get_unknown_returncodes (name):
     return commands.get_returncodes(name, type="unknown_returncode")
     
 def get_returncodes (name,type="positive_returncode"):
-    codes = filemgt.read_config(name,type).split(',')
-    codes = [ int(s.strip()) for s in codes ]
+    code_list = filemgt.read_config(name,type) 
+    codes = []
+    if len(code_list)>0:
+        codes = [ int(s.strip()) for s in code_list.split(',')]
     return codes
 
 
@@ -53,7 +55,7 @@ def get_p9_cmd (imports,output_stem, option_files = None):
         for f in option_files:
             args.append(f)
     
-    return args
+    return (args, [])
     
 
 def get_m4_cmd (imports,output_stem):
@@ -72,7 +74,7 @@ def get_m4_cmd (imports,output_stem):
     for m in imports:
         args.append(m.get_p9_file_name())
     
-    return args
+    return (args, [])
 
 
 def get_paradox_cmd (imports,output_stem):
@@ -89,16 +91,20 @@ def get_paradox_cmd (imports,output_stem):
     # append all ladr input files
     args.append(list(imports)[0].get_module_set(imports).get_single_tptp_file(imports))
 
-    return args
+    return (args, [])
 
 
 def get_vampire_cmd (imports,ouput_stem):
-    cmd = (filemgt.read_config('vampire','command') + 
-             ' --mode casc --proof tptp' +
-             ' -t ' + repr(filemgt.read_config('vampire','timeout')) +
-             ' < ' + list(imports)[0].get_module_set(imports).get_single_tptp_file_name(imports))
+    args = []
+    args.append(filemgt.read_config('vampire','command'))
+    args.append('--mode')
+    args.append('casc')
+    args.append('--proof')
+    args.append('tptp')
+    args.append('-t')
+    args.append(filemgt.read_config('vampire','timeout'))
 
-    return cmd + ' > ' + output_stem + filemgt.read_config('vampire','ending')
+    return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])
 
 
 def get_clif_to_ladr_cmd (module):

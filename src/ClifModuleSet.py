@@ -551,15 +551,17 @@ class ClifModuleSet(object):
         inconsistent (-1) -- an inconsistency has been found in the ontology
          """
         return_value = 0
-        successful_reasoner = None
+        successful_reasoner = ''
          
         for r in reasoners:
             if r.terminatedSuccessfully():
                 if return_value == 0:
                     return_value = r.output
                     logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                    successful_reasoner = r.name
                 elif return_value == r.output:
                     logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                    successful_reasoner += " " + r.name
                 elif return_value != r.output:
                     return_value = ClifModuleSet.CONTRADICTION
                     print "CONTRADICTION: " + str(return_value)

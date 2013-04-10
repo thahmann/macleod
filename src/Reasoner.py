@@ -20,6 +20,8 @@ class Reasoner (object):
         
         self.modules = []
         
+        self.input_files = ''
+        
         self.output_file = ''
         
         self.return_code = None
@@ -52,7 +54,7 @@ class Reasoner (object):
         """Construct the command to invoke the reasoner."""
         self.modules = modules
         self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
-        self.args = commands.get_system_command(self.name, self.modules, self.output_file)
+        (self.args, self.input_files) = commands.get_system_command(self.name, self.modules, self.output_file)
         return self.args
     
     def getCommand (self, modules=None, outfile_stem=None):
@@ -66,12 +68,35 @@ class Reasoner (object):
     def getOutfile(self):
         return self.output_file        
 
+    def getInputFiles (self):
+        return self.input_files
+
     def isProver (self):
         if self.type==Reasoner.PROVER: return True
         else: return False
         
     def terminatedSuccessfully (self):
         from src import ClifModuleSet
+
+        mapping = {
+            ClifModuleSet.CONSISTENT: True,
+            ClifModuleSet.INCONSISTENT : True,
+            ClifModuleSet.UNKNOWN : False,
+            None: False
+        }
+        
+        def szs_status(line):
+            if 'Theorem' in line:
+                #print "VAMPIRE SZS status found: THEOREM"
+                return ClifModuleSet.PROOF
+            elif 'CounterSatisfiable' in line:
+                return ClifModuleSet.INCONSISTENT
+            elif 'Unsatisfiable' in line:
+                return ClifModuleSet.INCONSISTENT
+            elif 'Satisfiable' in line:
+                return ClifModuleSet.CONSISTENT
+            else: # Timeout, GaveUp, Error
+                return ClifModuleSet.UNKNOWN
     
         def success_default (self):
             if not self.return_code==None:
@@ -83,9 +108,26 @@ class Reasoner (object):
                     return True
             return False
 
+        def success_vampire (self):
+            file = open(self.output_file, 'r')
+            lines = file.readlines()
+            file.close()
+            output_lines = filter(lambda x: x.startswith('% SZS status'), lines)
+            if len(output_lines)!=1:
+                if not self.return_code:
+                    self.output = None
+                else:
+                    self.output = ClifModuleSet.UNKNOWN                    
+            else:
+                self.output = szs_status(output_lines[0])
+            
+            return mapping[self.output]
+
+
         def success_paradox (self):
             file = open(self.output_file, 'r')
             lines = file.readlines()
+            file.close()
             output_lines = filter(lambda x: x.startswith('+++ RESULT:'), lines)
             if len(output_lines)!=1:
                 if not self.return_code:
@@ -93,29 +135,14 @@ class Reasoner (object):
                 else:
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
-                if 'Theorem' in output_lines[0]:
-                    self.output = ClifModuleSet.PROOF
-                elif 'CounterSatisfiable' in output_lines[0]:
-                    self.output = ClifModuleSet.INCONSISTENT
-                elif 'Unsatisfiable' in output_lines[0]:
-                    self.output = ClifModuleSet.INCONSISTENT
-                elif 'Satisfiable' in output_lines[0]:
-                    self.output = ClifModuleSet.CONSISTENT
-                else:
-                    self.output = ClifModuleSet.UNKNOWN
-            
-            mapping = {
-                ClifModuleSet.CONSISTENT: True,
-                ClifModuleSet.INCONSISTENT : True,
-                ClifModuleSet.UNKNOWN : False,
-                None: False
-            }
-            
+                self.output = szs_status(output_lines[0])
+                        
             return mapping[self.output]
         
     
         handlers = {
             "paradox": success_paradox, 
+            "vampire": success_vampire, 
         }
     
         return handlers.get(self.name, success_default)(self)

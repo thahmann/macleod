@@ -6,7 +6,7 @@ from multiprocessing import Event
 
 class ReasonerProcess(multiprocessing.Process):
 	
-	def __init__(self, args, output_filename, result_queue, log_queue):
+	def __init__(self, args, output_filename, input_filenames, result_queue, log_queue):
 		multiprocessing.Process.__init__(self)
 
 		self.args = args
@@ -15,6 +15,7 @@ class ReasonerProcess(multiprocessing.Process):
 		self.exit = multiprocessing.Event()
 		self.done = multiprocessing.Event()
 		self.output_filename = output_filename
+		self.input_filenames = input_filenames
 		
 		#print str(args) + " > " + self.output_filename
 
@@ -37,13 +38,22 @@ class ReasonerProcess(multiprocessing.Process):
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		file = open (self.output_filename, 'w')
-		sp = process.startSubprocessWithOutput(self.args, file)
-		self.cputime = 0
+		sp = process.startSubprocessWithOutput(self.args, file, self.input_filenames)				
+		self.cputime = 0	# total cputime
+		previous_cputime = 0
+		current_cputime = 0
 		while sp.poll() is None and not self.exit.is_set():		
 			#logging.getLogger(__name__).info("WAITING: " + self.command)
-			self.cputime = max(self.cputime, get_cputime(sp.pid))
+			new_cputime = get_cputime(sp.pid)
+			if new_cputime>=current_cputime:
+				current_cputime = new_cputime
+			else:
+				print "NEW PROCESS; previous_cputime = " + str(previous_cputime) 
+				previous_cputime += current_cputime + 1
+				current_cputime = new_cputime 			
+			self.cputime = previous_cputime + current_cputime
 			#print self.cputime
-			time.sleep(0.5)
+			time.sleep(1)
 			limit = 1024 # each reasoning process is not allowed to use up more than 1GB of memory
 			memory = get_memory(sp.pid)
 			#print memory
@@ -56,7 +66,13 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
-			self.cputime = max(self.cputime, get_cputime(sp.pid))
+			new_cputime = get_cputime(sp.pid)
+			if new_cputime >=current_cputime:
+				current_cputime = new_cputime
+			else:
+				previous_cputime += current_cputime + 1
+				current_cputime = new_cputime	
+			self.cputime = previous_cputime + current_cputime
 			(p, stdoutdata) = process.terminateSubprocess(sp)
 			if stdoutdata:
 				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
@@ -76,7 +92,6 @@ class ReasonerProcess(multiprocessing.Process):
 			self.log_queue.put(record)
 			#print "+++ HERE +++"
 			# for the record, write the CPU time to the end of the file
-			self.cputime = max(self.cputime, get_cputime(sp.pid))
 			file.write("TOTAL CPU TIME USAGE = " + str(self.cputime))
 			file.close()
 			self.done.set()
@@ -87,7 +102,7 @@ class ReasonerProcess(multiprocessing.Process):
 		self.log_queue.put(record)
 		# for the record, write the CPU time to the end of the file
 		self.cputime = max(self.cputime, get_cputime(sp.pid))
-		file.write("TOTAL CPU TIME USAGE = " + str(self.cputime))
+		file.write("TOTAL CPU TIME USAGE = " + str(self.cputime) +"\n")
 		file.close()
 		self.done.set()
 		return True
@@ -111,7 +126,22 @@ def get_cputime(pid):
 		
 	def cputime_nix(pid):
 		# TODO: implement
-		return 0
+		try:
+		    	ps_process = subprocess.Popen("ps -g " + str(pid) + " -o time", shell=True, stdout=subprocess.PIPE)
+			stdout_list = ps_process.communicate()[0].split('\n')
+			while '' in stdout_list:
+				stdout_list.remove('')
+			stdout_list.pop(0)
+			#print "CPU TIMES: " + str(stdout_list)
+			seconds = 0
+			for entry in stdout_list:
+				time_chunks = entry.split(":")
+				seconds += int(time_chunks[0])*3600 + int(time_chunks[1])*60 + int(time_chunks[2]) 
+			return seconds
+		except OSError as e:
+			print e
+			return 0
+			
 
 	cputime_default = cputime_nix
 	
@@ -138,9 +168,15 @@ def get_memory(pid):
 	    	return int(result[0].WorkingSet) // (1024*1024) # convert from Bytes to MB
 
 	def memory_nix(pid):
-		ps_process = subprocess.Popen("ps -p " + str(pid) + " -o rss", shell=True, stdout=subprocess.PIPE)
+		ps_process = subprocess.Popen("ps -g " + str(pid) + " -o rss", shell=True, stdout=subprocess.PIPE)
 		stdout_list = ps_process.communicate()[0].split('\n')
-		return int(stdout_list[1]) // 1024 # convert to MB
+		memory = 0
+		while '' in stdout_list:
+			stdout_list.remove('')
+		stdout_list.pop(0)
+		for entry in stdout_list:
+			memory += int(entry)	
+		return memory // 1024 # convert to MB
 
 	memory_default = memory_nix
 	
@@ -153,15 +189,25 @@ def get_memory(pid):
 	
 
 
-def startSubprocessWithOutput(args, output_file):
+def startSubprocessWithOutput(args, output_file, input_files=[]):
 	"""Start a new subprocess, but does not wait for the subprocess to complete. 
 	This method uses the os.setsid in Linux, which is not available in Windows"""
 	if os.name == 'nt':
 		# Windows
-		p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT)
+		if len(input_files)==1:
+			file = open(input_files[0],'r')
+			p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT, stdin=file)
+			file.close()
+		else:
+			p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT)
 	else:
 		# Linux (and others)
-		p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
+		if len(input_files)==1:
+			file = open(input_files[0],'r')
+			p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT, stdin=file)
+			file.close()
+		else:
+			p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
 	#print p.__class__
 	return p
 
@@ -220,16 +266,24 @@ def terminateSubprocess (process):
 		return (process.returncode, stdout+stdout2)  
 
 	def terminate_nix (process):
-		#os.kill(process.pid, signal.SIGINT)
-		return_value = process.terminate()
-		(stdout, _ ) = process.communicate()
-		if process.poll() is None:
-			return_value = os.kill(process.pid, signal.SIGINT)
+		#os.killpg(process.pid, signal.SIGINT)
+		return_value = None
+		stdoutdata = ''
+		try:
+			return_value = process.terminate()
 			time.sleep(0.1)
-		if not stdout:
-			stdout = ""
-		re.sub(r'[^\w]', '', stdout)
-		stdoutdata = ' '.join(stdout.split())
+			stdoutdata = ""
+			if process.poll() is None:
+				return_value = os.kill(int(0-process.pid), signal.SIGINT)
+				time.sleep(0.1)
+			else:
+				(stdout, _ ) = process.communicate()
+				if stdout is not None:
+					re.sub(r'[^\w]', '', stdout)
+					stdoutdata = ' '.join(stdout.split())
+		except OSError as e:
+			print e
+			pass 
 		return (return_value, stdoutdata)
 
 		#return os.waitpid(process.pid, os.WNOHANG)
@@ -264,7 +318,7 @@ def raceProcesses (reasoners):
 	# start all processes
 	for r in reasoners:
 		log = Queue()
-		p = ReasonerProcess(r.getCommand(),r.getOutfile(), results, log)
+		p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), results, log)
 		reasonerProcesses.append(p)
 		processLogs.append(log)
 		#p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.getCommand(),results,))
