@@ -147,19 +147,21 @@ def format(record):
   
 def get_full_path (module_name, folder=None, ending=''):
     """determines the suitable subfolder for a given file_name."""
-    if os.path.isabs(module_name):
-        path = module_name
-    else:
-        path = filemgt.read_config('system','path') + os.sep + module_name
-        if folder:
-            path = os.path.dirname(path) + os.sep + folder + os.sep + os.path.basename(path)
+    print module_name
+    if os.sep in module_name:
+        path = module_name.rsplit(os.sep,1)
+    module_name = path[1]
+    path = path[0]
+    path = os.path.normpath(filemgt.read_config('system','path') + os.sep + path)
+    if folder:
+        path = os.path.normpath(path + os.sep + folder + os.sep)
         # create this folder if it does not exist yet
-    path = os.path.normpath(path)
-    if not os.path.isdir(os.path.dirname(path)):
-        if os.mkdir(os.path.dirname(path)):
+    if not os.path.exists(path):
+     	print "Trying to create folder " + path
+    if os.mkdir(path):
             print "Created folder " + path
     
-    return os.path.abspath(path + ending)
+    return os.path.abspath(path + os.sep + module_name + ending)
 
 
 def get_tptp_symbols ():
