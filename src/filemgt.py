@@ -1,6 +1,6 @@
 '''
 Created on 2011-04-29
-Major revision (restructed as a module with new name filemgt) on 2013-03-14
+Major revision (restructured as a module with new name filemgt) on 2013-03-14
 
 @author: Torsten Hahmann
 '''
