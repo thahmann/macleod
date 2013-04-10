@@ -6,7 +6,7 @@ from multiprocessing import Event
 
 class ReasonerProcess(multiprocessing.Process):
 	
-	def __init__(self, args, output_filename, input_filenames, result_queue, log_queue):
+	def __init__(self, args, output_filename, input_filenames, timeout, result_queue, log_queue):
 		multiprocessing.Process.__init__(self)
 
 		self.args = args
@@ -16,7 +16,7 @@ class ReasonerProcess(multiprocessing.Process):
 		self.done = multiprocessing.Event()
 		self.output_filename = output_filename
 		self.input_filenames = input_filenames
-		
+		self.timeout = timeout
 		#print str(args) + " > " + self.output_filename
 
 	def isDone (self):
@@ -52,6 +52,8 @@ class ReasonerProcess(multiprocessing.Process):
 				previous_cputime += current_cputime + 1
 				current_cputime = new_cputime 			
 			self.cputime = previous_cputime + current_cputime
+			if self.cputime>self.timeout:
+				self.shutdown()
 			#print self.cputime
 			time.sleep(1)
 			limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
@@ -318,7 +320,7 @@ def raceProcesses (reasoners):
 	# start all processes
 	for r in reasoners:
 		log = Queue()
-		p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), results, log)
+		p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), r.timeout, results, log)
 		reasonerProcesses.append(p)
 		processLogs.append(log)
 		#p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.getCommand(),results,))

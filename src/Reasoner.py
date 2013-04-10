@@ -38,6 +38,7 @@ class Reasoner (object):
         self.positive_returncodes = commands.get_positive_returncodes(self.name)
         self.unknown_returncodes = commands.get_unknown_returncodes(self.name)
 
+        self.timeout = filemgt.read_config(self.name,'timeout')
 
     def __eq__ (self, other):
         if not isinstance(other, Reasoner):
