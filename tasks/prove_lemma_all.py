@@ -3,7 +3,7 @@ if __name__ == '__main__':
     import shutil, os, sys
     from tasks import prove_lemma
 
-    #ignores = ["theorems", "generated", "output","consistency"]
+    #ignores = ["theorems", "generated", "output", "consistency"]
     ignores = ["generated", "output", "consistency"]
     necessary = "_theorems"
     #necessary = false
@@ -19,9 +19,10 @@ if __name__ == '__main__':
                 print file
                 if file.endswith('.clif'):
                     if necessary and necessary not in file:
-                        pass
-                    filename = os.path.join(dir.replace('qs\\',''), file)
-#                    print filename
+			print "IGNORING " + file
+                        continue
+                    filename = os.path.normpath(os.path.join(dir.replace('qs'+os.sep,''), file))
+                    print filename
                     
                     result = prove_lemma.prove(filename, axioms_filename=None, options=['-simple'])
                     if result is True:
