@@ -158,8 +158,8 @@ def get_full_path (module_name, folder=None, ending=''):
         # create this folder if it does not exist yet
     if not os.path.exists(path):
      	print "Trying to create folder " + path
-    if os.mkdir(path):
-            print "Created folder " + path
+        if os.mkdir(path):
+                print "Created folder " + path
     
     return os.path.abspath(path + os.sep + module_name + ending)
 

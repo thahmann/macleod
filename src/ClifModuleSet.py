@@ -347,7 +347,7 @@ class ClifModuleSet(object):
             self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
         
         results = {tuple(modules): return_value}
-        print str(results)
+        #print str(results)
         return results
 
 
@@ -564,7 +564,7 @@ class ClifModuleSet(object):
                     successful_reasoner += " " + r.name
                 elif return_value != r.output:
                     return_value = ClifModuleSet.CONTRADICTION
-                    print "CONTRADICTION: " + str(return_value)
+                    #print "CONTRADICTION: " + str(return_value)
                     logging.getLogger(__name__).critical("CONTRADICTORY RESULTS from " + self.module_name +': ' + r.name + ' and ' + successful_reasoner)
             if r.terminatedUnknowingly():
                 logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(r.output) + "): " + r.name)

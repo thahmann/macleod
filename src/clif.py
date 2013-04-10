@@ -398,7 +398,7 @@ def to_tptp (input_file_names, axiom=True):
     for sentence in sentences:
         #print sentence
         (nonlogical_symbols, variables) = clif.get_nonlogical_symbols_and_variables (sentence)
-        print sentence
+        #print sentence
         variables_list.append(variables)
         nonlogical_list.append(nonlogical_symbols)
     #print "-------"
@@ -572,7 +572,7 @@ def sentence_to_tptp (sentence, variables, nonlogical_symbols, sentence_number, 
     else:
         tptp_sentence += "conjecture,"
     
-    print "SENTENCE = " + str(sentence)
+    #print "SENTENCE = " + str(sentence)
     # construct a dictionary of all variables
     var_no = 1
     var_dict = {}

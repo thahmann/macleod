@@ -16,13 +16,13 @@ if __name__ == '__main__':
             pass
         else:
             for file in files:
-                print file
+                #print file
                 if file.endswith('.clif'):
                     if necessary and necessary not in file:
-			print "IGNORING " + file
+			#print "IGNORING " + file
                         continue
                     filename = os.path.normpath(os.path.join(dir.replace('qs'+os.sep,''), file))
-                    print filename
+                    #print filename
                     
                     result = prove_lemma.prove(filename, axioms_filename=None, options=['-simple'])
                     if result is True:
@@ -31,7 +31,11 @@ if __name__ == '__main__':
                         bad += 1
                     else:
                         neutral += 1
-    print str(good+bad+neutral) + " files in total"
-    print str(good) + " consistent"
-    print str(neutral) + " unknown"
-    print str(bad) + " inconsistent"
+
+                    print "---------------------"
+                    print str(good+bad+neutral) + " files in total"
+                    print str(good) + " consistent"
+                    print str(neutral) + " unknown"
+                    print str(bad) + " inconsistent"
+                    print "---------------------"
+

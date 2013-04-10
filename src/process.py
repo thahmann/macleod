@@ -54,7 +54,7 @@ class ReasonerProcess(multiprocessing.Process):
 			self.cputime = previous_cputime + current_cputime
 			#print self.cputime
 			time.sleep(1)
-			limit = 1024 # each reasoning process is not allowed to use up more than 1GB of memory
+			limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
 			memory = get_memory(sp.pid)
 			#print memory
 			if memory>limit:

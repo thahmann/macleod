@@ -25,7 +25,7 @@ def prove (lemmas_filename, axioms_filename=None, options=[]):
         
     if axioms_filename is None:
         m = ClifModuleSet(lemmas_filename)
-        print "REMOVING " + m.get_top_module().module_name
+        #print "REMOVING " + m.get_top_module().module_name
         m.remove_module(m.get_top_module())
     else:
         m = ClifModuleSet(axioms_filename)
