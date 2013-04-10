@@ -8,6 +8,7 @@ if __name__ == '__main__':
                 or fullpath.endswith('.p9') 
                 or fullpath.endswith('.tptp') 
                 or fullpath.endswith('.p9i') 
-                or fullpath.endswith('.p9.clif')):
+                or fullpath.endswith('.p9.clif')
+                or fullpath.endswith('options.txt')):
                 os.remove(fullpath)
 
