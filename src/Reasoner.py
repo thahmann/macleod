@@ -90,10 +90,10 @@ class Reasoner (object):
             if 'Theorem' in line:
                 #print "VAMPIRE SZS status found: THEOREM"
                 return ClifModuleSet.PROOF
-            elif 'CounterSatisfiable' in line:
-                return ClifModuleSet.INCONSISTENT
             elif 'Unsatisfiable' in line:
                 return ClifModuleSet.INCONSISTENT
+            elif 'CounterSatisfiable' in line:
+                return ClifModuleSet.COUNTEREXAMPLE
             elif 'Satisfiable' in line:
                 return ClifModuleSet.CONSISTENT
             else: # Timeout, GaveUp, Error
