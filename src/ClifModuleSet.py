@@ -307,7 +307,7 @@ class ClifModuleSet(object):
     
                 
                 
-    def get_list_of_nonlogical_symbols (self, imports=None):
+    def get_nonlogical_symbols (self, imports=None):
         """returns a simple list of nonlogical symbols without additional information.
         This is different from self.nonlogical_symbols, which stores additional information about frequency, depth, etc."""
         s = set([])
@@ -608,7 +608,6 @@ class ClifModuleSet(object):
 
         logging.getLogger(__name__).info(s + " (return value = " + str(return_value) + "): " + module_name)
 
-        
         
 #    def check_consistency(self):
 #        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)

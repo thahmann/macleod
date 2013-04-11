@@ -88,7 +88,7 @@ def get_paradox_cmd (imports,output_stem):
     args.append('2')
     args.append('--model')
     args.append('--tstp')
-    # append all ladr input files
+    # append all tptp input files
     args.append(list(imports)[0].get_module_set(imports).get_single_tptp_file(imports))
 
     return (args, [])

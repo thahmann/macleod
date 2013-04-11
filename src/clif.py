@@ -177,6 +177,7 @@ def remove_all_comments(input_file, output_file):
         finally:
             file.close()
 
+
 def reformat_urls(lines):
     """Delete URL prefixes from all import declarations.""" 
     lines = list(lines)
@@ -189,7 +190,6 @@ def reformat_urls(lines):
             lines[i] = lines[i].strip('/')
             #print lines[i]
     return lines
-
                 
 
 def get_all_nonlogical_symbols (filename):
@@ -208,15 +208,11 @@ def get_sentences_from_file (input_file_name):
         text = cl_file.readlines()
         cl_file.close()
         text = "".join(text)    # compile into a single string
-        #print "TEXT = " + text
-        sentences = get_sentences_simplified(text)     
-#        quantified_terms = clif.get_quantified_terms(text)
-#        sentences = clif.get_sentences(quantified_terms)
-#        print sentences
+        sentences = get_sentences(text)     
         return sentences
 
     
-def get_sentences_simplified (text):
+def get_sentences (text):
 
     def flatten_sentence(pieces):
         # base case: no list and just a single element
@@ -252,55 +248,6 @@ def get_sentences_simplified (text):
     
     return pieces
     
-    
-
-def get_quantified_terms (text):
-    """Extracts all quantified terms from a string that contains the content of a CLIF file"""
-    text = text.replace("\t","")   # remove tabs
-    text = text.replace("\n","")   # remove linebreaks
-    pieces = [text]
-    for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
-        old_pieces = pieces
-        pieces = [p.split(q) for p in old_pieces]
-        new_pieces = []
-        for i in range(0,len(pieces)):
-            if len(pieces[i])==1:
-                new_pieces.append(old_pieces[i])
-            else:
-                new_pieces.append(pieces[i].pop(0)) # copy the first one as-is
-                new_pieces.extend(['(' + q + ' ' + p.strip() for p in pieces[i]])
-        pieces = new_pieces
-        for i in range(0,len(pieces)-1):
-            #print pieces[i]
-            if pieces[i].endswith("("):
-                pieces[i] = pieces[i][:-1]  # remove last character, the opening parenthesis
-
-    pieces.pop(0)   # delete non-relevant part
-    return pieces
-
-
-def get_sentences (quantified_terms):
-    """Reconstruct the sentences from a list of quantified terms in CLIF notation by matching parentheses.
-    Returns a set of strings, each is a logical sentence surrounded by parentheses."""
-    new_pieces = []
-    pieces = quantified_terms
-    #print pieces
-    for i in range (0,len(pieces)):
-        #print pieces[i]
-        open_parentheses = pieces[i].count('(') - pieces[i].count(')')
-        if i==len(pieces)-1:
-            #print "last piece, removing parentheses " + str(open_parentheses)
-            for n in range(0,open_parentheses):
-                pieces[i] = pieces[i].rsplit(')',1)[0]
-            new_pieces.append(pieces[i])
-        elif open_parentheses == 0:
-            #print pieces[i]
-            new_pieces.append(pieces[i])  # end of quantified term
-        else:
-            pieces[i+1] = pieces[i] + pieces[i+1]
-    #print new_pieces
-    return new_pieces
-              
 
 
 def get_nonlogical_symbols_and_variables (sentence):
@@ -388,7 +335,6 @@ def to_tptp (input_file_names, axiom=True):
     for file_name in input_file_names:
         sentences.extend(clif.get_sentences_from_file(file_name))
         
-       
     sentences = remove_imports(sentences)
     
     variables_list = []
@@ -600,11 +546,10 @@ def get_imports(input_file):
     imports = set([])
 
     cl_file = open(input_file, 'r')
-    text = "".join(cl_file.readlines())
-    #print text
+    text = cl_file.read()
     cl_file.close()
 
-    sentences = clif.get_sentences_simplified(text)
+    sentences = clif.get_sentences(text)
     for s in sentences:
         if len(s)==2 and s[0]==clif.CLIF_IMPORT:
             imports.add(s[1])
