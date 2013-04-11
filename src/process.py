@@ -16,7 +16,7 @@ class ReasonerProcess(multiprocessing.Process):
 		self.done = multiprocessing.Event()
 		self.output_filename = output_filename
 		self.input_filenames = input_filenames
-		self.timeout = timeout
+		self.timeout = timeout		
 		#print str(args) + " > " + self.output_filename
 
 	def isDone (self):
@@ -300,16 +300,28 @@ def terminateSubprocess (process):
 	return handlers.get(os.name, terminate_default)(process)
 
 
+def writeHeader (reasoner):
+	cmd = reasoner.args[0]
+	for i in range(1,len(reasoner.args)):
+		cmd += " " + args[i]
+
+	file =  open(reasoner.output_file, 'a')
+	file.write('============================= ' + reasoner.name + ' ================================\n')
+	#file.write(vampire.get_version()+'\n')
+	now = datetime.datetime.now()
+	file.write("execution finished: " + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
+	file.write('The command was \"' + cmd + '\"\n')
+	file.write('============================ end of footer ===========================\n')
+	file.close()
+
+
 def raceProcesses (reasoners):
 	"""run a set of theorem provers and a set of model finders in parallel.
 	If one terminates successfully, all others are immediately terminated.
-	
-	Keyword arguments:
-	provers -- dictionary of theorem provers to execute where the key is the command and the value a set of return codes that indicate success.
-	modelfinders -- dictionary of modelfinders to execute where the key is the command and the value a set of return codes that indicate success.
+	Parameters:
+	reasoners -- list of Reasoners to execute.
 	"""
 	from src import ClifModuleSet
-	#time.sleep(0.1)
 	
 	results = Queue()
 
@@ -323,16 +335,13 @@ def raceProcesses (reasoners):
 		p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), r.timeout, results, log)
 		reasonerProcesses.append(p)
 		processLogs.append(log)
-		#p = multiprocessing.Process(name=r.identifier, target=executeSubprocess, args=(r.getCommand(),results,))
 		p.start()
 		time.sleep(0.1)
-		#i += 1
 
 	num_running = len(reasonerProcesses)
 	success = False
 	
 	time.sleep(0.1)
-	#active=multiprocessing.active_children()
 	while num_running>0:	
 		while results.empty():
 			merged_log = merge(processLogs)
@@ -342,7 +351,6 @@ def raceProcesses (reasoners):
 			time.sleep(0.5)
 			sys.stdout.write(".")
 			#print "WAITING"
-			#active=multiprocessing.active_children()	# poll for active processes
 		# at least one process has terminated
 		sys.stdout.write("\n")
 		while not results.empty():
@@ -350,7 +358,6 @@ def raceProcesses (reasoners):
 			(name, code, _) = results.get()
 			r = reasoners.getByCommand(name)
 			r.setReturnCode(code)
-			#if not r.name.lower()=="paradox":	# TODO: fix permanently: Paradox returns code 0 even though it did not find a model
 			if r.terminatedSuccessfully():
 				success = True
 				if r.output==ClifModuleSet.INCONSISTENT:
@@ -366,9 +373,6 @@ def raceProcesses (reasoners):
 			else:
 				logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
 				logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))
-#			else: # for paradox
-#				logging.getLogger(__name__).info("TERMINATED (SUCCESS UNKNOW): " + name)
-#				logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))
 				
 			# END OF PROCESSING QUEUE
 			
@@ -384,6 +388,9 @@ def raceProcesses (reasoners):
 			filemgt.add_to_subprocess_log(merged_log)
 			merged_log = []
 			break
+
+		for r in reasoners:
+			writeHeader(Reasoner)
 
 	return reasoners
 
