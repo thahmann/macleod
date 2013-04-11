@@ -26,6 +26,9 @@ class LemmaModule(ClifModule):
         self.p9_file_name = ladr_file_name
         # THIS IS UNIQUE to the LemmaModule
         self.tptp_sentence = tptp_sentence
+        # to store the result of trying to prove/disprove the lemma, None meaning no result
+        self.output = None
+        
 
         logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('constructing lemma module: ' + self.module_name)
 

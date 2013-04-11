@@ -48,7 +48,7 @@ class ReasonerProcess(multiprocessing.Process):
 			if new_cputime>=current_cputime:
 				current_cputime = new_cputime
 			else:
-				print "NEW PROCESS; previous_cputime = " + str(previous_cputime) 
+				#print "NEW PROCESS; previous_cputime = " + str(previous_cputime) 
 				previous_cputime += current_cputime + 1
 				current_cputime = new_cputime 			
 			self.cputime = previous_cputime + current_cputime
@@ -81,20 +81,12 @@ class ReasonerProcess(multiprocessing.Process):
 				stdoutdata = ' '.join(stdoutdata.split())
 				record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
 				self.log_queue.put(record)
-#			(stdoutdata, _) = sp.communicate()
-#			if stdoutdata:
-#				print stdoutdata.__class__.__name__
-#				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
-#				stdoutdata = ' '.join(stdoutdata.split())
-#				record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
-#				self.log_queue.put(record)
-			# default return code for aborted process: -1
 			self.result_queue.put((self.args[0], -1, stdoutdata))
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
-			#print "+++ HERE +++"
 			# for the record, write the CPU time to the end of the file
-			file.write("TOTAL CPU TIME USAGE = " + str(self.cputime))
+			file.write("TOTAL CPU TIME USAGE = " + str(self.cputime) + "\n")
+			file.flush()
 			file.close()
 			self.done.set()
 			return True
@@ -105,6 +97,7 @@ class ReasonerProcess(multiprocessing.Process):
 		# for the record, write the CPU time to the end of the file
 		self.cputime = max(self.cputime, get_cputime(sp.pid))
 		file.write("TOTAL CPU TIME USAGE = " + str(self.cputime) +"\n")
+		file.flush()
 		file.close()
 		self.done.set()
 		return True
@@ -301,9 +294,12 @@ def terminateSubprocess (process):
 
 
 def writeHeader (reasoner):
+	import datetime
+	""" Create a standardized footer for all output files that contains name of the program,
+	the specific command, and a timestamp."""
 	cmd = reasoner.args[0]
 	for i in range(1,len(reasoner.args)):
-		cmd += " " + args[i]
+		cmd += " " + reasoner.args[i]
 
 	file =  open(reasoner.output_file, 'a')
 	file.write('============================= ' + reasoner.name + ' ================================\n')
@@ -312,6 +308,7 @@ def writeHeader (reasoner):
 	file.write("execution finished: " + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
 	file.write('The command was \"' + cmd + '\"\n')
 	file.write('============================ end of footer ===========================\n')
+	file.flush()
 	file.close()
 
 
@@ -390,7 +387,7 @@ def raceProcesses (reasoners):
 			break
 
 		for r in reasoners:
-			writeHeader(Reasoner)
+			writeHeader(r)
 
 	return reasoners
 

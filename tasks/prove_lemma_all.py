@@ -8,9 +8,10 @@ if __name__ == '__main__':
     necessary = "_theorems"
     #necessary = false
     
-    good = 0
-    bad = 0
-    neutral = 0
+    proofs = 0
+    counterexamples = 0
+    unknown = 0
+    files_no = 0
     for dir, subdirs, files in os.walk(sys.argv[1]):
         if any(ignore in dir for ignore in ignores):
             pass
@@ -23,19 +24,17 @@ if __name__ == '__main__':
                         continue
                     filename = os.path.normpath(os.path.join(dir.replace('qs'+os.sep,''), file))
                     #print filename
-                    
-                    result = prove_lemma.prove(filename, axioms_filename=None, options=['-simple'])
-                    if result is True:
-                        good += 1
-                    elif result is False:
-                        bad += 1
-                    else:
-                        neutral += 1
+                    files_no += 1
+                    (proofs_add, counterexamples_add, unknown_add) = prove_lemma.prove(filename, axioms_filename=None, options=['-simple'])
+                    proofs += proofs_add
+                    counterexamples += counterexamples_add
+                    unknown += unknown_add
 
                     print "---------------------"
-                    print str(good+bad+neutral) + " files in total"
-                    print str(good) + " consistent"
-                    print str(neutral) + " unknown"
-                    print str(bad) + " inconsistent"
+                    print str(files_no) + " lemma files"
+                    print str(proofs+counterexamples+unknown) + " lemmas in total"
+                    print str(proofs) + " proofs"
+                    print str(unknown) + " unknown"
+                    print str(counterexamples) + " counterexamples"
                     print "---------------------"
 
