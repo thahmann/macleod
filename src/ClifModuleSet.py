@@ -339,6 +339,7 @@ class ClifModuleSet(object):
         # run provers and modelfinders simultaneously and wait until one returns
         reasoners = process.raceProcesses(reasoners)
 
+        # this captures our return code (consistent/inconsistent/unknown), not the reasoning processes return code
         return_value = self.consolidate_results(reasoners)    
 
         if len(modules)==0:

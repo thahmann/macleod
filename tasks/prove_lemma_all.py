@@ -25,7 +25,10 @@ if __name__ == '__main__':
                     filename = os.path.normpath(os.path.join(dir.replace('qs'+os.sep,''), file))
                     #print filename
                     files_no += 1
-                    (proofs_add, counterexamples_add, unknown_add) = prove_lemma.prove(filename, axioms_filename=None, options=['-simple'])
+                    (proofs_add, counterexamples_add, unknown_add) = prove_lemma.prove(filename, 
+                                                                                       'logs\lemma_summary.log',
+                                                                                        axioms_filename=None,
+                                                                                        options=['-simple'])
                     proofs += proofs_add
                     counterexamples += counterexamples_add
                     unknown += unknown_add

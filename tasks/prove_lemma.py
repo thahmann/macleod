@@ -42,6 +42,7 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
         m.add_lemma_module(l)
         
         #print str(m.get_imports())
+        l.output = ClifModuleSet.UNKNOWN
         
         if '-module' in options:
             results = m.run_consistency_check_by_subset(abort_signal = ClifModuleSet.PROOF, increasing=True)
@@ -85,7 +86,7 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
     for l in lemma_modules:
         if l.output == ClifModuleSet.PROOF: proofs += 1
         elif l.output == ClifModuleSet.COUNTEREXAMPLE: counterexamples += 1
-        else: uknown += 1
+        else: unknown += 1
         file.write(str(l.output) + " " + l.module_name + "\n")
     file.flush()
     file.close()
