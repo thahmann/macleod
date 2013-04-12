@@ -31,6 +31,14 @@ TPTP_EQUAL_SUBSTITUTIONS = {'=': '='}
 # CLIF quantifiers
 TPTP_QUANTIFIER_SUBSTITUTIONS = {'forall':'!', 'exists':"?"}
 
+SYMBOL_TRANSLATIONS = {'<': 'less',
+                       '<=': 'leq',
+                       '>=': 'geq'}
+
+SYMBOL_AUTO_NAME = 'clifsym'
+
+SYMBOL_AUTO_NUM = 1
+
 
 def remove_all_comments(input_file, output_file):
     """Remove all comments (multi-line and single-line comments), including cl-comment blocks from the given CLIF file.
@@ -359,18 +367,13 @@ def to_tptp (input_file_names, axiom=True):
     #print "Digits = " + str(digits)
     
     #automatic replacement symbols
-    auto_number = 1
-    auto_dict = {}
     all_nonlogical_symbols = set([s for list in nonlogical_list for s in list])
     for s in all_nonlogical_symbols:
-        if not s[0].isalpha():
-            auto_dict[s] = 'clifsym' + str(auto_number)
-            auto_number += 1 
+        if not s[0].isalpha() and s[0] not in SYMBOL_TRANSLATIONS.keys():
+            SYMBOL_TRANSLATIONS[s] = SYMBOL_AUTO_NAME + str(SYMBOL_AUTO_NUM)
+            global SYMBOL_AUTO_NUM
+            SYMBOL_AUTO_NUM += 1 
 
-    auto_keys =  auto_dict.keys()
-    auto_keys.sort(key=lambda s: len(s), reverse=True)   
-    #print str(auto_keys)
-    
     # translate sentences
     tptp_sentences = []
 #    for i in range(0, 1):
@@ -378,8 +381,8 @@ def to_tptp (input_file_names, axiom=True):
         #print str(int((i+1)*math.pow(10,digits))) + " " + str(sentences[i]) + " VARS = " + str(variables_list[i]) + " SYMBOLS = " + str(nonlogical_list[i])
         translation = sentence_to_tptp(sentences[i], variables_list[i], nonlogical_list[i], int((i+1)*math.pow(10,digits)), axiom=axiom)
         # replace non-standard symbols
-        for s in auto_keys:
-            translation = translation.replace('"' +s.lower() +'"', '"'+auto_dict.get(s)+'"')
+        for s in SYMBOL_TRANSLATIONS.keys():
+            translation = translation.replace('"' +s.lower() +'"', '"'+SYMBOL_TRANSLATIONS.get(s)+'"')
             #print translation       
         tptp_sentences.append(translation)
         

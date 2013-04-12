@@ -16,8 +16,10 @@ class ReasonerProcess(multiprocessing.Process):
 		self.done = multiprocessing.Event()
 		self.output_filename = output_filename
 		self.input_filenames = input_filenames
-		self.timeout = timeout		
-		#print str(args) + " > " + self.output_filename
+		self.timeout = timeout	
+		self.cputime = 0
+		self.current_cputime = 0
+		self.previous_cputime = 0
 
 	def isDone (self):
 		return self.done.is_set()
@@ -34,47 +36,51 @@ class ReasonerProcess(multiprocessing.Process):
 		time.sleep(0.2)
 		multiprocessing.Process.terminate (self)
 				
+	def update_cputime (self, pid):
+		new_cputime = get_cputime(pid)
+		if new_cputime==0:
+			return False
+		#print "CPU time of " + self.args[0] + " = " + str(new_cputime)
+		if new_cputime>=self.current_cputime:
+			self.current_cputime = new_cputime
+		else:
+			#print "NEW PROCESS; previous_cputime = " + str(previous_cputime) 
+			self.previous_cputime += self.current_cputime + 1
+			self.current_cputime = new_cputime 			
+		self.cputime = self.previous_cputime + self.current_cputime
+		#print "total CPU time of " + self.args[0] + " = " + str(self.cputime)
+				
+	def enforce_limits (self, pid):
+		limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
+		memory = get_memory(pid)
+		#enforce memory limit
+		if memory>limit:
+			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
+			self.log_queue.put(record)
+			self.shutdown()
+		# enforce time limit
+		if self.cputime>self.timeout:
+			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TIME EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
+			self.log_queue.put(record)
+			self.shutdown()
+
+				
 	def run (self):
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		file = open (self.output_filename, 'w')
 		sp = process.startSubprocessWithOutput(self.args, file, self.input_filenames)				
-		self.cputime = 0	# total cputime
 		previous_cputime = 0
 		current_cputime = 0
-		while sp.poll() is None and not self.exit.is_set():		
-			#logging.getLogger(__name__).info("WAITING: " + self.command)
-			new_cputime = get_cputime(sp.pid)
-			if new_cputime>=current_cputime:
-				current_cputime = new_cputime
-			else:
-				#print "NEW PROCESS; previous_cputime = " + str(previous_cputime) 
-				previous_cputime += current_cputime + 1
-				current_cputime = new_cputime 			
-			self.cputime = previous_cputime + current_cputime
-			if self.cputime>self.timeout:
-				self.shutdown()
-			#print self.cputime
+		while sp.poll() is None and not self.exit.is_set():
 			time.sleep(1)
-			limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
-			memory = get_memory(sp.pid)
-			#print memory
-			if memory>limit:
-				record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
-				self.log_queue.put(record)
-				self.shutdown()
+			self.update_cputime(sp.pid)
+			self.enforce_limits(sp.pid)		
 		if self.exit.is_set():
 			# interrupted
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
-			new_cputime = get_cputime(sp.pid)
-			if new_cputime >=current_cputime:
-				current_cputime = new_cputime
-			else:
-				previous_cputime += current_cputime + 1
-				current_cputime = new_cputime	
-			self.cputime = previous_cputime + current_cputime
 			(p, stdoutdata) = process.terminateSubprocess(sp)
 			if stdoutdata:
 				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
@@ -84,23 +90,49 @@ class ReasonerProcess(multiprocessing.Process):
 			self.result_queue.put((self.args[0], -1, stdoutdata))
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
-			# for the record, write the CPU time to the end of the file
-			file.write("TOTAL CPU TIME USAGE = " + str(self.cputime) + "\n")
+			self.update_cputime(sp.pid)
 			file.flush()
 			file.close()
+			self.writeHeader()
 			self.done.set()
 			return True
 		# finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
+		self.update_cputime(sp.pid)
 		self.result_queue.put((self.args[0], sp.returncode, None))
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
-		# for the record, write the CPU time to the end of the file
-		self.cputime = max(self.cputime, get_cputime(sp.pid))
-		file.write("TOTAL CPU TIME USAGE = " + str(self.cputime) +"\n")
 		file.flush()
 		file.close()
+		self.writeHeader()
 		self.done.set()
 		return True
+
+	def writeHeader (self):
+		import datetime
+		""" Create a standardized footer for all output files that contains name of the program,
+		the specific command, and a timestamp."""
+		# list of input files
+		time.sleep(0.2)
+		cmd = self.args[0]
+		for i in range(1,len(self.args)):
+			cmd += " " + self.args[i]
+			
+		input = ""
+		for file in self.input_filenames:
+			input += " " + file
+	
+		#logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())				
+		file =  open(self.output_filename, 'a')
+		file.write('============================= ' + self.args[0] + ' ================================\n')
+		#file.write(vampire.get_version()+'\n')
+		now = datetime.datetime.now()
+		file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
+		file.write("total CPU time used: " + str(self.cputime) +"\n")
+		file.write('The command was \"' + cmd + '\"\n')
+		file.write('Input read from ' + input + '\n')
+		file.write('============================ end of footer ===========================\n')
+		file.flush()
+		file.close()
 	
 
 def get_cputime(pid):
@@ -293,25 +325,6 @@ def terminateSubprocess (process):
 	return handlers.get(os.name, terminate_default)(process)
 
 
-def writeHeader (reasoner):
-	import datetime
-	""" Create a standardized footer for all output files that contains name of the program,
-	the specific command, and a timestamp."""
-	cmd = reasoner.args[0]
-	for i in range(1,len(reasoner.args)):
-		cmd += " " + reasoner.args[i]
-
-	file =  open(reasoner.output_file, 'a')
-	file.write('============================= ' + reasoner.name + ' ================================\n')
-	#file.write(vampire.get_version()+'\n')
-	now = datetime.datetime.now()
-	file.write("execution finished: " + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
-	file.write('The command was \"' + cmd + '\"\n')
-	file.write('============================ end of footer ===========================\n')
-	file.flush()
-	file.close()
-
-
 def raceProcesses (reasoners):
 	"""run a set of theorem provers and a set of model finders in parallel.
 	If one terminates successfully, all others are immediately terminated.
@@ -380,14 +393,16 @@ def raceProcesses (reasoners):
 				while not p.isDone():
 					time.sleep(0.1)
 			logging.getLogger(__name__).debug("Final processing of subprocess log queue")
-			time.sleep(0.5)
+			time.sleep(1)
 			merged_log = merge(processLogs)
 			filemgt.add_to_subprocess_log(merged_log)
 			merged_log = []
 			break
 
-		for r in reasoners:
-			writeHeader(r)
+	# write statistics
+#	time.sleep(1)
+#	for r in reasonerProcesses:
+#		r.writeHeader()
 
 	return reasoners
 
