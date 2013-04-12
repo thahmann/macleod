@@ -17,7 +17,6 @@ config_dir = 'conf'
 
 subprocess_log_file = None
 
-FORMATTER = None
 
 def find_config (filename):
     """tries to find some configuration file."""
@@ -125,24 +124,10 @@ def add_to_subprocess_log(entries):
     return True    
     
 
-def construct_log_formatter():
-    """Constructs the default formatter from the logging configuration.
-    Assumes we already started logging and the log file has been found."""
-    filemgt.find_log_config()
-    parser = SafeConfigParser()
-    log = parser.read(filemgt.log_config_file)    
-    # read from config
-    first_handler = parser.get("handlers","keys").split(",")[0].strip()
-    filemgt.FORMATTER = first_formatter = parser.get("handler_"+first_handler,"formatter")
-    
+   
 def format(record):
     formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
     return formatter.format(record)
-#    if not filemgt.FORMATTER:
-#        filemgt.construct_log_formatter()
-#    parser = SafeConfigParser()
-#    log = parser.read(filemgt.log_config_file)    
-#    return parser.get("formatter_"+filemgt.FORMATTER,"format" % (datetime.datetime, name, level, msg))
 
   
 def get_full_path (module_name, folder=None, ending=''):
