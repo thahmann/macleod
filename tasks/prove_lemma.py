@@ -107,5 +107,5 @@ if __name__ == '__main__':
     else:
         axioms_filename = options.pop()
         lemmas_filename = options.pop()
-    prove (lemmas_filename, axioms_filename=axioms_filename, options=options)
+    prove (lemmas_filename, 'log/lemma_summary.log', axioms_filename=axioms_filename, options=options)
     

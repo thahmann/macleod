@@ -13,6 +13,10 @@ if __name__ == '__main__':
     unknown = 0
     files_no = 0
     for dir, subdirs, files in os.walk(sys.argv[1]):
+        
+        subdirs.sort()
+        files.sort()
+        
         if any(ignore in dir for ignore in ignores):
             pass
         else:
@@ -26,7 +30,7 @@ if __name__ == '__main__':
                     #print filename
                     files_no += 1
                     (proofs_add, counterexamples_add, unknown_add) = prove_lemma.prove(filename, 
-                                                                                       'logs\lemma_summary.log',
+                                                                                       'log/lemma_summary.log',
                                                                                         axioms_filename=None,
                                                                                         options=['-simple'])
                     proofs += proofs_add

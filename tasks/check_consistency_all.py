@@ -12,6 +12,10 @@ if __name__ == '__main__':
     bad = 0
     neutral = 0
     for dir, subdirs, files in os.walk(sys.argv[1]):
+
+        subdirs.sort()
+        files.sort()
+        
         if any(ignore in dir for ignore in ignores):
             pass
         else:
