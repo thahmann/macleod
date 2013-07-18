@@ -5,11 +5,8 @@ Created on 2013-03-31
 '''
 
 from src.ClifModule import ClifModule
-import clif
-import filemgt
-import ladr
-import logging
-import os
+import clif, filemgt, ladr
+import logging, os
 
 class LemmaModule(ClifModule):
 
@@ -20,7 +17,6 @@ class LemmaModule(ClifModule):
         '''
         Constructor
         '''
-        #super(LemmaModule, self).preprocess_clif_file()
         self.depth = 0
         self.parents = []
         self.module_name = module_name
@@ -29,7 +25,11 @@ class LemmaModule(ClifModule):
         self.tptp_sentence = tptp_sentence
         # to store the result of trying to prove/disprove the lemma, None meaning no result
         self.output = None
-        
+        self.time = None
+        self.reasoner_name = None
+
+        # no preprocessed version of this file available
+        self.clif_processed_file_name = None 
 
         logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('constructing lemma module: ' + self.module_name)
 
@@ -39,6 +39,8 @@ class ClifLemmaSet(object):
     def __init__ (self, name):
         self.p9_file_name = ''
         self.tptp_file_name = ''
+        
+        name = filemgt.get_canonical_relative_path(name)
         
         self.module = ClifModule(name,0)
         logging.getLogger(__name__).debug('constructed clif module for lemma file: ' + self.module.module_name)

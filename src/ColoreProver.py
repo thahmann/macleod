@@ -4,10 +4,10 @@ Created on 2010-11-05
 @author: torsten
 '''
 
-import sys
 from VAMPIRE import VAMPIRE
 from ClifModule import ClifModule
 import atexit, os, datetime, filemgt, process, ladr
+import sys
 
 #from PredicateOrderHeuristic import *
 #from PredicateWeightHeuristic import *

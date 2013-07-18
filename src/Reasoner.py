@@ -1,5 +1,7 @@
 from src import filemgt, commands
-from src.ClifModuleSet import ClifModuleSet
+from src.ClifModuleSet import *
+import logging
+
 class Reasoner (object):
     
     MODEL_FINDER = 'MODEL_FINDER'
@@ -23,6 +25,8 @@ class Reasoner (object):
         self.input_files = ''
         
         self.output_file = ''
+        
+        self.time = -1
         
         self.return_code = None
         
@@ -136,6 +140,8 @@ class Reasoner (object):
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
                 self.output = szs_status(output_lines[0])
+                logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
+                
                         
             return mapping[self.output]
         

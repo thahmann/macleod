@@ -5,11 +5,11 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 @author: Torsten Hahmann
 '''
 
-from src import filemgt, commands, process, ReasonerSet, ladr, clif
+from src import filemgt, commands, process, ladr, clif
 from src.ClifModule import ClifModule
+from src.ReasonerSet import ReasonerSet
 import os
 import logging
-import sys
 #import atexit
 
 
@@ -27,7 +27,9 @@ class ClifModuleSet(object):
     def __init__(self, name):
         
         filemgt.start_logging()
-        
+
+        name = filemgt.get_canonical_relative_path(name)
+                
         logging.getLogger(__name__).info("Creating ClifModuleSet " + name)
 
         self.module_name = ''
@@ -71,10 +73,10 @@ class ClifModuleSet(object):
         while len(self.unprocessed_imports)>0:
             m = ClifModule(self.unprocessed_imports.pop(),0)
             m.module_set = self
-            # Link the module to all its parents
-            for cm in self.imports:
-                if m.get_simple_module_name() in cm.get_imports():
-                    m.add_parent(cm.get_simple_module_name(),cm.get_depth())
+            # Link the module to all its parents: DOES NOT WORK CORRECTLY; we need to do this at the very end!
+            for cm in self.imports: # look through the complete set of imported modules
+                if m.get_simple_module_name() in cm.get_imports(): # each module cm that imports the currently processed module m will be added as parent to m
+                    m.add_parent(cm.get_simple_module_name(),cm.get_depth()) # add as parent to the module
 
             self.imports.add(m)
 
@@ -91,7 +93,7 @@ class ClifModuleSet(object):
     
     def pretty_print (self):
 
-        print "\n+++++++++++++++++++++\nall modules of "+ self.module_name +":\n+++++++++++++++++++++"
+        print "\n+++++++++++++++++++++\nall " + str(len(self.imports))  + " modules of "+ self.module_name +":\n+++++++++++++++++++++"
 
         imports = self.get_sorted_imports()
 
@@ -134,9 +136,12 @@ class ClifModuleSet(object):
         return l 
     
     def get_import_by_name (self, name):
-        """Find and return a module from the list of imports by its module nam. """
+        """Find and return a module from the list of imports by its module name. """
         m = filter(lambda s:s.get_simple_module_name()==name, list(self.imports))
         if len(m)==0:
+            print "IMPORTS in " + self.module_name
+            for i in self.imports:
+                print i
             raise ClifModuleSetError("Module {0} does not exist in ClifModuleSet {1}".format(name, self.module_name))
         elif len(m)>1:
             raise ClifModuleSetError("Multiple modules with name '{0}' exist in ClifModuleSet {1}".format(name, self.module_name))            
@@ -337,14 +342,15 @@ class ClifModuleSet(object):
         reasoners = process.raceProcesses(reasoners)
 
         # this captures our return code (consistent/inconsistent/unknown), not the reasoning processes return code
-        return_value = self.consolidate_results(reasoners)    
+        (return_value, fastest_reasoner) = self.consolidate_results(reasoners)    
 
         if len(modules)==0:
             self.pretty_print_result(module_name + " (without imports)", return_value)
         else:
             self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
         
-        results = {tuple(modules): return_value}
+        results = []
+        results.append((tuple(modules), return_value, fastest_reasoner))
         #print str(results)
         return results
 
@@ -366,7 +372,7 @@ class ClifModuleSet(object):
             modules = self.imports
         
         # first do simple consistency check
-        (_, return_value) = self.run_simple_consistency_check(modules= modules, options_files = options_files).popitem() 
+        (_, return_value, fastest_reasoner) = self.run_simple_consistency_check(modules= modules, options_files = options_files)[0] 
 
         if return_value!=abort_signal or return_value==ClifModuleSet.UNKNOWN:
             safe_imports = self.get_consistent_modules()
@@ -381,7 +387,8 @@ class ClifModuleSet(object):
                                                                increasing= increasing)
             
         else:
-            results = {tuple(modules): return_value}
+            results = []
+            results.append((tuple(modules), return_value, fastest_reasoner))
         return results
 
 
@@ -400,7 +407,7 @@ class ClifModuleSet(object):
             modules = self.imports
 
         imports = list(modules)
-        results = {}
+        results = []
 
         min_depth = 0
 
@@ -427,10 +434,10 @@ class ClifModuleSet(object):
                 tmp_imports = self.get_import_closure(i)
                 if self.lemma_module:
                     tmp_imports.append(self.lemma_module)
-                (i, r) = self.run_simple_consistency_check(i.get_simple_module_name(), tmp_imports, options_files=options_files).popitem()
-                results[tuple(tmp_imports)] = r
+                (i, r, fastest_reasoner) = self.run_simple_consistency_check(i.get_simple_module_name(), tmp_imports, options_files=options_files)[0]
+                results.append((tuple(tmp_imports), r, fastest_reasoner))
                 if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
-                    logging.getLogger(__name__).info("FOUND MODEL AT FOR SUBONTOLOGY IMPORT LEVEL " + str(reverse_depth))
+                    logging.getLogger(__name__).info("FOUND MODEL FOR SUBONTOLOGY AT IMPORT LEVEL " + str(reverse_depth))
                     if abort and abort_signal==ClifModuleSet.CONSISTENT: 
                         return results
                 if r==ClifModuleSet.INCONSISTENT:    # this set is consistent 
@@ -439,7 +446,6 @@ class ClifModuleSet(object):
                         return results
                 
         return results   
-        #self.run_simple_consistency_check(self.module_name)
             
         
 
@@ -459,7 +465,7 @@ class ClifModuleSet(object):
             modules = self.imports
 
         imports = list(modules)
-        results = {}
+        results = []
         
         if self.lemma_module:
             min_depth = 0
@@ -478,8 +484,8 @@ class ClifModuleSet(object):
             tmp_imports = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
             if self.lemma_module:
                 tmp_imports.append(self.lemma_module)
-            (_, r) = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files).popitem()
-            results[tuple(tmp_imports)] = r
+            (_, r, fastest_reasoner) = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files)[0]
+            results.append((tuple(tmp_imports), r, fastest_reasoner))
             if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                 logging.getLogger(__name__).info("FOUND MODEL AT DEPTH LEVEL " + str(reverse_depth))
                 if abort and abort_signal==ClifModuleSet.CONSISTENT: 
@@ -537,8 +543,10 @@ class ClifModuleSet(object):
         # run provers and modelfinders simultaneously and wait until one returns
         reasoners = process.raceProcesses(reasoners)
 
-        return_value = self.consolidate_results(reasoners)    
-        self.pretty_print_result(module.get_simple_module_name(), return_value)  
+        (return_value, _) = self.consolidate_results(reasoners)    
+        self.pretty_print_result(module.get_simple_module_name(), return_value)
+        
+        return return_value  
         
         
     def consolidate_results (self, reasoners):
@@ -550,6 +558,7 @@ class ClifModuleSet(object):
          """
         return_value = 0
         successful_reasoner = ''
+        fastest_reasoner = None
          
         for r in reasoners:
             if r.terminatedSuccessfully():
@@ -557,9 +566,12 @@ class ClifModuleSet(object):
                     return_value = r.output
                     logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
                     successful_reasoner = r.name
+                    fastest_reasoner = r
                 elif return_value == r.output:
                     logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
                     successful_reasoner += " " + r.name
+                    if (r.time<fastest_reasoner.time):
+                        fastest_reasoner = r
                 elif return_value != r.output:
                     return_value = ClifModuleSet.CONTRADICTION
                     #print "CONTRADICTION: " + str(return_value)
@@ -568,7 +580,7 @@ class ClifModuleSet(object):
                 logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(r.output) + "): " + r.name)
     
         logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
-        return return_value
+        return (return_value, fastest_reasoner)
 
 
     def pretty_print_result (self, module_name, return_value):
@@ -723,6 +735,8 @@ class ClifModuleSet(object):
             tptp_sentences.append(self.lemma_module.tptp_sentence)
 
         files_to_translate = [i.clif_processed_file_name for i in imports]
+        while None in files_to_translate:
+            files_to_translate.remove(None)
         tptp_sentences.extend(clif.to_tptp(files_to_translate))
         tptp_file = open(tptp_file_name, 'w')
         tptp_file.writelines([t+"\n" for t in tptp_sentences])
@@ -745,6 +759,7 @@ class ClifModuleSetError(Exception):
 
         
 if __name__ == '__main__':
+    import sys
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])

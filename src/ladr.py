@@ -1,5 +1,5 @@
-import logging, filemgt
-#from ClifModuleSet import *
+from src import filemgt
+import logging
 
 
 def cumulate_ladr_files (input_files, output_file):    

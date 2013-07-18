@@ -24,13 +24,13 @@ def find_config (filename):
             if not loc:
                 loc = ""
             loc = os.path.join(loc,filename)
-            if LOGGER: 
+            if LOGGER:
                 LOGGER.debug("Looking for " + filename + " at: " + loc)
             #else:
-            #    print("Looking for configuration file at: " + loc)
+            # print("Looking for configuration file at: " + loc)
             if os.path.isfile(loc):
                 filename = loc
-                if LOGGER: 
+                if LOGGER:
                     LOGGER.debug(filename + " FOUND")
                 else:
                     print("File " + filename + " found")
@@ -44,10 +44,11 @@ def find_config (filename):
 
 def find_macleod_config():
     """tries to find the MacLeod configuration file."""
+    global config_file
     filename = config_file
     config_file = find_config(filename)
 
-    if  not os.path.exists(config_file) or not os.path.isfile(config_file):
+    if not os.path.exists(config_file) or not os.path.isfile(config_file):
         # backup solution: with _win or _linux in the name
         basename = os.path.basename(filename).rsplit(".",1)
         if len(basename)==2:
@@ -62,13 +63,16 @@ def find_macleod_config():
 
 
 def find_log_config():
+    global log_config_file
     """tries to find the MacLeod logging configuration file."""
     log_config_file = find_config(log_config_file)
          
 
 def read_config(section, key):
-    """read a value from the MacLeod configuration file."""     
-    # load 
+    """read a value from the MacLeod configuration file."""
+    # load
+    global CONFIG_PARSER
+    global LOGGER
     if not CONFIG_PARSER:
         CONFIG_PARSER = SafeConfigParser()
         find_macleod_config()
@@ -88,13 +92,14 @@ def read_config(section, key):
 
 def start_logging():
     """create a MacLeod logger and start logging."""
-    if not LOGGER:         
-        find_log_config()   
+    global LOGGER
+    if not LOGGER:
+        find_log_config()
         if len(log_config_file)==0:
             print("Problem reading logging config file from " + log_config_file)
         else:
             #print("Read logging config file from " + log_config_file)
-            logging.config.fileConfig(log_config_file)    
+            logging.config.fileConfig(log_config_file)
             # create logger
             LOGGER = logging.getLogger(__name__)
             LOGGER.debug('Logging started')
@@ -102,25 +107,26 @@ def start_logging():
 
 
 def find_subprocess_log_file():
+    global subprocess_log_fiel
     if not subprocess_log_file:
         find_log_config()
-        #parser = SafeConfigParser()
-        #log = parser.read(log_config_file)    
+        SafeConfigParser().read(log_config_file)
         subprocess_log_file = read_config("system","subprocess_log")
 
     
 def add_to_subprocess_log(entries):
-    find_subprocess_log_file()   
+    global LOGGER
+    find_subprocess_log_file()
     LOGGER.debug("Writing " + str(len(entries)) + " lines to subprocess log file " + subprocess_log_file)
     if os.path.exists(subprocess_log_file):
-        log_file = open(subprocess_log_file, 'a')
+        sp_log_file = open(subprocess_log_file, 'a')
     else:
-        log_file = open(subprocess_log_file, 'w')
+        sp_log_file = open(subprocess_log_file, 'w')
     #for e in entries:
-    #    LOGGER.info("____WRITING " + e)
-    log_file.writelines([e + "\n" for e in entries])
-    log_file.close()
-    return True    
+    # LOGGER.info("____WRITING " + e)
+    sp_log_file.writelines([e + "\n" for e in entries])
+    sp_log_file.close()
+    return True
     
 
    
@@ -131,22 +137,72 @@ def format(record):
   
 def get_full_path (module_name, folder=None, ending=''):
     """determines the suitable subfolder for a given file_name."""
-    print module_name
     if os.sep in module_name:
+        #print "Getting path for: " + module_name
         path = module_name.rsplit(os.sep,1)
-    module_name = path[1]
-    path = path[0]
-    path = os.path.normpath(read_config('system','path') + os.sep + path)
-    if folder:
-        path = os.path.normpath(path + os.sep + folder + os.sep)
-        # create this folder if it does not exist yet
-    if not os.path.exists(path):
-        print "Trying to create folder " + path
-        if os.mkdir(path):
+        module_name = path[1]
+        path = path[0]
+        path = os.path.normpath(read_config('system','path') + os.sep + path)
+        if folder:
+            path = os.path.normpath(path + os.sep + folder + os.sep)
+            # create this folder if it does not exist yet
+        if not os.path.exists(path):
+            print "Trying to create folder " + path
+            if os.mkdir(path):
                 print "Created folder " + path
-    
-    return os.path.abspath(path + os.sep + module_name + ending)
+        
+        if module_name.endswith(ending):
+            return os.path.abspath(path + os.sep + module_name)
+        else:
+            return os.path.abspath(path + os.sep + module_name + ending)
+    else:
+        return module_name + ending
 
+
+def get_canonical_relative_path (path):
+    """determines the path of a module relative to the path specified in the configuration"""
+    #print "Getting canonical path for: " + path
+    path = os.path.abspath(path)
+    path = path.split(read_config('system','path') + os.sep,1)
+    if len(path)>1:
+        return path[1]
+    else:
+        return path[0]
+        
+    
+def	get_hierarchy_name (module_name):
+    """determines the part of the module_name that denotes the hierarchy."""
+    if os.sep in module_name:
+        path = module_name.rsplit(os.sep,1)[0]
+        sentence_type = get_type(module_name)
+        if type=="":
+            return path
+        else:
+            return path.rsplit(os.sep + sentence_type)[0]
+    else:
+        return ""
+    
+
+def get_type (module_name):
+    """determines whether this is a axiom, definition, mapping, theorem, etc. file"""
+    if os.sep in module_name:
+        path = module_name.rsplit(os.sep,1)[0]
+        if os.sep in path:
+            subfolder = module_name.rsplit(os.sep,1)[1]
+            if (subfolder==read_config('cl','definitions_subfolder')): 
+                return read_config('cl','definitions_subfolder')
+            elif (subfolder==read_config('cl','theorems_subfolder')): 
+                return read_config('cl','theorems_subfolder')
+            elif (subfolder==read_config('cl','consistency_subfolder')): 
+                return read_config('cl','consistency_subfolder')
+            elif (subfolder==read_config('cl','interpretations_subfolder')): 
+                return read_config('cl','interpretations_subfolder')
+            elif (subfolder==read_config('cl','mappings_subfolder')): 
+                return read_config('cl','mappings_subfolder')
+            # TODO: complete folders as necessary
+    return ""
+            
+    
 
 def get_tptp_symbols ():
     """get all options and their values from a section as a dictionary."""
@@ -154,10 +210,10 @@ def get_tptp_symbols ():
     if not CONFIG_PARSER:
         CONFIG_PARSER = SafeConfigParser()
         find_config()
-    symbol_file = os.path.normpath(os.path.dirname(os.path.abspath(config_file)) + os.sep + read_config("converters","tptp_symbols"))
+    symbol_file_name = os.path.normpath(os.path.dirname(os.path.abspath(config_file)) + os.sep + read_config("converters","tptp_symbols"))
         
-    log_file = open(symbol_file,"r")
-    for line in log_file.readlines():
+    symbol_file = open(symbol_file_name,"r")
+    for line in symbol_file.readlines():
         if line.startswith('"'):
             line = line.strip('"').split('"')
             key = line[0].strip('"')
@@ -167,4 +223,3 @@ def get_tptp_symbols ():
             options[line.split(":")[0].strip()] = line.split(":")[1].strip()
     return options
     
-        

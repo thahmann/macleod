@@ -21,7 +21,7 @@ class ReasonerSet (list):
         finders = [ s.strip() for s in finders ]
 
         self.extend([Reasoner(r) for r in provers])
-        self.extend([Reasoner(r, type=Reasoner.MODEL_FINDER) for r in finders])
+        self.extend([Reasoner(r, reasoner_type=Reasoner.MODEL_FINDER) for r in finders])
 
         logging.getLogger(__name__).debug("REASONER SET: " + str(provers+finders))
         

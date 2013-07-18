@@ -1,14 +1,13 @@
-from multiprocessing import Event, Queue
-from src import process
-import multiprocessing
-import os
-import signal
-import time
-import subprocess
-import logging
-import re
-import sys
 import filemgt
+import logging
+import multiprocessing
+from multiprocessing import Queue
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
 
 
 class ReasonerProcess(multiprocessing.Process):
@@ -76,7 +75,7 @@ class ReasonerProcess(multiprocessing.Process):
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
 		out_file = open (self.output_filename, 'w')
-		sp = process.startSubprocessWithOutput(self.args, out_file, self.input_filenames)				
+		sp = startSubprocessWithOutput(self.args, out_file, self.input_filenames)				
 		self.previous_cputime = 0
 		self.current_cputime = 0
 		while sp.poll() is None and not self.exit.is_set():
@@ -88,7 +87,7 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
-			(_, stdoutdata) = process.terminateSubprocess(sp)
+			(_, stdoutdata) = terminateSubprocess(sp)
 			if stdoutdata:
 				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
 				stdoutdata = ' '.join(stdoutdata.split())
@@ -277,7 +276,7 @@ def startInteractiveProcess(command):
 
 def executeSubprocess(command):
 	"""start a new subprocess and wait for it to terminate"""
-	p = process.startSubprocess(command)
+	p = startSubprocess(command)
 	p.wait()
 	time.sleep(0.1)
 	return p

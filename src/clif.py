@@ -4,7 +4,8 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, logging, filemgt
+from src import filemgt
+import os, logging
 
 CLIF_IMPORT = 'cl-imports'
 
