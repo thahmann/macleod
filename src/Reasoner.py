@@ -1,5 +1,4 @@
 from src import filemgt, commands
-from src.ClifModuleSet import *
 import logging
 
 class Reasoner (object):
@@ -81,7 +80,7 @@ class Reasoner (object):
         else: return False
         
     def terminatedSuccessfully (self):
-
+        from src.ClifModuleSet import ClifModuleSet
         mapping = {
             ClifModuleSet.CONSISTENT: True,
             ClifModuleSet.INCONSISTENT : True,
@@ -155,6 +154,7 @@ class Reasoner (object):
      
      
     def terminatedUnknowingly (self):
+        from src.ClifModuleSet import ClifModuleSet
 
         def unknown_default (self):
             if not self.return_code==None:
