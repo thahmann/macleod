@@ -107,7 +107,7 @@ def start_logging():
 
 
 def find_subprocess_log_file():
-    global subprocess_log_fiel
+    global subprocess_log_file
     if not subprocess_log_file:
         find_log_config()
         SafeConfigParser().read(log_config_file)
