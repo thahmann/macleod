@@ -1,4 +1,4 @@
-import os, logging, ladr, filemgt, commands, process
+import logging, filemgt
 #from ClifModuleSet import *
 
 
@@ -28,12 +28,12 @@ def cumulate_ladr_files (input_files, output_file):
     
     # store the location of all "<-" to be able to replace them back later on:
    
-    file = open(output_file, 'w+')
-    file.write('%axioms from module ' + f + ' and all its imports \n')
-    file.write('%----------------------------------\n')
-    file.write('\n')
-    file.writelines(text) 
-    file.close()
+    out_file = open(output_file, 'w+')
+    out_file.write('%axioms from module ' + f + ' and all its imports \n')
+    out_file.write('%----------------------------------\n')
+    out_file.write('\n')
+    out_file.writelines(text) 
+    out_file.close()
     return output_file
 
     

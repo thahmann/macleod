@@ -1,6 +1,6 @@
 
 if __name__ == '__main__':
-    import shutil, os, sys
+    import os, sys
     from tasks import prove_lemma
 
     #ignores = ["theorems", "generated", "output", "consistency"]
@@ -12,21 +12,21 @@ if __name__ == '__main__':
     counterexamples = 0
     unknown = 0
     files_no = 0
-    for dir, subdirs, files in os.walk(sys.argv[1]):
+    for directory, subdirs, files in os.walk(sys.argv[1]):
         
         subdirs.sort()
         files.sort()
         
-        if any(ignore in dir for ignore in ignores):
+        if any(ignore in directory for ignore in ignores):
             pass
         else:
-            for file in files:
-                #print file
-                if file.endswith('.clif'):
-                    if necessary and necessary not in file:
-			#print "IGNORING " + file
+            for single_file in files:
+                #print single_file
+                if single_file.endswith('.clif'):
+                    if necessary and necessary not in single_file:
+                        #print "IGNORING " + single_file
                         continue
-                    filename = os.path.normpath(os.path.join(dir.replace('qs'+os.sep,''), file))
+                    filename = os.path.normpath(os.path.join(directory.replace('qs'+os.sep,''), single_file))
                     #print filename
                     files_no += 1
                     (proofs_add, counterexamples_add, unknown_add) = prove_lemma.prove(filename, 

@@ -5,10 +5,11 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 @author: Torsten Hahmann
 '''
 
+from src import filemgt, commands, process, ReasonerSet, ladr, clif
+from src.ClifModule import ClifModule
+import os
+import logging
 import sys
-from src import *
-from src.ReasonerSet import * 
-import os, datetime, logging
 #import atexit
 
 
@@ -96,7 +97,7 @@ class ClifModuleSet(object):
 
         for n in imports:
             indent = ''
-            for i in range(n.get_depth()):
+            for _ in range(n.get_depth()):
                 indent += "-"
             print '|-'+indent+ str(n)+'\n|'
 
@@ -236,7 +237,7 @@ class ClifModuleSet(object):
         for f in self.imports:
             prover9args += f.p9_file_name + ' '
         
-        options_file = commands.get_p9_optionsfile(self.get_module_name(), verbose=False)
+        options_file = commands.get_p9_empty_optionsfile(self.get_p9_file_name(), verbose=False)
         prover9args += ' ' + options_file + ' '
 
         
@@ -244,8 +245,7 @@ class ClifModuleSet(object):
         temp_file = self.get_module_name() + '_order' + filemgt.read_config('ladr','ending')
         prover9args += ' > ' + temp_file
         logging.getLogger(__name__).debug(prover9args)
-        process.createSubprocess(prover9args)
-        p9.wait()
+        process.executeSubprocess(prover9args)
         
         order_file = open(temp_file, 'r')
         line = order_file.readline()
@@ -279,9 +279,6 @@ class ClifModuleSet(object):
     def get_predicates_and_functions (self):
       
         # process the predicates and functions
-        predicates = []
-        functions = [] 
-    
         (predicates, functions) = self.extract_p9_predicates_and_functions()
         
         #print 'all predicates: ' + str(predicates)
@@ -369,7 +366,7 @@ class ClifModuleSet(object):
             modules = self.imports
         
         # first do simple consistency check
-        (m, return_value) = self.run_simple_consistency_check(modules= modules, options_files = options_files).popitem() 
+        (_, return_value) = self.run_simple_consistency_check(modules= modules, options_files = options_files).popitem() 
 
         if return_value!=abort_signal or return_value==ClifModuleSet.UNKNOWN:
             safe_imports = self.get_consistent_modules()
@@ -481,7 +478,7 @@ class ClifModuleSet(object):
             tmp_imports = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
             if self.lemma_module:
                 tmp_imports.append(self.lemma_module)
-            (i, r) = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files).popitem()
+            (_, r) = self.run_simple_consistency_check(module_name=str(tmp_imports), modules=tmp_imports, options_files=options_files).popitem()
             results[tuple(tmp_imports)] = r
             if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                 logging.getLogger(__name__).info("FOUND MODEL AT DEPTH LEVEL " + str(reverse_depth))
@@ -727,9 +724,9 @@ class ClifModuleSet(object):
 
         files_to_translate = [i.clif_processed_file_name for i in imports]
         tptp_sentences.extend(clif.to_tptp(files_to_translate))
-        file = open(tptp_file_name, 'w')
-        file.writelines([t+"\n" for t in tptp_sentences])
-        file.close()
+        tptp_file = open(tptp_file_name, 'w')
+        tptp_file.writelines([t+"\n" for t in tptp_sentences])
+        tptp_file.close()
 
         return tptp_file_name                
 
@@ -748,7 +745,6 @@ class ClifModuleSetError(Exception):
 
         
 if __name__ == '__main__':
-    import sys
     # global variables
     options = sys.argv
     m = ClifModuleSet(options[1])

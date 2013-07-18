@@ -1,8 +1,15 @@
-import os, signal, time, subprocess, logging, re, sys
-import process, filemgt
+from multiprocessing import Event, Queue
+from src import process
 import multiprocessing
-from multiprocessing import Queue
-from multiprocessing import Event
+import os
+import signal
+import time
+import subprocess
+import logging
+import re
+import sys
+import filemgt
+
 
 class ReasonerProcess(multiprocessing.Process):
 	
@@ -68,10 +75,10 @@ class ReasonerProcess(multiprocessing.Process):
 	def run (self):
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
-		file = open (self.output_filename, 'w')
-		sp = process.startSubprocessWithOutput(self.args, file, self.input_filenames)				
-		previous_cputime = 0
-		current_cputime = 0
+		out_file = open (self.output_filename, 'w')
+		sp = process.startSubprocessWithOutput(self.args, out_file, self.input_filenames)				
+		self.previous_cputime = 0
+		self.current_cputime = 0
 		while sp.poll() is None and not self.exit.is_set():
 			time.sleep(1)
 			self.update_cputime(sp.pid)
@@ -81,7 +88,7 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 #			print "RECEIVED ABORT SIGNAL"
-			(p, stdoutdata) = process.terminateSubprocess(sp)
+			(_, stdoutdata) = process.terminateSubprocess(sp)
 			if stdoutdata:
 				stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
 				stdoutdata = ' '.join(stdoutdata.split())
@@ -91,8 +98,8 @@ class ReasonerProcess(multiprocessing.Process):
 			record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
 			self.log_queue.put(record)
 			self.update_cputime(sp.pid)
-			file.flush()
-			file.close()
+			out_file.flush()
+			out_file.close()
 			self.writeHeader()
 			self.done.set()
 			return True
@@ -101,8 +108,8 @@ class ReasonerProcess(multiprocessing.Process):
 		self.result_queue.put((self.args[0], sp.returncode, None))
 		record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.args[0], None, None))
 		self.log_queue.put(record)
-		file.flush()
-		file.close()
+		out_file.flush()
+		out_file.close()
 		self.writeHeader()
 		self.done.set()
 		return True
@@ -117,44 +124,44 @@ class ReasonerProcess(multiprocessing.Process):
 		for i in range(1,len(self.args)):
 			cmd += " " + self.args[i]
 			
-		input = ""
-		for file in self.input_filenames:
-			input += " " + file
+		input_string = ""
+		for in_file in self.input_filenames:
+			input_string += " " + in_file
 	
 		#logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())				
-		file =  open(self.output_filename, 'a')
-		file.write('============================= ' + self.args[0] + ' ================================\n')
+		in_file =  open(self.output_filename, 'a')
+		in_file.write('============================= ' + self.args[0] + ' ================================\n')
 		#file.write(vampire.get_version()+'\n')
 		now = datetime.datetime.now()
-		file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
-		file.write("total CPU time used: " + str(self.cputime) +"\n")
-		file.write('The command was \"' + cmd + '\"\n')
-		file.write('Input read from ' + input + '\n')
-		file.write('============================ end of footer ===========================\n')
-		file.flush()
-		file.close()
+		in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
+		in_file.write("total CPU time used: " + str(self.cputime) +"\n")
+		in_file.write('The command was \"' + cmd + '\"\n')
+		in_file.write('Input read from ' + input_string + '\n')
+		in_file.write('============================ end of footer ===========================\n')
+		in_file.flush()
+		in_file.close()
 	
 
 def get_cputime(pid):
 	"""Returns the CPU time a process has used so far in seconds as a float (one floating point digit)."""
 	
 	def cputime_win(pid):
-	    from wmi import WMI
-	    #print pid
-	    w = WMI('.')
-#	    result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
-	    result = w.query("SELECT * FROM Win32_Process WHERE ProcessId=%d" % pid)
-	    #print str(result)
-	    if not result:
-	    	return 0
-	    else:
-	    	return round((float(result[0].UserModeTime)) / 10000000, 1) # convert to seconds
+		from wmi import WMI
+		#print pid
+		w = WMI('.')
+		#	    result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
+		result = w.query("SELECT * FROM Win32_Process WHERE ProcessId=%d" % pid)
+		#print str(result)
+		if not result:
+			return 0
+		else:
+			return round((float(result[0].UserModeTime)) / 10000000, 1) # convert to seconds
 			
 		
 	def cputime_nix(pid):
 		# TODO: implement
 		try:
-		    	ps_process = subprocess.Popen("ps -g " + str(pid) + " -o time", shell=True, stdout=subprocess.PIPE)
+			ps_process = subprocess.Popen("ps -g " + str(pid) + " -o time", shell=True, stdout=subprocess.PIPE)
 			stdout_list = ps_process.communicate()[0].split('\n')
 			while '' in stdout_list:
 				stdout_list.remove('')
@@ -184,15 +191,15 @@ def get_cputime(pid):
 def get_memory(pid):
 
 	def memory_win(pid):
-	    from wmi import WMI
-	    #print pid
-	    w = WMI('.')
-	    result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
-	    #print str(result)
-	    if not result:
-	    	return 0
-	    else:
-	    	return int(result[0].WorkingSet) // (1024*1024) # convert from Bytes to MB
+		from wmi import WMI
+		#print pid
+		w = WMI('.')
+		result = w.query("SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess=%d" % pid)
+		#print str(result)
+		if not result:
+			return 0
+		else:
+			return int(result[0].WorkingSet) // (1024*1024) # convert from Bytes to MB
 
 	def memory_nix(pid):
 		ps_process = subprocess.Popen("ps -g " + str(pid) + " -o rss", shell=True, stdout=subprocess.PIPE)
@@ -222,17 +229,17 @@ def startSubprocessWithOutput(args, output_file, input_files=[]):
 	if os.name == 'nt':
 		# Windows
 		if len(input_files)==1:
-			file = open(input_files[0],'r')
-			p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT, stdin=file)
-			file.close()
+			in_file = open(input_files[0],'r')
+			p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT, stdin=in_file)
+			in_file.close()
 		else:
 			p = subprocess.Popen(args, stdout=output_file, stderr=subprocess.STDOUT)
 	else:
 		# Linux (and others)
 		if len(input_files)==1:
-			file = open(input_files[0],'r')
-			p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT, stdin=file)
-			file.close()
+			in_file = open(input_files[0],'r')
+			p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT, stdin=in_file)
+			in_file.close()
 		else:
 			p = subprocess.Popen(args, preexec_fn=os.setsid, close_fds=True, stdout=output_file, stderr=subprocess.STDOUT)
 	#print p.__class__
@@ -254,7 +261,7 @@ def startSubprocess(command):
 	return p
 
 
-def startInteractiveProcess():
+def startInteractiveProcess(command):
 	"""Start a process whose output (STDOUT) is written to the return value."""
 	if os.name == 'nt':
 		# Windows
@@ -289,7 +296,7 @@ def terminateSubprocess (process):
 		if not stdout2:
 			stdout2 = ""
 		re.sub(r'[^\w]', '', stdout)
-		stdoutdata = ' '.join(stdout.split())
+		#stdoutdata = ' '.join(stdout.split())
 		return (process.returncode, stdout+stdout2)  
 
 	def terminate_nix (process):
@@ -331,7 +338,7 @@ def raceProcesses (reasoners):
 	Parameters:
 	reasoners -- list of Reasoners to execute.
 	"""
-	from src import ClifModuleSet
+	from src.ClifModuleSet import ClifModuleSet
 	
 	results = Queue()
 

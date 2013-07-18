@@ -4,7 +4,7 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-import os, logging, clif, filemgt, time
+import os, logging, filemgt
 
 CLIF_IMPORT = 'cl-imports'
 
@@ -41,10 +41,10 @@ SYMBOL_AUTO_NUM = 1
 
 
 def remove_all_comments(input_file, output_file):
-    """Remove all comments (multi-line and single-line comments), including cl-comment blocks from the given CLIF file.
+    """Remove all comments (multi-line and single-line comments), including cl-comment blocks from the given CLIF single_file.
     Parameters:
     input_file -- filename of the CLIF input
-    output_file -- filename where to write the CLIF file removed of comments."""
+    output_file -- filename where to write the CLIF single_file removed of comments."""
                
     def strip_sections (lines, begin_symbol, end_symbol):           
         """Remove sections that start with the begin_symbol and end with end_symbol"""
@@ -159,31 +159,31 @@ def remove_all_comments(input_file, output_file):
     # MAIN METHOD remove_all_comments()
     lines = []
 
-    with open(input_file, 'r') as file:
+    with open(input_file, 'r') as single_file:
         try:
-            lines = file.readlines()
+            lines = single_file.readlines()
             #print lines
             # DO stuff
             lines = strip_sections(lines, '/*', '*/')
             lines = strip_clif_comments(lines)
             lines = strip_lines(lines,'//')
         except IOError:
-            file.close()
+            single_file.close()
         except ClifParsingError as e:
             logging.getLogger(__name__).error(e)
-            file.close()
+            single_file.close()
             lines = []
         finally:
-            file.close()
+            single_file.close()
 
-    with open(output_file, 'w+') as file:
+    with open(output_file, 'w+') as single_file:
         logging.getLogger(__name__).debug("Writing to " + os.path.abspath(output_file))
         try:
-            file.writelines(lines)
+            single_file.writelines(lines)
         except IOError:
-            file.close()
+            single_file.close()
         finally:
-            file.close()
+            single_file.close()
 
 
 def reformat_urls(lines):
@@ -202,16 +202,16 @@ def reformat_urls(lines):
 
 def get_all_nonlogical_symbols (filename):
     nonlogical_symbols = set([])
-    sentences = clif.get_sentences_from_file(filename)
+    sentences = get_sentences_from_file(filename)
     for sentence in sentences:
         #print "SENTENCE = " + sentence
-        nonlogical_symbols.update(clif.get_nonlogical_symbols(sentence))
+        nonlogical_symbols.update(get_nonlogical_symbols(sentence))
     logging.getLogger(__name__).debug("Nonlogical symbols: " + str(nonlogical_symbols))
     return nonlogical_symbols
 
 
 def get_sentences_from_file (input_file_name):
-        """ extract all Clif sentences from a Clif input file and returns the sentences as a list of strings."""
+        """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings."""
         cl_file = open(input_file_name, 'r')
         text = cl_file.readlines()
         cl_file.close()
@@ -233,10 +233,10 @@ def get_sentences (text):
         #print "flattening " + str(pieces)
         return [flatten_sentence(piece) for piece in pieces]
     
-    from pyparsing import nestedExpr, pyparsing   
+    from pyparsing import nestedExpr, ParseException  
     try:
         pieces = nestedExpr('(',')').parseString(text).asList()
-    except pyparsing.ParseException as e:
+    except ParseException:
         raise ClifParsingError("input is not valid Clif format, ensure that parentheses match")
         return        
     if len(pieces)!=1:
@@ -272,16 +272,16 @@ def get_nonlogical_symbols_and_variables (sentence):
     
     symbols = get_all_symbols(sentence)
     #print "SYMBOLS = " + str(symbols)
-    variables = clif.get_variables(sentence)
+    variables = get_variables(sentence)
     
     #print "ALL VARIABLES = " + str(variables)
 
-    return (symbols - set(clif.CLIF_LOGICAL_CONNECTIVES) - set(clif.CLIF_OTHER_SYMBOLS) -set(['']) - variables, variables)
+    return (symbols - set(CLIF_LOGICAL_CONNECTIVES) - set(CLIF_OTHER_SYMBOLS) -set(['']) - variables, variables)
 
 
 def get_nonlogical_symbols (sentence):
     """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
-    (_, non_logical_symbols) = clif.get_nonlogical_symbols_and_variables (sentence)
+    (_, non_logical_symbols) = get_nonlogical_symbols_and_variables (sentence)
     return non_logical_symbols
 
 
@@ -297,7 +297,7 @@ def get_variables (sentence):
     
     if isinstance(pieces[0], str):
         #print sentence[0]
-        for q in clif.TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
+        for q in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
             if pieces[0]==q:
                 #print "FOUND " + q + ": " + str(pieces[1])
                 variables.update(pieces[1])
@@ -330,7 +330,7 @@ def to_tptp (input_file_names, axiom=True):
         logical_sentences = []
 
         for s in sentences:
-            if len(s)==2 and s[0]==clif.CLIF_IMPORT:
+            if len(s)==2 and s[0]==CLIF_IMPORT:
                 pass
             else:
                 logical_sentences.append(s)
@@ -341,7 +341,7 @@ def to_tptp (input_file_names, axiom=True):
     
     sentences = []
     for file_name in input_file_names:
-        sentences.extend(clif.get_sentences_from_file(file_name))
+        sentences.extend(get_sentences_from_file(file_name))
         
     sentences = remove_imports(sentences)
     
@@ -351,7 +351,7 @@ def to_tptp (input_file_names, axiom=True):
     #print "ALL SENTENCES:"
     for sentence in sentences:
         #print sentence
-        (nonlogical_symbols, variables) = clif.get_nonlogical_symbols_and_variables (sentence)
+        (nonlogical_symbols, variables) = get_nonlogical_symbols_and_variables (sentence)
         #print sentence
         variables_list.append(variables)
         nonlogical_list.append(nonlogical_symbols)
@@ -542,7 +542,7 @@ def sentence_to_tptp (sentence, variables, nonlogical_symbols, sentence_number, 
          
 
 def get_imports(input_file):
-    """Find all the imported modules from a CLIF file.
+    """Find all the imported modules from a CLIF single_file.
     Parameters:
     input_file -- filename of the CLIF input."""
 
@@ -552,9 +552,9 @@ def get_imports(input_file):
     text = cl_file.read()
     cl_file.close()
 
-    sentences = clif.get_sentences(text)
+    sentences = get_sentences(text)
     for s in sentences:
-        if len(s)==2 and s[0]==clif.CLIF_IMPORT:
+        if len(s)==2 and s[0]==CLIF_IMPORT:
             imports.add(s[1])
 
     #print "IMPORTS = " + str(imports)

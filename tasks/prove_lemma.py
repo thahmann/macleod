@@ -5,14 +5,12 @@ Created on 2013-03-29
 '''
 
 from tasks import *
-import sys
-from src import *
-from src.ClifModuleSet import *
-from prove_lemma import *
+from src import logging, ClifLemmaSet
+from src.ClifModuleSet import ClifModuleSet
 
 
 def run_simple_check(m):
-    (i, r) = m.run_simple_consistency_check().popitem()
+    (_, r) = m.run_simple_consistency_check().popitem()
     if r==ClifModuleSet.PROOF:
         logging.getLogger(__name__).info("+++ LEMMA PROVED " +m.get_lemma_module().get_simple_module_name() + " from AXIOMS: " + str(m.get_axioms())  +"\n")
     elif r==ClifModuleSet.COUNTEREXAMPLE:
@@ -81,21 +79,22 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
     counterexamples = 0
     unknown = 0
     
-    # write results to summary file
-    file = open(summary_file, "a")
+    # write results to summary single_file
+    single_file = open(summary_file, "a")
     for l in lemma_modules:
         if l.output == ClifModuleSet.PROOF: proofs += 1
         elif l.output == ClifModuleSet.COUNTEREXAMPLE: counterexamples += 1
         else: unknown += 1
-        file.write(str(l.output) + " " + l.module_name + "\n")
-    file.flush()
-    file.close()
+        single_file.write(str(l.output) + " " + l.module_name + "\n")
+    single_file.flush()
+    single_file.close()
     
     return (proofs, counterexamples, unknown)
     
 
 if __name__ == '__main__':
     # global variables
+    import sys
     licence.print_terms()
     options = sys.argv
     options.reverse()

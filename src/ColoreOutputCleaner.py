@@ -56,7 +56,7 @@ class ColoreOutputCleaner(object):
 		for root, dirs, files in os.walk(self.directory):
 			for f in files:
 				fullpath = os.path.join(root, f)
-				# delete options file
+				# delete options single_file
 				if fullpath.endswith(LADR.P9_OPTIONS_FILE_NAME):
 					self.removeFile(fullpath)
 				# delete intermediary files
@@ -72,15 +72,15 @@ class ColoreOutputCleaner(object):
 		return self.stat_filename
 					
 					
-	def getShortFileName(self,file):
+	def getShortFileName(self,single_file):
 		# remove possible extra '.relevance' ending for Paradox and Vampire outputs
-		first_filename = self.getLongFileName(file)
+		first_filename = self.getLongFileName(single_file)
 		if len(first_filename.split('.'))>1:
 			first_filename = first_filename.split('.')[0]
 		return first_filename
 
-	def getLongFileName(self,file):
-		filename = os.path.basename(file)
+	def getLongFileName(self,single_file):
+		filename = os.path.basename(single_file)
 		# remove ".out" ending
 		filename = filename[:filename.rfind('.')]
 		# remove identifying ending (".m4",".p9",".vam", or ".tptp")
@@ -89,16 +89,16 @@ class ColoreOutputCleaner(object):
 	
 		
 	# remove outputs that are unneccessary
-	def cleanProofs(self,file,statfile):
-		filename = self.getLongFileName(file)
-		first_filename = self.getShortFileName(file)
+	def cleanProofs(self,single_file,statfile):
+		filename = self.getLongFileName(single_file)
+		first_filename = self.getShortFileName(single_file)
 		print first_filename
 		
-		#print os.path.normcase(os.path.join(os.path.dirname(file),filename+'.m4.out'))
-		filename_mace4 = os.path.normcase(os.path.join(os.path.dirname(file),filename+ LADR.MACE4_ENDING + '.out'))
-		filename_prover9 = os.path.normcase(os.path.join(os.path.dirname(file),filename+ LADR.PROVER9_ENDING + '.out'))
-		filename_paradox3 = os.path.normcase(os.path.join(os.path.dirname(file),first_filename+ TPTP.TPTP_ENDING + '.out'))
-		filename_vampire = os.path.normcase(os.path.join(os.path.dirname(file),first_filename+ VAMPIRE.VAMPIRE_ENDING + '.out'))
+		#print os.path.normcase(os.path.join(os.path.dirname(single_file),filename+'.m4.out'))
+		filename_mace4 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ LADR.MACE4_ENDING + '.out'))
+		filename_prover9 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ LADR.PROVER9_ENDING + '.out'))
+		filename_paradox3 = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ TPTP.TPTP_ENDING + '.out'))
+		filename_vampire = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ VAMPIRE.VAMPIRE_ENDING + '.out'))
 
 		proof = False
 		model = False
@@ -106,7 +106,7 @@ class ColoreOutputCleaner(object):
 		prover9_stats = None
 		paradox3_stats = None
 		vampire_stats = None
-		self.statFile.write(os.path.normcase(os.path.join(os.path.dirname(file),first_filename)) + ' tested with: ')
+		self.statFile.write(os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename)) + ' tested with: ')
 		before = False
 		if os.path.isfile(filename_mace4):
 			if before:
@@ -144,15 +144,15 @@ class ColoreOutputCleaner(object):
 		self.statFile.write('\n')
 			
 		# detect conflicts and unknown results: a model and a proof were found
-		# write output (stats file)
+		# write output (stats single_file)
 		conflict = False
 		unknown = False
 		if (model and proof):
 			conflict = True
-			self.statFile.write('CONFLICT: ' + os.path.normcase(os.path.join(os.path.dirname(file),first_filename)) +'\n')
+			self.statFile.write('CONFLICT: ' + os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename)) +'\n')
 		elif (not model and not proof):
 			unknown = True
-			self.statFile.write('UNKNOWN: ' + os.path.normcase(os.path.join(os.path.dirname(file),first_filename)) +'\n')
+			self.statFile.write('UNKNOWN: ' + os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename)) +'\n')
 
 		if prover9_stats:
 			if prover9_stats.success:
@@ -201,11 +201,11 @@ class ColoreOutputCleaner(object):
 		
 
 	def getVampireStats(self, filename):
-		file = open(filename)
+		single_file = open(filename)
 		# create new ProofStatistic
 		stats = ProofStatistic(ProofStatistic.VAMPIRE)
 		stats.filename = os.path.basename(filename)
-		line = file.readline()
+		line = single_file.readline()
 		total_time = 0.0
 		while line:
 			# check if a proof was found
@@ -215,19 +215,19 @@ class ColoreOutputCleaner(object):
 			if line.startswith('Time elapsed'):
 				#print line
 				total_time += float(line.split()[2].strip())
-			line = file.readline()
+			line = single_file.readline()
 		print total_time
 		stats.elapsed = str(total_time)
-		file.close()
+		single_file.close()
 		return stats
 		
  
 	def getParadox3Stats(self, filename):
-		file = open(filename)
+		single_file = open(filename)
 		# create new ProofStatistic
 		stats = ProofStatistic(ProofStatistic.PARADOX3)
 		stats.filename = os.path.basename(filename)
-		line = file.readline()
+		line = single_file.readline()
 		stats.size = -1
 		while line:
 			# check if a proof was found
@@ -245,17 +245,17 @@ class ColoreOutputCleaner(object):
 				size = int(line.split('domain size')[1].strip())
 				if stats.size< size:
 					stats.size = size-1
-			line = file.readline()
-		file.close()
+			line = single_file.readline()
+		single_file.close()
 		return stats
 
 		
 	def getProver9Stats(self, filename):
-		file = open(filename)
+		single_file = open(filename)
 		# create new ProofStatistic
 		stats = ProofStatistic(ProofStatistic.PROVER9)
 		stats.filename = os.path.basename(filename)
-		line = file.readline()
+		line = single_file.readline()
 		while line:
 			# check if a proof was found
 			if line.startswith('THEOREM PROVED'):
@@ -269,18 +269,18 @@ class ColoreOutputCleaner(object):
 			self.extractProver9Mace4CPUTime(line,stats)
 			# get process date
 			self.extractProver9Mace4Date(line,stats)
-			line = file.readline()
-		file.close()
+			line = single_file.readline()
+		single_file.close()
 		return stats
 		
 		
 				
 	def getMace4Stats(self,filename):
-		file = open(filename)
+		single_file = open(filename)
 		# create new ProofStatistic
 		stats = ProofStatistic(ProofStatistic.MACE4)
 		stats.filename = os.path.basename(filename)
-		line = file.readline()
+		line = single_file.readline()
 		while line:
 			# check if a model was found
 			if line.startswith('interpretation( '):
@@ -292,8 +292,8 @@ class ColoreOutputCleaner(object):
 			self.extractProver9Mace4CPUTime(line,stats)
 			# get process date
 			self.extractProver9Mace4Date(line,stats)
-			line = file.readline()
-		file.close()
+			line = single_file.readline()
+		single_file.close()
 		return stats
 			
 
@@ -318,7 +318,7 @@ class ColoreOutputCleaner(object):
 				stats.date = year + '-' + month + '-' + day
 				return
 		
-	# delete a file and record the deletion in the stats (log) file
+	# delete a single_file and record the deletion in the stats (log) single_file
 	def removeFile(self, filename):
 		self.statFile.write('\t\t DELETED: ' + filename +'\n')			
 		os.remove(filename)
@@ -348,12 +348,12 @@ if __name__ == '__main__':
 		sys.exit()
 	elif len(options)==2:
 		print options[0]
-		print 'Output file: ' + options[1]
+		print 'Output single_file: ' + options[1]
 		coc = ColoreOutputCleaner(options[1])
 		coc.cleanAll()
 	elif len(options)==3:
 		print options[0]
-		print 'Output file: ' + options[1]
+		print 'Output single_file: ' + options[1]
 		print 'Directory to process: ' + options[2]
 		coc = ColoreOutputCleaner(options[1],options[2])
 		coc.cleanAll()

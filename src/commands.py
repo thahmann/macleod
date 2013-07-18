@@ -24,10 +24,10 @@ def get_system_command(system_name, imports, output_stem):
 
 
 def get_positive_returncodes (name):
-    return commands.get_returncodes(name)
+    return get_returncodes(name)
 
 def get_unknown_returncodes (name):
-    return commands.get_returncodes(name, type="unknown_returncode")
+    return get_returncodes(name, type="unknown_returncode")
     
 def get_returncodes (name,type="positive_returncode"):
     code_list = filemgt.read_config(name,type) 

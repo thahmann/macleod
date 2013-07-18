@@ -17,13 +17,13 @@ if __name__ == '__main__':
     m = ClifModuleSet(options.pop())
 
     if '-cumulate' in options:
-        # translate into a single tptp file
-        file = m.get_single_ladr_file()
+        # translate into a single tptp single_file
+        single_file = m.get_single_ladr_file()
         print ""
         print "+++++++++++++++++++++"
         print "Files created:"
         print ""
-        print file
+        print single_file
         print "+++++++++++++++++++++"
     else:
         files = m.get_ladr_files()
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         print "+++++++++++++++++++++"
         print "Files created:"
         print ""
-        for file in files:
-            print file
+        for single_file in files:
+            print single_file
         print "+++++++++++++++++++++"
    

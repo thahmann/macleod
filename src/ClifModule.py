@@ -147,12 +147,12 @@ class ClifModule(object):
     def compare(x, y):
         """ Compares two ClifModules to sort them first by depth (increasing) and then by name."""
         if x.get_depth() > y.get_depth():
-           return 1
+            return 1
         elif x.get_depth() == y.get_depth():
-           if x.get_simple_module_name() > y.get_simple_module_name(): return 1
-           else: return -1
+            if x.get_simple_module_name() > y.get_simple_module_name(): return 1
+            else: return -1
         else:  #x < y
-           return -1
+            return -1
 
     def __eq__(self, other):
         """checking whether the module is identical to another module based on name, depth, imports, and parents."""
@@ -183,7 +183,7 @@ class ClifModule(object):
                 if i not in self.parents:
                     return False
         # if we made it here, name, depth, imports, and parents are identical
-        return true
+        return True
 
 
     def __ne__ (self, other):
@@ -200,14 +200,14 @@ class ClifModule(object):
             process.executeSubprocess(cmd)
             logging.getLogger(__name__).info("CREATED LADR TRANSLATION: " + self.p9_file_name)
             
-            file = open(self.p9_file_name,'r')
-            lines = file.readlines()
-            file.close()
+            p9_file = open(self.p9_file_name,'r')
+            lines = p9_file.readlines()
+            p9_file.close()
             lines = ladr.comment_imports(lines)
             #print "".join(lines)
-            file = open(self.p9_file_name,'w')
-            file.writelines(lines)
-            file.close()
+            p9_file = open(self.p9_file_name,'w')
+            p9_file.writelines(lines)
+            p9_file.close()
             logging.getLogger(__name__).debug("COMMENTED IMPORTS IN LADR FILE: " + self.p9_file_name)
              
         return self.p9_file_name
@@ -223,9 +223,9 @@ class ClifModule(object):
                                                        ending=filemgt.read_config('tptp','ending'))
             
             tptp_sentences = clif.to_tptp([self.clif_processed_file_name])
-            file = open(self.tptp_file_name, 'w')
-            file.writelines([t+"\n" for t in tptp_sentences])
-            file.close()
+            tptp_file = open(self.tptp_file_name, 'w')
+            tptp_file.writelines([t+"\n" for t in tptp_sentences])
+            tptp_file.close()
 
             logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + self.tptp_file_name)
              

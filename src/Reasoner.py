@@ -1,5 +1,5 @@
-from src import *
-
+from src import filemgt, commands
+from src.ClifModuleSet import ClifModuleSet
 class Reasoner (object):
     
     MODEL_FINDER = 'MODEL_FINDER'
@@ -7,7 +7,7 @@ class Reasoner (object):
     PROVER = 'PROVER'
         
     # initialize
-    def __init__(self, name, type=None, id=None):
+    def __init__(self, name, reasoner_type=None, reasoner_id=None):
         self.identifier = ''
         
         self.type = Reasoner.PROVER
@@ -29,10 +29,10 @@ class Reasoner (object):
         self.output = None
 
         self.name = name
-        if type:
-            self.type = type
-        if id:
-            self.identifier = id
+        if reasoner_type:
+            self.type = reasoner_type
+        if reasoner_id:
+            self.identifier = reasoner_id
         else:
             self.identifier = name
         self.positive_returncodes = commands.get_positive_returncodes(self.name)
@@ -77,7 +77,6 @@ class Reasoner (object):
         else: return False
         
     def terminatedSuccessfully (self):
-        from src import ClifModuleSet
 
         mapping = {
             ClifModuleSet.CONSISTENT: True,
@@ -110,9 +109,9 @@ class Reasoner (object):
             return False
 
         def success_vampire (self):
-            file = open(self.output_file, 'r')
-            lines = file.readlines()
-            file.close()
+            out_file = open(self.output_file, 'r')
+            lines = out_file.readlines()
+            out_file.close()
             output_lines = filter(lambda x: x.startswith('% SZS status'), lines)
             if len(output_lines)!=1:
                 if not self.return_code:
@@ -126,9 +125,9 @@ class Reasoner (object):
 
 
         def success_paradox (self):
-            file = open(self.output_file, 'r')
-            lines = file.readlines()
-            file.close()
+            out_file = open(self.output_file, 'r')
+            lines = out_file.readlines()
+            out_file.close()
             output_lines = filter(lambda x: x.startswith('+++ RESULT:'), lines)
             if len(output_lines)!=1:
                 if not self.return_code:
@@ -150,7 +149,6 @@ class Reasoner (object):
      
      
     def terminatedUnknowingly (self):
-        from src import ClifModuleSet
 
         def unknown_default (self):
             if not self.return_code==None:

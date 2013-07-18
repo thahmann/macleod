@@ -1,30 +1,30 @@
 
 if __name__ == '__main__':
-    import shutil, os, sys
+    import os, sys
     from tasks import check_consistency
 
     #ignores = ["theorems", "generated", "output","consistency"]
     ignores = ["theorems", "generated", "output"]
     #necessary = "_nontrivial"
-    necessary = false
+    necessary = False
     
     good = 0
     bad = 0
     neutral = 0
-    for dir, subdirs, files in os.walk(sys.argv[1]):
+    for directory, subdirs, files in os.walk(sys.argv[1]):
 
         subdirs.sort()
         files.sort()
         
-        if any(ignore in dir for ignore in ignores):
+        if any(ignore in directory for ignore in ignores):
             pass
         else:
-            for file in files:
-                print file
-                if file.endswith('.clif'):
-                    if necessary and necessary not in file:
+            for single_file in files:
+                print single_file
+                if single_file.endswith('.clif'):
+                    if necessary and necessary not in single_file:
                         pass
-                    filename = os.path.join(dir.replace('qs\\',''), file)
+                    filename = os.path.join(directory.replace('qs\\',''), single_file)
 #                    print filename
                     result = check_consistency.consistent(filename, options=['-simple'])
                     if result is True:

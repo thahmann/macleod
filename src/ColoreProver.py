@@ -136,7 +136,7 @@ class ColoreProver(object):
         prover9args += ' ' + options_file + ' '
 
         
-        # would be better to create a temporary file or read the output stream directly
+        # would be better to create a temporary single_file or read the output stream directly
         temp_file = self.get_module_name() + '_order' + filemgt.read_config('ladr','ending')
         prover9args += ' > ' + temp_file
         print prover9args
@@ -162,8 +162,8 @@ class ColoreProver(object):
             line = order_file.readline()
             
         order_file.close()
-        #print 'temp file : ' + temp_file
-        #print 'options file : ' + options_file
+        #print 'temp single_file : ' + temp_file
+        #print 'options single_file : ' + options_file
         os.remove(temp_file)
         os.remove(options_file)
         if predicates and functions:
@@ -203,7 +203,7 @@ class ColoreProver(object):
     
     
     def select_systems (self, outfile_stem):
-        """read the activated provers and model finders from the configuration file
+        """read the activated provers and model finders from the configuration single_file
         return values:
         provers_dict -- a dictionary of all provers to be used with commands as keys and a set of return values as value
         finders_dict -- a dictionary of all model finders to be used with commands as keys and a set of return values as value
@@ -308,7 +308,7 @@ class ColoreProver(object):
         return p9_files
    
 
-    # translate the module and all imported modules (Common Logic files) to a single TPTP file
+    # translate the module and all imported modules (Common Logic files) to a single TPTP single_file
     def get_single_tptp_file (self, number=0):
         
         single_p9_file = ladr.get_single_p9_file(get_module_name)
@@ -349,19 +349,19 @@ class ColoreProver(object):
             vampire_lemma_file_name = filemgt.get_name_with_subfolder(lemma_name, 
                                                                       read_config('output','folder'), 
                                                                       '_' + str(i)+ read_config('vampire','ending'),)
-            # vampire command (appending to output file)
+            # vampire command (appending to output single_file)
             vampire_cmd = vampire.get_vampire_basic_cmd(self.tptp_file_name) + ' >> ' + vampire_lemma_file_name
             print vampire_cmd
     
             # edit vampire_lemma_file to include basic information about execution data, time and command 
-            file =  open(vampire_lemma_file_name, 'w')
-            file.write('============================= Vampire ================================\n')
-            file.write(vampire.get_version()+'\n')
+            single_file =  open(vampire_lemma_file_name, 'w')
+            single_file.write('============================= Vampire ================================\n')
+            single_file.write(vampire.get_version()+'\n')
             now = datetime.datetime.now()
-            file.write(now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
-            file.write('The command was \"' + vampire_cmd + '\"\n')
-            file.write('============================== end of head ===========================\n')
-            file.close()
+            single_file.write(now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
+            single_file.write('The command was \"' + vampire_cmd + '\"\n')
+            single_file.write('============================== end of head ===========================\n')
+            single_file.close()
         
             vampire.run_vampire(vampire_cmd)
         
@@ -451,7 +451,7 @@ class ColoreProver(object):
         print '----------'
         print '----------'
         print ''
-        print 'USAGE 1: ColoreProver clif-file [-l] [-t] [-noclif] [-norun] [-tidy]'
+        print 'USAGE 1: ColoreProver clif-single_file [-l] [-t] [-noclif] [-norun] [-tidy]'
         print '----------'
         print '-l         prove a set of lemmas'
         print '-o         use a predicate ordering heuristic (currently only in combination with -l'
@@ -463,7 +463,7 @@ class ColoreProver(object):
         print '----------'
         print '----------'
         print ''
-        print 'USAGE 2: ColoreProver clif-file -tptp [-s]* [-tidy]'
+        print 'USAGE 2: ColoreProver clif-single_file -tptp [-s]* [-tidy]'
         print '----------'
         print '            translates theory to tptp syntax'
         print '-s=replacedSymbol:replacementSymbol'
@@ -472,13 +472,13 @@ class ColoreProver(object):
         print '----------'
         print '----------'
         print ''
-        print 'USAGE 3: ColoreProver clif-file -vam [-s]* [-vamlemmas] [-tidy]'
+        print 'USAGE 3: ColoreProver clif-single_file -vam [-s]* [-vamlemmas] [-tidy]'
         print '----------'
         print '            attempts a proof with Vampire'
         print '-s=replacedSymbol:replacementSymbol'
         print '           In the tptp translation, replace all occurrences of replacedSymbol by replacementSymbol.'
         print '           The replacedSymbol can be single-quoted.'  
-        print '-vamlemmas reuse previous lemmas (as specified by the order in the file)'
+        print '-vamlemmas reuse previous lemmas (as specified by the order in the single_file)'
         print '----------'
         print '----------'
         print ''

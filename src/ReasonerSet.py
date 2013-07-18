@@ -1,5 +1,6 @@
-from src import *
-from src.Reasoner import *
+from src import filemgt, ClifModule
+from src.Reasoner import Reasoner
+import logging
 
 class ReasonerSet (list):  
     """ list of reasoners """

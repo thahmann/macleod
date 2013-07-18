@@ -5,8 +5,9 @@ Created on 2013-03-19
 '''
 
 from tasks import *
-import sys, logging
-from src import *
+from src.ClifModuleSet import ClifModuleSet
+import sys
+import logging
 
 
     

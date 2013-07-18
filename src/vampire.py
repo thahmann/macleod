@@ -9,12 +9,12 @@ import process, filemgt
 def select_lemma (self, tptp_in_file, number, total, use_previous = False):
     """select one lemma as conjecture.
     number -- the lemma to prove (from the start of all axioms
-    total -- the total number of lemmas contained in the file (will remove all except the one we want to prove)
-    use_previous -- reuse the previous lemmas in the same file, i.e., do not delete earlier lemmas (assume they are provable)"""
+    total -- the total number of lemmas contained in the single_file (will remove all except the one we want to prove)
+    use_previous -- reuse the previous lemmas in the same single_file, i.e., do not delete earlier lemmas (assume they are provable)"""
     
-    file = open(tptp_in_file, 'r')
-    text = file.readlines()
-    file.close()
+    single_file = open(tptp_in_file, 'r')
+    text = single_file.readlines()
+    single_file.close()
     
     out_text = []
     count = 0
@@ -30,8 +30,8 @@ def select_lemma (self, tptp_in_file, number, total, use_previous = False):
             else:
                 out_text.append(line[i])
                 
-    file = open(tptp_in_file, 'w+')
-    file.writelines(out_text)
+    single_file = open(tptp_in_file, 'w+')
+    single_file.writelines(out_text)
     out_file.close()
     
 

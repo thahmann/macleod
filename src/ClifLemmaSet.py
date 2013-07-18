@@ -4,11 +4,12 @@ Created on 2013-03-31
 @author: Torsten Hahmann
 '''
 
-import sys
-from src import *
-import filemgt, process, clif, commands, ladr
-from src.ReasonerSet import * 
-import os, datetime, logging
+from src.ClifModule import ClifModule
+import clif
+import filemgt
+import ladr
+import logging
+import os
 
 class LemmaModule(ClifModule):
 
@@ -49,7 +50,7 @@ class ClifLemmaSet(object):
 
     
     def get_number_of_lemmas (self):
-        return len(lemmas)
+        return len(self.lemmas)
 
 
     def add_lemmas (self):

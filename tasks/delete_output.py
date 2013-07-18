@@ -1,5 +1,5 @@
 if __name__ == '__main__':
-    import shutil, os, sys
+    import os, sys
 
     for root, dirs, files in os.walk(sys.argv[1]):
         for f in files:
