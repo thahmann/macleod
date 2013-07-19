@@ -18,7 +18,6 @@ class LemmaModule(ClifModule):
         Constructor
         '''
         self.depth = 0
-        self.parents = []
         self.module_name = module_name
         self.p9_file_name = ladr_file_name
         # THIS IS UNIQUE to the LemmaModule
@@ -27,7 +26,9 @@ class LemmaModule(ClifModule):
         self.output = None
         self.time = None
         self.reasoner_name = None
-
+        self.module_set = None
+        self.imports = set([])
+        self.parents = set([])
         # no preprocessed version of this file available
         self.clif_processed_file_name = None 
 

@@ -11,7 +11,7 @@ class ClifModule(object):
     '''
     classdocs
     '''
-    def __init__(self,name,depth):
+    def __init__(self,name,depth=None):
         '''
         Constructor
         '''
@@ -21,13 +21,12 @@ class ClifModule(object):
         
         self.hierarchy_name = ''
         
-        self.depth = 0
-        
         """set of all imported module names """
         self.imports = set([])
         
         """ set of all parent module names"""
-        self.parents = set([])
+        self.parents = None
+        self.ancestors = None
         
         self.clif_file_name = ''
         
@@ -40,15 +39,13 @@ class ClifModule(object):
         
         # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
         self.nonlogical_symbols = set([])
-        
-        self.parents_nonlogical_symbols = set([])
-        
-        self.parents = set([])
+        self.ancestors_nonlogical_symbols = None
+        #self.parents_nonlogical_symbols = set([])
         
         # stores the depth of the import hierarchy
         self.depth = depth
         
-        self.module_name = self.get_simple_module_name(module = name)
+        self.set_module_name(name)
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL prefix as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
@@ -75,7 +72,7 @@ class ClifModule(object):
         clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
         
         
-        self.imports = [self.get_simple_module_name(i) for i in clif.get_imports(self.clif_processed_file_name)]
+        self.imports = clif.get_imports(self.clif_processed_file_name)
         
         logging.getLogger(__name__).debug("imports detected in " + self.module_name + ": " + str(self.imports))
         
@@ -87,49 +84,51 @@ class ClifModule(object):
         from src.ClifLemmaSet import LemmaModule
         #print "IMPORTS = " + str(imports)
         
-        if not isinstance(self, LemmaModule):
-            if self.module_set is None:
-                logging.getLogger(__name__).error("Cannot determine ModuleSet for " + self.module_name + " with imports " + str(imports))
+        if self.module_set is not None:
             return self.module_set
-        else:
+        elif not isinstance(self, LemmaModule):
+            logging.getLogger(__name__).error("Cannot determine ModuleSet for module " + self.module_name + " with imports " + str(imports))
+        elif imports:
             for i in imports:
                 if not isinstance(i, LemmaModule):
                     return i.module_set
-            logging.getLogger(__name__).error("Cannot determine ModuleSet for " + self.module_name + " with imports " + str(imports))
-            return None
+            logging.getLogger(__name__).error("Cannot determine ModuleSet for lemma module " + self.module_name + " with imports " + str(imports))
+        return None
 
-    def get_simple_module_name (self,module=None):
-        if not module:
-            module= self.module_name
-        import re
-        prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
-        prefix.sub('', module)
-        return os.path.normpath(module)
+    def set_module_name (self,name):
+        self.module_name = filemgt.get_canonical_relative_path(name)
     
-    def get_full_module_name (self,module=None):
-        if not module:
-            module= self.module_name
-        import re
-        prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
-        prefix.sub('', module)
-        return os.path.abspath(module)
+#     def get_full_module_name (self,module=None):
+#         if not module:
+#             module= self.module_name
+#         import re
+#         prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
+#         prefix.sub('', module)
+#         return os.path.abspath(module)
                 
     def get_hierarchy (self):
-        return filemgt.get_hierarhy(self.module_name)
+        return filemgt.get_hierarchy_name(self.module_name)
                 
-    """ Called by ClifModuleSet so that each module knows all its direct parent modules.
-    """
-    def add_parent (self,name,depth):
-        #print "adding parent: " + str(name) + ' (' + str(depth) + ')' + ' to ' + self.module_name
-        parent_module = self.get_full_module_name(name)
-        self.parents.add(parent_module)
-        self.parents_nonlogical_symbols.update(self.module_set.get_import_by_name(parent_module).get_nonlogical_symbols())
-        # update the depth
-        if depth>=self.depth:
-            self.depth=depth+1
-            #print "new depth = " + str(self.depth)
+#     """ Called by ClifModuleSet so that each module knows all its direct parent modules.
+#     """
+#     def add_parents (self,name,depth):
+#         #print "adding parent: " + str(name) + ' (' + str(depth) + ')' + ' to ' + self.module_name
+#         self.parents.add(name)
+#         self.parents_nonlogical_symbols.update(self.module_set.get_import_by_name(name).get_nonlogical_symbols())
+#         # update the depth
+#         if depth>=self.depth:
+#             self.depth=depth+1
+#             #print "new depth = " + str(self.depth)
         
     def get_parents (self):
+        if not self.parents:
+            self.parents = set([])
+            for module in self.module_set.imports:
+                if self.module_name in module.imports:
+                    self.parents.add(module.module_name)
+#                     if self.depth<=module.depth:
+#                         self.depth=module.depth+1
+#                         print "new depth = " + str(self.depth)
         return self.parents
             
     def get_imports (self):
@@ -139,18 +138,31 @@ class ClifModule(object):
     def get_nonlogical_symbols (self):
         return self.nonlogical_symbols
     
+    def get_ancestors (self):
+        if not self.ancestors:
+            self.ancestors = set([])
+            for parent in self.get_parents():
+                self.ancestors.update(self.get_module_set().get_import_closure(self.get_module_set().get_import_by_name(parent)))
+        return self.ancestors
+    
     def get_ancestors_nonlogical_symbols (self):
         if not self.ancestors_nonlogical_symbols:
-            ancestors = set([])
-            for parent in self.parents:
-                ancestors.update(self.get_module_set().get_import_closure(parent))
             self.ancestors_nonlogical_symbols = set([])
-            for ancestor in ancestors:
+            for ancestor in self.get_ancestors():
                 self.ancestors_nonlogical_symbols.update(ancestor.get_nonlogical_symbols())
         return self.ancestors_nonlogical_symbols
     
-    
+        
     def get_depth (self):
+        """determines and returns the shortest depth, i.e. the shortest distance between this module and the root module."""
+        if not self.depth:
+            self.depth = 0
+            ancestor_set = set([self])
+            while self.get_module_set().get_top_module() not in ancestor_set:
+                #print ancestor_set
+                self.depth += 1
+                new_ancestors = [a.get_parents() for a in ancestor_set]
+                ancestor_set.update([self.get_module_set().get_import_by_name(a) for ancestors in new_ancestors for a in ancestors])
         return self.depth
                 
     def __repr__ (self):
@@ -158,8 +170,8 @@ class ClifModule(object):
 
     def __str__(self):
         return (self.module_name
-                + ' (depth=' + str(self.depth)
-                + ', parents: ' + str(self.parents) + ')')
+                + ' (depth=' + str(self.get_depth())
+                + ', parents: ' + str(self.get_parents()) + ')')
 
     def shortstr(self):
         return self.__repr__()
@@ -171,7 +183,7 @@ class ClifModule(object):
         if x.get_depth() > y.get_depth():
            return 1
         elif x.get_depth() == y.get_depth():
-           if x.get_simple_module_name() > y.get_simple_module_name(): return 1
+           if x.module_name > y.module_name: return 1
            else: return -1
         else: #x < y
            return -1
@@ -185,7 +197,7 @@ class ClifModule(object):
             # simple length checks to avoid unnecessary work
             if len(self.imports)!=len(other.imports):
                 return False
-            if len(self.parents)!=len(other.parents):
+            if len(self.get_parents())!=len(other.get_parents()):
                 return False
             # base case (no other imports)
             if len(self.imports)==1:
@@ -198,11 +210,11 @@ class ClifModule(object):
                 if i not in self.imports:
                     return False
             # compare the parents
-            for i in self.parents:
-                if i not in other.parents:
+            for i in self.get_parents():
+                if i not in other.get_parents():
                     return False
-            for i in other.parents:
-                if i not in self.parents:
+            for i in other.get_parents():
+                if i not in self.get_parents():
                     return False
         # if we made it here, name, depth, imports, and parents are identical
         return True
@@ -273,7 +285,7 @@ class ClifModule(object):
                 
                 while True:
                     # filter the definitions that have exactly one defined symbol
-                    new_symbols = [(sym - properly_defined-symbols) for sym in new_symbols]
+                    new_symbols = [(sym - properly_defined_symbols) for sym in new_symbols]
                     new_single_symbols = [sym[0] for sym in new_symbols if len(sym)==1]
                     if len(new_single_symbols)==0:
                         break;
@@ -285,19 +297,11 @@ class ClifModule(object):
         
         
     def verify_hierarchy_symbols(self):
-        parents_hierarchies = [p.get_hierarchy() for p in self.parents]
+        parents_hierarchies = [p.get_hierarchy() for p in self.get_parents()]
         if self.get_hierarchy() in parents_hierarchies:
             if len(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols())>0:
                 logging.getLogger(__name__).warn("Found some nonlogical symbols (" + str(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols()) + ") not present in any imported ontology even though the new ontology " + self.module_name + " resides in the same hierarchy as one of the imported ontologies (" + self.get_hierarchy() + ").  This may be due to an implicitely defined symbol, but should be examined.")
-                return false
+                return False
             else:
-                return true
+                return True
         
-        
-        
-if __name__ == '__main__':
-    import sys
-    # global variables
-    options = sys.argv
-    m = ClifModule(options[1],0)
-    print m.convert_to_ladr()

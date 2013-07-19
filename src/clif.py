@@ -371,8 +371,8 @@ def to_tptp (input_file_names, axiom=True):
     all_nonlogical_symbols = set([s for list in nonlogical_list for s in list])
     for s in all_nonlogical_symbols:
         if not s[0].isalpha() and s[0] not in SYMBOL_TRANSLATIONS.keys():
-            SYMBOL_TRANSLATIONS[s] = SYMBOL_AUTO_NAME + str(SYMBOL_AUTO_NUM)
             global SYMBOL_AUTO_NUM
+            SYMBOL_TRANSLATIONS[s] = SYMBOL_AUTO_NAME + str(SYMBOL_AUTO_NUM)
             SYMBOL_AUTO_NUM += 1 
 
     # translate sentences
@@ -556,7 +556,7 @@ def get_imports(input_file):
     sentences = get_sentences(text)
     for s in sentences:
         if len(s)==2 and s[0]==CLIF_IMPORT:
-            imports.add(s[1])
+            imports.add(filemgt.get_canonical_relative_path(s[1]))
 
     #print "IMPORTS = " + str(imports)
     return imports

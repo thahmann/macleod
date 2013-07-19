@@ -6,9 +6,7 @@ Created on 2013-03-19
 
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
-import sys
-import logging
-
+import sys, logging
 
     
 def consistent(filename, options=[]):  
@@ -24,25 +22,24 @@ def consistent(filename, options=[]):
         results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
         
     if len(results)==0:
-        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")        
-    elif -1 in results.values():
-        for (r, value) in results:
+        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")
+    else:
+        for (r, value, _) in results:
             if value==-1:
                 logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
                 return False
-    else:
-        result_sets = results.keys()
+        result_sets = [r[0] for r in results]
         result_sets.sort(lambda x,y: cmp(len(x), len(y)))
 #        print result_sets[0]
 #        print results
 #        print "+++++" + str(value)
-        if results.get(result_sets[0])==1:
+        if results[0][1]==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
             return True
         else:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
             if len(result_sets)>1:
-                for (r, value) in results:
+                for (r, value, _) in results:
                     if value==1:
                         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")
             return None

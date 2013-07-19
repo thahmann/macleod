@@ -5,18 +5,19 @@ Created on 2013-03-29
 '''
 
 from tasks import *
-from src import logging, ClifLemmaSet
+from src.ClifLemmaSet import ClifLemmaSet
 from src.ClifModuleSet import ClifModuleSet
+import logging
 
 
 def run_simple_check(m):
     (_, r) = m.run_simple_consistency_check().popitem()
     if r==ClifModuleSet.PROOF:
-        logging.getLogger(__name__).info("+++ LEMMA PROVED " +m.get_lemma_module().get_simple_module_name() + " from AXIOMS: " + str(m.get_axioms())  +"\n")
+        logging.getLogger(__name__).info("+++ LEMMA PROVED " +m.get_lemma_module().module_name + " from AXIOMS: " + str(m.get_axioms())  +"\n")
     elif r==ClifModuleSet.COUNTEREXAMPLE:
-        logging.getLogger(__name__).info("+++ SENTENCE REFUTED " +m.get_lemma_module().get_simple_module_name() + " in AXIOMS: " + str(m.get_axioms())  +"\n")
+        logging.getLogger(__name__).info("+++ SENTENCE REFUTED " +m.get_lemma_module().module_name + " in AXIOMS: " + str(m.get_axioms())  +"\n")
     else:
-        logging.getLogger(__name__).info("+++ SENTENCE NEITHER PROVED NOR REFUTED " +m.get_lemma_module().get_simple_module_name() + " in AXIOMS: " + str(m.get_axioms())  +"\n")
+        logging.getLogger(__name__).info("+++ SENTENCE NEITHER PROVED NOR REFUTED " +m.get_lemma_module().module_name + " in AXIOMS: " + str(m.get_axioms())  +"\n")
     return r
     
             
@@ -47,7 +48,7 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
             for (i, r) in results.iteritems():
                 if r==ClifModuleSet.PROOF:
                     l.output = ClifModuleSet.PROOF
-                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.get_simple_module_name() + "from AXIOMS: " + str(i)  +"\n")
+                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.module_name + "from AXIOMS: " + str(i)  +"\n")
             if l.output != ClifModuleSet.PROOF:
                 l.output = run_simple_check(m)
                 
@@ -56,7 +57,7 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
             for (i, r) in results.iteritems():
                 if r==ClifModuleSet.PROOF:
                     l.output = ClifModuleSet.PROOF
-                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.get_simple_module_name() + "from AXIOMS: " + str(i)  +"\n")
+                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.module_name + "from AXIOMS: " + str(i)  +"\n")
             if l.output != ClifModuleSet.PROOF:
                 l.output = run_simple_check(m)
         
@@ -67,13 +68,13 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
             for (i, r) in results.iteritems():
                 if len(results)==1 and r==ClifModuleSet.COUNTEREXAMPLE:
                     l.output = ClifModuleSet.COUNTEREXAMPLE
-                    logging.getLogger(__name__).info("+++ SENTENCE REFUTED " +m.get_lemma_module().get_simple_module_name() + " in AXIOMS: " + str(m.get_axioms())  +"\n")
+                    logging.getLogger(__name__).info("+++ SENTENCE REFUTED " +m.get_lemma_module().module_name+ " in AXIOMS: " + str(m.get_axioms())  +"\n")
                 if r==ClifModuleSet.PROOF:
                     l.output = ClifModuleSet.PROOF
-                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.get_simple_module_name() + "from AXIOMS: " + str(i)  +"\n")
+                    logging.getLogger(__name__).info("+++ LEMMA PROVED " +l.module_name + "from AXIOMS: " + str(i)  +"\n")
             if l.output != ClifModuleSet.PROOF:
                 l.output = ClifModuleSet.UNKNOWN
-                logging.getLogger(__name__).info("+++ SENTENCE NEITHER PROVED NOR REFUTED " +m.get_lemma_module().get_simple_module_name() + " in AXIOMS: " + str(m.get_axioms())  +"\n")
+                logging.getLogger(__name__).info("+++ SENTENCE NEITHER PROVED NOR REFUTED " +m.get_lemma_module().module_name + " in AXIOMS: " + str(m.get_axioms())  +"\n")
 
     proofs = 0
     counterexamples = 0

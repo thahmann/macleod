@@ -60,7 +60,7 @@ class ReasonerSet (list):
 
 if __name__ == '__main__':
     rs = ReasonerSet()
-    m = ClifModule("dim\dim_basic.clif",0)
+    m = ClifModule("dim\dim_basic.clif",depth=0)
     rs.constructAllCommands([m,], "dim\dim_basic")
     print "ReasonerSet contains the following reasoners:"
     for r in rs:

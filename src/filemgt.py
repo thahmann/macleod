@@ -162,12 +162,18 @@ def get_full_path (module_name, folder=None, ending=''):
 def get_canonical_relative_path (path):
     """determines the path of a module relative to the path specified in the configuration"""
     #print "Getting canonical path for: " + path
-    path = os.path.abspath(path)
-    path = path.split(read_config('system','path') + os.sep,1)
-    if len(path)>1:
-        return path[1]
+    abspath = os.path.abspath(path)
+    abspath = abspath.split(read_config('system','path') + os.sep,1)
+    if len(abspath)>1:
+        path = abspath[1]
     else:
-        return path[0]
+        # if the path does not contain the system-configured path, keep the original name, but remove standard prefixes
+        import re
+        prefix = re.compile(re.escape(read_config('cl','prefix')), re.IGNORECASE)
+        prefix.sub('', path)
+    if path.endswith(read_config('cl','ending')):
+        path = path.rsplit(read_config('cl','ending'),1)[0]
+    return path
         
     
 def	get_hierarchy_name (module_name):

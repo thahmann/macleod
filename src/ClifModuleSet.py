@@ -63,27 +63,28 @@ class ClifModuleSet(object):
         self.p9_file_name = ''
         self.tptp_file_name = ''
 
-        m = ClifModule(name,0)
+        m = ClifModule(name,depth=0)
         m.module_set = self
         self.imports.add(m)
-        self.module_name=m.get_simple_module_name()
+        self.module_name=m.module_name
 
         self.unprocessed_imports = self.unprocessed_imports.union(m.get_imports())
 
         while len(self.unprocessed_imports)>0:
-            m = ClifModule(self.unprocessed_imports.pop(),0)
+            # Process the next import that has not yet been processed
+            m = ClifModule(self.unprocessed_imports.pop())
             m.module_set = self
-            # Link the module to all its parents: DOES NOT WORK CORRECTLY; we need to do this at the very end!
-            for cm in self.imports: # look through the complete set of imported modules
-                if m.get_simple_module_name() in cm.get_imports(): # each module cm that imports the currently processed module m will be added as parent to m
-                    m.add_parent(cm.get_simple_module_name(),cm.get_depth()) # add as parent to the module
+#             # Link the module to all its parents: DOES NOT WORK CORRECTLY; we need to do this at the very end!
+#             for cm in self.imports: # look through the complete set of imported modules
+#                 if m.module_name in cm.get_imports(): # each module cm that imports the currently processed module m will be added as parent to m
+#                     m.add_parent(cm.module_name,cm.get_depth()) # add as parent to the module
 
             self.imports.add(m)
 
             # add all the names of imported modules that have not yet been processed
-            new_imports = set(m.get_imports()) - set([i.get_simple_module_name() for i in self.imports])
+            new_imports = set(m.get_imports()) - set([i.module_name for i in self.imports])
             for i in new_imports:
-                logging.getLogger(__name__).info('|-- imports: ' + m.get_simple_module_name(i) + ' (depth ' + str(m.get_depth()+1) + ')')
+                logging.getLogger(__name__).info('|-- imports: ' + m.module_name + ' (depth ' + str(m.get_depth()+1) + ')')
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
@@ -91,6 +92,7 @@ class ClifModuleSet(object):
 
 #        atexit.register(self.cleanup)
     
+   
     def pretty_print (self):
 
         print "\n+++++++++++++++++++++\nall " + str(len(self.imports))  + " modules of "+ self.module_name +":\n+++++++++++++++++++++"
@@ -100,7 +102,7 @@ class ClifModuleSet(object):
         for n in imports:
             indent = ''
             for _ in range(n.get_depth()):
-                indent += "-"
+                indent += "--"
             print '|-'+indent+ str(n)+'\n|'
 
         print "+++++++++++++++++++++\n"
@@ -137,7 +139,7 @@ class ClifModuleSet(object):
     
     def get_import_by_name (self, name):
         """Find and return a module from the list of imports by its module name. """
-        m = filter(lambda s:s.get_simple_module_name()==name, list(self.imports))
+        m = filter(lambda s:s.module_name==name, list(self.imports))
         if len(m)==0:
             print "IMPORTS in " + self.module_name
             for i in self.imports:
@@ -193,8 +195,7 @@ class ClifModuleSet(object):
             
     def add_lemma_module (self, lemma_module):
         """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwritten."""
-        self.module_name = lemma_module.get_simple_module_name()
-        logging.getLogger(__name__).debug("SETTING LEMMA MODULE: " + str(lemma_module) + " for " + self.module_name)        
+        self.module_name = lemma_module.module_name
         
         # delete old lemma module if one exists
         if self.lemma_module is not None:
@@ -203,7 +204,11 @@ class ClifModuleSet(object):
             for m in self.imports:
                 m.depth = m.depth + 1
         self.lemma_module = lemma_module
+        self.lemma_module.module_set = self
         self.imports.add(lemma_module)
+
+        logging.getLogger(__name__).debug("SETTING LEMMA MODULE: " + str(lemma_module) + " for " + self.module_name)        
+
         return self.lemma_module
     
     def get_lemma_module (self):
@@ -434,7 +439,7 @@ class ClifModuleSet(object):
                 tmp_imports = self.get_import_closure(i)
                 if self.lemma_module:
                     tmp_imports.append(self.lemma_module)
-                (i, r, fastest_reasoner) = self.run_simple_consistency_check(i.get_simple_module_name(), tmp_imports, options_files=options_files)[0]
+                (i, r, fastest_reasoner) = self.run_simple_consistency_check(i.module_name, tmp_imports, options_files=options_files)[0]
                 results.append((tuple(tmp_imports), r, fastest_reasoner))
                 if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                     logging.getLogger(__name__).info("FOUND MODEL FOR SUBONTOLOGY AT IMPORT LEVEL " + str(reverse_depth))
@@ -524,7 +529,7 @@ class ClifModuleSet(object):
         for m in self.imports: # check each imported module for consistency
             m_return_value = self.run_module_consistency_check(m)
             if m_return_value == ClifModuleSet.INCONSISTENT:
-                self.pretty_print_result(m.get_simple_module_name(), m_return_value)
+                self.pretty_print_result(m.module_name, m_return_value)
             else:    # keep all imports that are consistent by themselves
                 safe_imports.add(m)
 
@@ -533,7 +538,7 @@ class ClifModuleSet(object):
 
     def run_module_consistency_check (self,module):
         """check a single module for consistency."""
-        outfile_stem = filemgt.get_full_path(module.get_simple_module_name(), 
+        outfile_stem = filemgt.get_full_path(module.module_name, 
                                             folder=filemgt.read_config('output','folder')) 
 
         reasoners = ReasonerSet() 
@@ -544,7 +549,7 @@ class ClifModuleSet(object):
         reasoners = process.raceProcesses(reasoners)
 
         (return_value, _) = self.consolidate_results(reasoners)    
-        self.pretty_print_result(module.get_simple_module_name(), return_value)
+        self.pretty_print_result(module.module_name, return_value)
         
         return return_value  
         
@@ -670,7 +675,7 @@ class ClifModuleSet(object):
             name = self.module_name
         else:
             ending = filemgt.read_config('ladr','select_ending')
-            name = imports[0].get_simple_module_name()
+            name = imports[0].module_name
         # construct the final ending
         ending += filemgt.read_config('ladr','ending')
         
@@ -717,7 +722,7 @@ class ClifModuleSet(object):
             name = self.module_name
         else:
             ending = filemgt.read_config('tptp','select_ending')
-            name = imports[0].get_simple_module_name()
+            name = imports[0].module_name
         # construct the final ending
         ending += filemgt.read_config('tptp','ending')
 
