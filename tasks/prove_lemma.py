@@ -11,7 +11,7 @@ import logging
 
 
 def run_simple_check(m):
-    (_, r) = m.run_simple_consistency_check().popitem()
+    (_, r, _) = m.run_simple_consistency_check()[0]
     if r==ClifModuleSet.PROOF:
         logging.getLogger(__name__).info("+++ LEMMA PROVED " +m.get_lemma_module().module_name + " from AXIOMS: " + str(m.get_axioms())  +"\n")
     elif r==ClifModuleSet.COUNTEREXAMPLE:

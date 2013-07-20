@@ -39,7 +39,7 @@ class ClifModule(object):
         
         # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
         self.nonlogical_symbols = set([])
-        self.ancestors_nonlogical_symbols = None
+        self.import_closure_nonlogical_symbols = None
         #self.parents_nonlogical_symbols = set([])
         
         # stores the depth of the import hierarchy
@@ -135,26 +135,54 @@ class ClifModule(object):
         """returns the set of immediate imports."""
         return self.imports
         
+    def get_imports_as_modules (self):
+        return [self.module_set.get_import_by_name(i) for i in self.imports]
+        
     def get_nonlogical_symbols (self):
         return self.nonlogical_symbols
     
-    def get_ancestors (self):
-        if not self.ancestors:
-            self.ancestors = set([])
-            for parent in self.get_parents():
-                self.ancestors.update(self.get_module_set().get_import_closure(self.get_module_set().get_import_by_name(parent)))
-        return self.ancestors
+#     def get_ancestors (self):
+#         if not self.ancestors:
+#             self.ancestors = set([])
+#             for parent in self.get_parents():
+#                 self.ancestors.update(self.get_module_set().get_import_closure(self.get_module_set().get_import_by_name(parent)))
+#         return self.ancestors
+        
+    """ gets all nonlogical symbols that are used in this module or any of the directly or indirectly imported modules.  This module can only be called once all imports have been processed."""
+    def get_import_closure_nonlogical_symbols (self):
+        if not self.module_set.completely_processed:
+            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            return False
+        if not self.import_closure_nonlogical_symbols:
+            self.import_closure_nonlogical_symbols = set([])
+            
+            import_closure = self.get_module_set().get_import_closure(self)
+            print "IMPORT CLOSURE: " + str(import_closure)
+            for i in import_closure:
+                self.import_closure_nonlogical_symbols.update(i.get_nonlogical_symbols())
+        return self.import_closure_nonlogical_symbols
+
+    """ gets all nonlogical symbols that are used in any of this module's directly or indirectly imported modules."""
+    def get_irreflexive_import_closure_nonlogical_symbols (self):
+        if not self.module_set.completely_processed:
+            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            return False
+        import_closure_nonlogical_symbols = set([])
+        for i in self.get_imports_as_modules():
+            print i.module_name + " USES THE NONLOGICAL SYMBOLS " + str(i.get_import_closure_nonlogical_symbols())
+            import_closure_nonlogical_symbols.update(i.get_import_closure_nonlogical_symbols())
+        return import_closure_nonlogical_symbols
     
-    def get_ancestors_nonlogical_symbols (self):
-        if not self.ancestors_nonlogical_symbols:
-            self.ancestors_nonlogical_symbols = set([])
-            for ancestor in self.get_ancestors():
-                self.ancestors_nonlogical_symbols.update(ancestor.get_nonlogical_symbols())
-        return self.ancestors_nonlogical_symbols
-    
+    """ gets all nonlogical symbols that are used in this module but not in any of the directly or indirectly imported modules."""
+    def get_new_nonlogical_symbols (self):
+        if not self.module_set.completely_processed:
+            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            return False
+        return self.get_import_closure_nonlogical_symbols() - self.get_irreflexive_import_closure_nonlogical_symbols()
+
         
     def get_depth (self):
-        """determines and returns the shortest depth, i.e. the shortest distance between this module and the root module."""
+        """determines and returns the shortest depth, i.e. the shortest distance between this module and the root module that (indirectly) imports this module."""
         if not self.depth:
             self.depth = 0
             ancestor_set = set([self])
@@ -169,9 +197,16 @@ class ClifModule(object):
         return self.module_name
 
     def __str__(self):
-        return (self.module_name
+        long_repr = (self.module_name
                 + ' (depth=' + str(self.get_depth())
-                + ', parents: ' + str(self.get_parents()) + ')')
+                + ', parents: ' + str(self.get_parents()))
+                
+        if self.module_set.completely_processed:
+            if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
+                long_repr += ', defines: '+ str(self.get_defined_symbols())
+        long_repr +=  ')'
+            
+        return long_repr
 
     def shortstr(self):
         return self.__repr__()
@@ -181,12 +216,12 @@ class ClifModule(object):
     def compare(x, y):
         """ Compares two ClifModules to sort them first by depth (increasing) and then by name."""
         if x.get_depth() > y.get_depth():
-           return 1
+            return 1
         elif x.get_depth() == y.get_depth():
-           if x.module_name > y.module_name: return 1
-           else: return -1
+            if x.module_name > y.module_name: return 1
+            else: return -1
         else: #x < y
-           return -1
+            return -1
 
     def __eq__(self, other):
         """checking whether the module is identical to another module based on name, depth, imports, and parents."""
@@ -265,43 +300,66 @@ class ClifModule(object):
              
         return self.tptp_file_name
     
-    """find definitions that introduce no new symbols or more than one new symbol. 
+    """find definitions (in the current module only) that introduce no new symbols or that introduce more than one new symbol. 
     """
     def detect_faulty_definitions (self):
-        if  filemgt.get_type(self.module_name)== filemgt.read_config('cl','definitions_folder'):
-            properly_defined_symbols = set([])
+        faulty = False
+        if  filemgt.module_is_definition_set(self.module_name):
+            self.properly_defined_symbols = set([])
             new_symbols = []
             i = 0
-            sentences = clif.get_sentences_from_file(self.clif_file_name)
+            sentences = clif.get_logical_sentences_from_file(self.clif_processed_file_name)
             if len(sentences)==0:
                 logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
             else:
-                new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_ancestors_nonlogical_symbols() for sentence in clif.get_sentences_from_file(self.clif_file_name)]
+                print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
+                new_symbols = [clif.get_nonlogical_symbols(sentence) for sentence in sentences]
+                print new_symbols
+                new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
 
                 # check for definitions that introduce no new symbols
                 for i in range(0,len(new_symbols)):
                     if len(new_symbols[i])==0:
-                        logging.getLogger(__name__).error("No new symbol seen in definition " + str(i) + " in: " + self.module_name)
+                        logging.getLogger(__name__).error("No new symbol seen in definition " + str(i+1) + " in: " + self.module_name)
+                        faulty = True
                 
                 while True:
                     # filter the definitions that have exactly one defined symbol
-                    new_symbols = [(sym - properly_defined_symbols) for sym in new_symbols]
-                    new_single_symbols = [sym[0] for sym in new_symbols if len(sym)==1]
+                    new_symbols = [(sym - self.properly_defined_symbols) for sym in new_symbols]
+                    new_single_symbols = [sym.pop() for sym in new_symbols if len(sym)==1]
                     if len(new_single_symbols)==0:
                         break;
-                    properly_defined_symbols.update(new_single_symbols)
+                    self.properly_defined_symbols.update(new_single_symbols)
 
                 # the remaining ones have two or more newly introduced symbols
                 for i in range(0,len(new_symbols)):
-                    logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)				
+                    logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)
+                    faulty = True
         
+        return faulty				
         
-    def verify_hierarchy_symbols(self):
-        parents_hierarchies = [p.get_hierarchy() for p in self.get_parents()]
-        if self.get_hierarchy() in parents_hierarchies:
-            if len(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols())>0:
-                logging.getLogger(__name__).warn("Found some nonlogical symbols (" + str(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols()) + ") not present in any imported ontology even though the new ontology " + self.module_name + " resides in the same hierarchy as one of the imported ontologies (" + self.get_hierarchy() + ").  This may be due to an implicitely defined symbol, but should be examined.")
-                return False
-            else:
-                return True
+    """returns a set of the defined symbols if this module is a definition and contains no faulty symbols."""
+    def get_defined_symbols (self):
+        # get all definitions from this module if it is a definition
+        if  filemgt.module_is_definition_set(self.module_name):
+            if not self.detect_faulty_definitions():
+                return self.properly_defined_symbols
+            
+        
+#     """check whether an ontology that is in the same hierarchy as one of the imported modules does not introduce new nonlogical symbols."""
+#     def verify_hierarchy_symbols(self):
+#         for p in self.get_parents():
+#             if p.get_hierarchy()==self.get_hierarchy():
+#                 # this module is in the same hierarchy as one of its parents
+#                 if filemgt.module_is_axiom_set(self.module_name):
+#                     
+#             
+#         
+#         parents_hierarchies = [p.get_hierarchy() for p in self.get_parents()]
+#         if self.get_hierarchy() in parents_hierarchies:
+#             if len(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols())>0:
+#                 logging.getLogger(__name__).warn("Found some nonlogical symbols (" + str(self.nonlogical_symbols - self.get_ancestors_nonlogical_symbols()) + ") not present in any imported ontology even though the new ontology " + self.module_name + " resides in the same hierarchy as one of the imported ontologies (" + self.get_hierarchy() + ").  This may be due to an implicitely defined symbol, but should be examined.")
+#                 return False
+#             else:
+#                 return True
         

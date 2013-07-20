@@ -29,6 +29,9 @@ class ClifModuleSet(object):
         filemgt.start_logging()
 
         name = filemgt.get_canonical_relative_path(name)
+        
+        # keep track of when all imports have been processed; necessary for detecting nonlogical symbols in the import structure
+        self.completely_processed = False
                 
         logging.getLogger(__name__).info("Creating ClifModuleSet " + name)
 
@@ -88,6 +91,7 @@ class ClifModuleSet(object):
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
+        self.completely_processed = True
         self.pretty_print()
 
 #        atexit.register(self.cleanup)
@@ -439,7 +443,7 @@ class ClifModuleSet(object):
                 tmp_imports = self.get_import_closure(i)
                 if self.lemma_module:
                     tmp_imports.append(self.lemma_module)
-                (i, r, fastest_reasoner) = self.run_simple_consistency_check(i.module_name, tmp_imports, options_files=options_files)[0]
+                (_, r, fastest_reasoner) = self.run_simple_consistency_check(i.module_name, tmp_imports, options_files=options_files)[0]
                 results.append((tuple(tmp_imports), r, fastest_reasoner))
                 if r==ClifModuleSet.CONSISTENT:    # this set is consistent 
                     logging.getLogger(__name__).info("FOUND MODEL FOR SUBONTOLOGY AT IMPORT LEVEL " + str(reverse_depth))

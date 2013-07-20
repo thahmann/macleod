@@ -203,7 +203,7 @@ def reformat_urls(lines):
 
 def get_all_nonlogical_symbols (filename):
     nonlogical_symbols = set([])
-    sentences = get_sentences_from_file(filename)
+    sentences = get_logical_sentences_from_file(filename)
     for sentence in sentences:
         #print "SENTENCE = " + sentence
         nonlogical_symbols.update(get_nonlogical_symbols(sentence))
@@ -212,13 +212,28 @@ def get_all_nonlogical_symbols (filename):
 
 
 def get_sentences_from_file (input_file_name):
-        """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings."""
+        """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set of sentences includes, e.g., import declarations."""
         cl_file = open(input_file_name, 'r')
         text = cl_file.readlines()
         cl_file.close()
         text = "".join(text)    # compile into a single string
         sentences = get_sentences(text)     
         return sentences
+
+
+def get_logical_sentences_from_file (input_file_name):
+    """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set excludes sentences that are not logical sentences, such as import declarations."""
+    sentences = get_sentences_from_file(input_file_name)
+
+    for s in sentences:
+        if len(s)==2 and s[0] in CLIF_OTHER_SYMBOLS:
+            sentences.remove(s)
+    
+    
+    print input_file_name + " HAS SENTENCES " + str(sentences)
+    
+    return sentences
+
 
     
 def get_sentences (text):
@@ -238,10 +253,10 @@ def get_sentences (text):
     try:
         pieces = nestedExpr('(',')').parseString(text).asList()
     except ParseException:
-        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match")
+        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match\n\n" + text)
         return        
     if len(pieces)!=1:
-        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match")
+        raise ClifParsingError("input is not valid Clif format, ensure that parentheses match\n\n" + text)
         return
     pieces = flatten_sentence(pieces)
     while True:
@@ -282,7 +297,7 @@ def get_nonlogical_symbols_and_variables (sentence):
 
 def get_nonlogical_symbols (sentence):
     """Extract all nonlogical symbols from a logical sentence in CLIF notation."""
-    (_, non_logical_symbols) = get_nonlogical_symbols_and_variables (sentence)
+    (non_logical_symbols, _) = get_nonlogical_symbols_and_variables (sentence)
     return non_logical_symbols
 
 

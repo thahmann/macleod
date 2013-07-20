@@ -164,12 +164,13 @@ def get_canonical_relative_path (path):
     #print "Getting canonical path for: " + path
     abspath = os.path.abspath(path)
     abspath = abspath.split(read_config('system','path') + os.sep,1)
-    if len(abspath)>1:
+    if len(abspath)>1: # if the absolute path contains on
         path = abspath[1]
     else:
         # if the path does not contain the system-configured path, keep the original name, but remove standard prefixes
         import re
         prefix = re.compile(re.escape(read_config('cl','prefix')), re.IGNORECASE)
+        #print "PREFIX = " + read_config('cl','prefix')
         prefix.sub('', path)
     if path.endswith(read_config('cl','ending')):
         path = path.rsplit(read_config('cl','ending'),1)[0]
@@ -194,7 +195,8 @@ def get_type (module_name):
     if os.sep in module_name:
         path = module_name.rsplit(os.sep,1)[0]
         if os.sep in path:
-            subfolder = module_name.rsplit(os.sep,1)[1]
+            subfolder = path.rsplit(os.sep,1)[1]
+            #print "SUBFOLDER = " + subfolder
             if (subfolder==read_config('cl','definitions_subfolder')): 
                 return read_config('cl','definitions_subfolder')
             elif (subfolder==read_config('cl','theorems_subfolder')): 
@@ -208,6 +210,27 @@ def get_type (module_name):
             # TODO: complete folders as necessary
     return ""
             
+    
+def module_is_axiom_set (module_name):
+    if get_type(module_name)=="":
+        return True
+    else:
+        return False
+
+
+def module_is_definition_set (module_name):
+    if get_type(module_name)==read_config('cl','definitions_subfolder'):
+        #print "FOUND DEFINITION: " + module_name
+        return True
+    else:
+        return False
+
+
+def module_is_theorem_set (module_name):
+    if get_type(module_name)==read_config('cl','theorems_subfolder'):
+        return True
+    else:
+        return False
     
 
 def get_tptp_symbols ():
