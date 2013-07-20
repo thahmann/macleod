@@ -5,6 +5,7 @@ Refactored on 2013-03-16
 @author: Torsten Hahmann
 '''
 import os, logging, filemgt, process, clif, commands, ladr
+from fnmatch import filter
 
 class ClifModule(object):
    
@@ -40,6 +41,8 @@ class ClifModule(object):
         # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
         self.nonlogical_symbols = set([])
         self.import_closure_nonlogical_symbols = None
+        
+        self.properly_defined_symbols = None
         #self.parents_nonlogical_symbols = set([])
         
         # stores the depth of the import hierarchy
@@ -157,7 +160,7 @@ class ClifModule(object):
             self.import_closure_nonlogical_symbols = set([])
             
             import_closure = self.get_module_set().get_import_closure(self)
-            print "IMPORT CLOSURE: " + str(import_closure)
+            #print "IMPORT CLOSURE: " + str(import_closure)
             for i in import_closure:
                 self.import_closure_nonlogical_symbols.update(i.get_nonlogical_symbols())
         return self.import_closure_nonlogical_symbols
@@ -169,7 +172,7 @@ class ClifModule(object):
             return False
         import_closure_nonlogical_symbols = set([])
         for i in self.get_imports_as_modules():
-            print i.module_name + " USES THE NONLOGICAL SYMBOLS " + str(i.get_import_closure_nonlogical_symbols())
+            #print i.module_name + " USES THE NONLOGICAL SYMBOLS " + str(i.get_import_closure_nonlogical_symbols())
             import_closure_nonlogical_symbols.update(i.get_import_closure_nonlogical_symbols())
         return import_closure_nonlogical_symbols
     
@@ -203,7 +206,9 @@ class ClifModule(object):
                 
         if self.module_set.completely_processed:
             if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
-                long_repr += ', defines: '+ str(self.get_defined_symbols())
+                long_repr += ', defines:'
+                for symbol in self.get_defined_symbols():
+                    long_repr += ' ' + str(symbol)
         long_repr +=  ')'
             
         return long_repr
@@ -303,6 +308,9 @@ class ClifModule(object):
     """find definitions (in the current module only) that introduce no new symbols or that introduce more than one new symbol. 
     """
     def detect_faulty_definitions (self):
+        if self.properly_defined_symbols:
+            return False
+        
         faulty = False
         if  filemgt.module_is_definition_set(self.module_name):
             self.properly_defined_symbols = set([])
@@ -312,10 +320,10 @@ class ClifModule(object):
             if len(sentences)==0:
                 logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
             else:
-                print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
-                new_symbols = [clif.get_nonlogical_symbols(sentence) for sentence in sentences]
-                print new_symbols
+                #print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
                 new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
+                #new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
+                #print new_symbols
 
                 # check for definitions that introduce no new symbols
                 for i in range(0,len(new_symbols)):
@@ -325,16 +333,20 @@ class ClifModule(object):
                 
                 while True:
                     # filter the definitions that have exactly one defined symbol
-                    new_symbols = [(sym - self.properly_defined_symbols) for sym in new_symbols]
+                    #print "NEW SYMBOLS = " + str(new_symbols)
+                    new_symbols = map(lambda x: x - self.properly_defined_symbols, new_symbols)
                     new_single_symbols = [sym.pop() for sym in new_symbols if len(sym)==1]
-                    if len(new_single_symbols)==0:
+#                    new_single_symbols = [sym.pop() for sym in filter(lambda x:len(x)==1, new_symbols)]
+                    if len(new_single_symbols)==0: # stable set of single symbols
                         break;
                     self.properly_defined_symbols.update(new_single_symbols)
 
                 # the remaining ones have two or more newly introduced symbols
                 for i in range(0,len(new_symbols)):
-                    logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)
-                    faulty = True
+                    if len(new_symbols[i])>0:
+                        logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)
+                        faulty = True
+                #print "PROPERLY DEFINED SYMBOLS = " + str(self.properly_defined_symbols)
         
         return faulty				
         
@@ -343,6 +355,7 @@ class ClifModule(object):
         # get all definitions from this module if it is a definition
         if  filemgt.module_is_definition_set(self.module_name):
             if not self.detect_faulty_definitions():
+                #print "DEFINED SYMBOLS = " + str(self.properly_defined_symbols) 
                 return self.properly_defined_symbols
             
         

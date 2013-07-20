@@ -134,7 +134,6 @@ def remove_all_comments(input_file, output_file):
                 if len(parts2)<2:
                     output.append(start) 
                     raise ClifParsingError('Syntax error in clif input: no opening parenthesis found before ' + CLIF_COMMENT + ' on line ' + str(len(output)+1),output)                    
-                search = True
                 if len(parts[0].strip())>1: 
                     output.append(parts[0][0:-1] + '\n')
                 # searching for the begin of the comment quotes
@@ -225,14 +224,17 @@ def get_logical_sentences_from_file (input_file_name):
     """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set excludes sentences that are not logical sentences, such as import declarations."""
     sentences = get_sentences_from_file(input_file_name)
 
+    logical_sentences = []
+
     for s in sentences:
         if len(s)==2 and s[0] in CLIF_OTHER_SYMBOLS:
-            sentences.remove(s)
+            continue
+        else:
+            logical_sentences.append(s)
     
+    #print input_file_name + " HAS SENTENCES " + str(logical_sentences)
     
-    print input_file_name + " HAS SENTENCES " + str(sentences)
-    
-    return sentences
+    return logical_sentences
 
 
     
@@ -327,7 +329,7 @@ def get_variables (sentence):
         return variables
     
     for i in range(0,len(pieces)):
-       variables.update(get_variables(pieces[i]))
+        variables.update(get_variables(pieces[i]))
     #print "VARIABLES = " + str(variables)
     return variables
 
@@ -383,7 +385,7 @@ def to_tptp (input_file_names, axiom=True):
     #print "Digits = " + str(digits)
     
     #automatic replacement symbols
-    all_nonlogical_symbols = set([s for list in nonlogical_list for s in list])
+    all_nonlogical_symbols = set([s for sublist in nonlogical_list for s in sublist])
     for s in all_nonlogical_symbols:
         if not s[0].isalpha() and s[0] not in SYMBOL_TRANSLATIONS.keys():
             global SYMBOL_AUTO_NUM
