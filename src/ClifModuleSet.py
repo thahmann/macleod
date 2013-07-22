@@ -85,9 +85,9 @@ class ClifModuleSet(object):
             self.imports.add(m)
 
             # add all the names of imported modules that have not yet been processed
-            new_imports = set(m.get_imports()) - set([i.module_name for i in self.imports])
+            new_imports = set(m.get_imports()) - set([i.module_name for i in self.imports]) - set(self.unprocessed_imports)
             for i in new_imports:
-                logging.getLogger(__name__).info('|-- imports: ' + m.module_name + ' (depth ' + str(m.get_depth()+1) + ')')
+                logging.getLogger(__name__).info('|-- imports: ' + i + ' (depth ' + str(m.get_depth()+1) + ')')
                             
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
         
@@ -119,8 +119,7 @@ class ClifModuleSet(object):
 
     def get_module_name (self):
         """return the name of the top module"""
-        if len(self.imports)>0:
-            return self.imports[0].module_name
+        return self.module_name
 
     def get_top_module (self):
         return self.get_import_by_name(self.module_name)
@@ -145,9 +144,9 @@ class ClifModuleSet(object):
         """Find and return a module from the list of imports by its module name. """
         m = filter(lambda s:s.module_name==name, list(self.imports))
         if len(m)==0:
-            print "IMPORTS in " + self.module_name
-            for i in self.imports:
-                print i
+            #print "IMPORTS in " + self.module_name
+            #for i in self.imports:
+            #    print i
             raise ClifModuleSetError("Module {0} does not exist in ClifModuleSet {1}".format(name, self.module_name))
         elif len(m)>1:
             raise ClifModuleSetError("Multiple modules with name '{0}' exist in ClifModuleSet {1}".format(name, self.module_name))            

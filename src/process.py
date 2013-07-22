@@ -253,7 +253,7 @@ def startSubprocess(command):
 		p = subprocess.Popen(command, shell=True, close_fds=True)				
 	else:
 		# Linux (and others)
-		logging.getLogger(__name__).info("STARTING: " + command)
+		logging.getLogger(__name__).debug("STARTING: " + command)
 		p = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, close_fds=True)
 	
 	#print p.__class__

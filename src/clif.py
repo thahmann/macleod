@@ -18,8 +18,12 @@ CLIF_TEXT = 'cl-text'
 # CLIF symbols that are logically irrelevant
 CLIF_OTHER_SYMBOLS = set([CLIF_IMPORT, CLIF_COMMENT, CLIF_MODULE, CLIF_TEXT])
 
+CLIF_EXISTENTIAL = 'exists'
+
+CLIF_UNIVERSAL = 'forall'
+
 # logical connectives in CLIF
-CLIF_LOGICAL_CONNECTIVES = set(['not', 'and', 'or', 'iff', 'if', '=', 'exists', 'forall'])
+CLIF_LOGICAL_CONNECTIVES = set(['not', 'and', 'or', 'iff', 'if', '=', CLIF_EXISTENTIAL, CLIF_UNIVERSAL])
 
 TPTP_UNARY_SUBSTITUTIONS = {'not': '~'}
 
@@ -334,6 +338,48 @@ def get_variables (sentence):
     return variables
 
 
+def get_nonlogical_symbol_arity (input_file_name, symbol):
+    
+    """Recursively find sentence fragments that start with the sought-after symbol and return its arity if found."""
+    def find_symbol_arity (pieces, symbol, arity):
+        if isinstance(pieces,str):
+            return arity
+        elif isinstance(pieces[0], str):
+            found_symbol = pieces[0]
+            del pieces[0]
+            if found_symbol==symbol:
+                if not arity:
+                    arity = len(pieces) # set the arity
+                    #logging.getLogger(__name__).info("Nonlogical symbol: " + symbol + " has arity " + str(arity))
+                elif arity!=len(pieces):
+                    raise ClifParsingError("the symbol "+ symbol + " is used with two different arities: " + str(arity) +" and " + str(len(pieces)))
+                    return False
+        # recursion
+        for i in range(len(pieces)):
+            arity = find_symbol_arity(pieces[i], symbol, arity)
+        
+        return arity
+                
+    # main part of get_nonlogical_symbol_arity
+    
+    from pyparsing import nestedExpr, ParseException  
+
+    sentences = get_logical_sentences_from_file(input_file_name)
+
+    #logging.getLogger(__name__).info("Determining arity for symbol: " + symbol)
+    
+    arity = find_symbol_arity(sentences, symbol, None)
+    logging.getLogger(__name__).debug("Nonlogical symbol: " + symbol + " has arity " + str(arity))
+    return arity
+        
+#         while s.find('( '): # remove whitespaces after open parenthesis to simplify subsequent parsing
+#             s.replace('( ','(')
+#         pieces = s.split('(')
+
+    
+        
+    
+
 
 def to_tptp (input_file_names, axiom=True):
     """Translates a set of Clif files to TPTP syntax.
@@ -558,7 +604,6 @@ def sentence_to_tptp (sentence, variables, nonlogical_symbols, sentence_number, 
     return tptp_sentence
 
          
-
 def get_imports(input_file):
     """Find all the imported modules from a CLIF single_file.
     Parameters:

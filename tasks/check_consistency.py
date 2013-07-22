@@ -27,7 +27,7 @@ def consistent(filename, options=[]):
         for (r, value, _) in results:
             if value==-1:
                 logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
-                return False
+                return (False, m)
         result_sets = [r[0] for r in results]
         result_sets.sort(lambda x,y: cmp(len(x), len(y)))
 #        print result_sets[0]
@@ -35,14 +35,14 @@ def consistent(filename, options=[]):
 #        print "+++++" + str(value)
         if results[0][1]==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
-            return True
+            return (True, m)
         else:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
             if len(result_sets)>1:
                 for (r, value, _) in results:
                     if value==1:
-                        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(result_sets[0]) +"\n")
-            return None
+                        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
+            return (None, m)
 
 if __name__ == '__main__':
     licence.print_terms()

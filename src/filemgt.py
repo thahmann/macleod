@@ -176,6 +176,20 @@ def get_canonical_relative_path (path):
         path = path.rsplit(read_config('cl','ending'),1)[0]
     return path
         
+
+def get_path_with_ending_for_nontrivial_consistency_checks (module_name):
+    """determines and returns the path of the module that checks for nontrivial consistency of the module named module_name.""" 
+    subfolder=read_config('cl','consistency_subfolder')
+    if module_is_definition_set(module_name):
+        module_name = "".join(module_name.rsplit(read_config('cl','definitions_subfolder')+os.sep,1))
+    path = get_full_path(module_name + '_nontrivial', subfolder, read_config('cl','ending'))
+    #print "PATH FOR CONSISTENCY CHECK of " + module_name + ": " + path
+    consistency_module_name = get_canonical_relative_path(path) + read_config('cl','ending')
+    #print "CANONICAL PATH FOR CONSISTENCY CHECK of " + module_name + ": " + path
+    return_value = (consistency_module_name, path)
+    #print return_value 
+    return return_value
+
     
 def	get_hierarchy_name (module_name):
     """determines the part of the module_name that denotes the hierarchy."""

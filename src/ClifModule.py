@@ -5,7 +5,6 @@ Refactored on 2013-03-16
 @author: Torsten Hahmann
 '''
 import os, logging, filemgt, process, clif, commands, ladr
-from fnmatch import filter
 
 class ClifModule(object):
    
@@ -63,7 +62,7 @@ class ClifModule(object):
     def preprocess_clif_file (self):
         # add the standard ending for CLIF files to the module name
         self.clif_file_name = filemgt.get_full_path(self.module_name, ending=filemgt.read_config('cl','ending'))
-        print self.clif_file_name
+        #print self.clif_file_name
 
         self.clif_processed_file_name = filemgt.get_full_path(self.module_name,
                                                       folder= filemgt.read_config('converters','tempfolder'),
@@ -207,8 +206,8 @@ class ClifModule(object):
         if self.module_set.completely_processed:
             if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
                 long_repr += ', defines:'
-                for symbol in self.get_defined_symbols():
-                    long_repr += ' ' + str(symbol)
+                for (symbol, arity) in self.get_defined_symbols():
+                    long_repr += ' ' + str(symbol) + '(' + str(arity) +')'
         long_repr +=  ')'
             
         return long_repr
@@ -305,7 +304,10 @@ class ClifModule(object):
              
         return self.tptp_file_name
     
-    """find definitions (in the current module only) that introduce no new symbols or that introduce more than one new symbol. 
+    """
+    Find sentences in a definitional module (in the current module only) that are obviously faulty, e.g. that introduce no new symbols or that introduce more than one new symbol. 
+    It does not check whether a specific definition is an explicit definition (of the form P(x,...) <=> ...) or whether the newly defined symbols are completely defined.
+    Return False if the module is not a definition.     
     """
     def detect_faulty_definitions (self):
         if self.properly_defined_symbols:
@@ -350,14 +352,32 @@ class ClifModule(object):
         
         return faulty				
         
-    """returns a set of the defined symbols if this module is a definition and contains no faulty symbols."""
+    """
+    Returns a list of the defined symbols if this module is a definition (based on its path) and contains no obviously faulty definitions.
+    Each entry in the list is a tuple of the form (symbol, arity).
+    """
     def get_defined_symbols (self):
         # get all definitions from this module if it is a definition
+        defined_symbols = []
         if  filemgt.module_is_definition_set(self.module_name):
             if not self.detect_faulty_definitions():
-                #print "DEFINED SYMBOLS = " + str(self.properly_defined_symbols) 
-                return self.properly_defined_symbols
-            
+                #print "DEFINED SYMBOLS = " + str(self.properly_defined_symbols)
+                #logging.getLogger(__name__).info("Determining arity for symbols in " + self.module_name)
+                for symbol in self.properly_defined_symbols:
+                    #logging.getLogger(__name__).info("Determining arity for symbol: " + symbol)
+                    arity = clif.get_nonlogical_symbol_arity(self.clif_processed_file_name, symbol)
+                    defined_symbols.append((symbol, arity))
+        return defined_symbols 
+        
+    """
+    Checks whether this module is a definition.  
+    The check is based only on its path and on the fact that each sentence has exactly one undefined symbol.
+    """
+    def is_simple_definition (self):
+        if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
+            return True
+        else:
+            return False
         
 #     """check whether an ontology that is in the same hierarchy as one of the imported modules does not introduce new nonlogical symbols."""
 #     def verify_hierarchy_symbols(self):

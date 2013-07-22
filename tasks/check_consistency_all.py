@@ -26,7 +26,7 @@ if __name__ == '__main__':
                         pass
                     filename = os.path.join(directory.replace('qs\\',''), single_file)
 #                    print filename
-                    result = check_consistency.consistent(filename, options=['-simple'])
+                    (result, _) = check_consistency.consistent(filename, options=['-simple'])
                     if result is True:
                         good += 1
                     elif result is False:
