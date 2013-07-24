@@ -313,7 +313,7 @@ def get_variables (sentence):
     """Extract the variables from a logical sentence in CLIF notation."""
     variables = set([])
     
-    print "EXTRACTING VARIABLES FROM " + str(sentence)
+    #print "EXTRACTING VARIABLES FROM " + str(sentence)
     pieces = sentence[:]
 
     if len(pieces)==0 or isinstance(pieces, str):
@@ -323,7 +323,7 @@ def get_variables (sentence):
         #print sentence[0]
         for q in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
             if pieces[0]==q:
-                print "FOUND " + q + ": " + str(pieces[1])
+                #print "FOUND " + q + ": " + str(pieces[1])
                 variables.update(pieces[1])
                 pieces.pop(0)
                 pieces.pop(0)
