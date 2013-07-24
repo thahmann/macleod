@@ -8,20 +8,23 @@ from src import filemgt, clif
 from src.ClifModuleSet import ClifModuleSet
 from tasks import licence, check_consistency
 import datetime
-import logging
 import sys
 
     
 def nontrivially_consistent(filename, options=[]):
-    options.append("-simple")
     (consistent, m) = check_consistency.consistent(filename, options)
     
     if consistent==None or consistent==True:  # no need to check nontrivial consistency of it is not consistent at all      
         #m = ClifModuleSet(filename)
         definitional_modules = []
-        for i in m.get_imports():
+        if "-simple" in options:
+            i = m.get_top_module()
             if i.is_simple_definition():
                 definitional_modules.append(i)
+        else:
+            for i in m.get_imports():
+                if i.is_simple_definition():
+                    definitional_modules.append(i)
         
         weak = "strong"
         if "-weak" in options:
@@ -31,6 +34,8 @@ def nontrivially_consistent(filename, options=[]):
             print n.module_name
         print "+++++++++++++++++++++\n"
         
+        if len(definitional_modules)==0:
+            print "NO DEFINITIONS FOUND TO CHECK NONTRIVIAL CONSISTENCY FOR."
         
         for i in definitional_modules:
             if i.is_simple_definition():
@@ -75,41 +80,71 @@ def nontrivially_consistent(filename, options=[]):
                 for (symbol, arity) in defined_symbols:
                     if "-weak" in options: # weak nontrivial consistency: each entity is independent from all others
                         for n in range(arity):                            
-                            existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
-                            for i in range(arity):
-                                existential_sentence += 'x' + str(i) + ' '
-                            existential_sentence += ')\n  (and\n    (' + symbol
-                            for i in range(arity):
-                                existential_sentence += ' x' + str(i)
-                            existential_sentence += ')\n'
-                            for i in range(arity):
-                                if i!=n:
-                                    existential_sentence += '    (not (= x' + str(n) + ' x' + str(i) + '))\n'  
-                            existential_sentence += '  )\n'
-                            
-                            clif_file.write(existential_sentence + ')\n\n')
+                            clif_file.write(construct_existential_sentence(symbol, arity, negation=False, all_distinct=False, position=n) + '\n\n')
+                            clif_file.write(construct_existential_sentence(symbol, arity, negation=True, all_distinct=False, position=n) + '\n\n')
                             
                     else: # strong nontrivial consistency: all participating entities have to be disjoint
-                        existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
-                        for i in range(arity):
-                            existential_sentence += 'x' + str(i) + ' '
-                        existential_sentence += ')\n  (and\n    (' + symbol
-                        for i in range(arity):
-                            existential_sentence += ' x' + str(i)
-                        existential_sentence += ')\n'
-                        for i in range(arity-1):  # add pairwise disjoint conditions
-                            for j in range(i+1, arity):
-                                existential_sentence += '    (not (= x' + str(i) + ' x' + str(j) + '))\n'  
-                        existential_sentence += '  )\n'
-                    
-                        clif_file.write(existential_sentence + ')\n\n')
+                        clif_file.write(construct_existential_sentence(symbol, arity, negation=False, all_distinct=True) + '\n\n')
+                        clif_file.write(construct_existential_sentence(symbol, arity, negation=True, all_distinct=True) + '\n\n')
 
-                    clif_file.write(')\n')
+                clif_file.write(')\n') # closing "cl-module"
                     
                 clif_file.close()
     
                 check_consistency.consistent(path,options)            
-                
+
+
+def construct_existential_sentence (symbol, arity, negation=False, all_distinct=True, position=0):
+
+    def construct_pairwise_distinct_term (symbol, arity, position):
+        term = ""
+        for i in range(arity):
+            if i!=position: # add distinct from all others condition 
+                existential_sentence += '    (not (= X' + str(position) + ' X' + str(i) + '))\n'  
+        return term
+    
+    
+    def construct_all_distinct_term (symbol, arity):
+        term = ""
+        for i in range(arity-1):  # add pairwise distinct conditions
+            for j in range(i+1, arity):
+                term += '    (not (= X' + str(i) + ' X' + str(j) + '))\n'
+        return term  
+
+    
+    existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
+    for i in range(arity):
+        existential_sentence += 'X' + str(i) + ' '
+        existential_sentence = existential_sentence[:-1]
+    existential_sentence += ')\n  (and\n'
+    if negation:
+        existential_sentence += '  (not\n' 
+    existential_sentence += '    (' + symbol
+    for i in range(arity):
+        existential_sentence += ' X' + str(i)
+    existential_sentence += ')\n'
+    if negation:
+        existential_sentence += '  )\n'
+
+    if all_distinct:
+        existential_sentence += construct_all_distinct_term(symbol, arity)
+    else: 
+        existential_sentence += construct_pairwise_distinct_term(symbol, arity, position)
+
+    existential_sentence += '  )\n' # closing "and"
+    existential_sentence += ')\n' # closing "existential"
+    return existential_sentence
+
+
+
+
+
+def print_options ():
+    print "USAGE: check_nontrivial_consistency file [options]"
+    print "with the following options:"
+    print "-simple: check only consistency of the entire ontology and nontrivial consistency of the top definitions, assuming that file contains definitions."
+    print "-weak: for the nontrivial consistency check only ensure that every pair of parameters can have distinct values. Otherwise, the values of all parameters must be allowed to be distinct."
+
 
 if __name__ == '__main__':
     licence.print_terms()
@@ -117,5 +152,8 @@ if __name__ == '__main__':
     options = sys.argv
     options.reverse()
     options.pop()
+    if not options:
+        print_options()
+        sys.exit()
     filename = options.pop()
     nontrivially_consistent(filename, options)
