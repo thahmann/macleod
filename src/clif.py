@@ -247,17 +247,19 @@ def get_sentences (text):
     def flatten_sentence(pieces):
         # base case: no list and just a single element
         if isinstance(pieces, str):
-            #print pieces
             return pieces
         elif len(pieces)==1:
-            pieces = pieces[0]
+            if isinstance(pieces[0],str):
+                return [pieces[0]]
+            else:
+                return flatten_sentence(pieces[0])
         # induction
         #print "flattening " + str(pieces)
         return [flatten_sentence(piece) for piece in pieces]
     
     from pyparsing import nestedExpr, ParseException  
     try:
-        pieces = nestedExpr('(',')').parseString(text).asList()
+        pieces = nestedExpr('(',')').parseString(text)
     except ParseException:
         raise ClifParsingError("input is not valid Clif format, ensure that parentheses match\n\n" + text)
         return        
@@ -311,7 +313,7 @@ def get_variables (sentence):
     """Extract the variables from a logical sentence in CLIF notation."""
     variables = set([])
     
-    #print "EXTRACTING VARIABLES FROM " + str(sentence)
+    print "EXTRACTING VARIABLES FROM " + str(sentence)
     pieces = sentence[:]
 
     if len(pieces)==0 or isinstance(pieces, str):
@@ -321,7 +323,7 @@ def get_variables (sentence):
         #print sentence[0]
         for q in TPTP_QUANTIFIER_SUBSTITUTIONS.keys():
             if pieces[0]==q:
-                #print "FOUND " + q + ": " + str(pieces[1])
+                print "FOUND " + q + ": " + str(pieces[1])
                 variables.update(pieces[1])
                 pieces.pop(0)
                 pieces.pop(0)
