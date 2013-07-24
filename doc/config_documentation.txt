@@ -12,6 +12,8 @@ swi: command (or complete path) to call SWI Prolog executable (needs to be local
 [active] section
 provers: {prover9, vampire} comma-separated set of provers that are used (each one needs to be specified in a separate section with the name used here; see at the end of this documentation)
 model_finders: {paradox, mace4} comma-separated set of model finders that are used (each one needs to be specified in a separate section with the name used here; see at the end of this documentation)
+If certain theorem provers or model finders are not installed locally, they must be removed from this section.
+
 
 [converters] section
 clif-to-prover9: path to the  executable of the clif-to-prover9 converter (part of Chris Mungall's cltools, needs to be locally installed)

@@ -1,0 +1,19 @@
+macleod Installation Instructions
+=================================
+
+These instructions are for the revised version of macleod and supersede the instructions in colore-manual.pdf
+
+Requirements:
+* 2.6.4 or higher version of Python 2
+* Locally installed theorem provers and model finders.  Tested with prover9, mace4, vampire, and paradox3 -- both on Linux and on Windows.
+* Installation of cltools to facilitate translation from Common Logic syntax to LADR (Prover9/mace4) syntax. Not needed if prover9 and mace4 are not used.  
+Detailed installation instructions for cltools are given in colore-manual.pdf.  
+
+
+Instructions:
+1. Copy the entire project (including at least src, task, conf, pyparsing) into a local directory (e.g. "macleod"; called the macleod directory).
+2. Add the macleod directory to your PYTHONPATH variable; make sure you don't overwrite the entry pointing to the default python libraries. 
+3. Ensure that the directories that are specified as destination for the log files exist (see logging.conf and macleod_linux.conf or macleod_win.conf in the conf directory).
+4. Adapt the configuration file (macleod_linux.conf or macleod_win.conf depending on your system) as explained in conf/config_documentation.txt.
+5. The tasks directory contains a set of tasks with self-explanatory names, e.g. to run consistency checks, to prove lemmas, to convert the clif files to other notations (ladr or tptp), etc.
+  
