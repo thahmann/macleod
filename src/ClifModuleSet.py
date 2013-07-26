@@ -54,6 +54,8 @@ class ClifModuleSet(object):
         # d_max: maximal depth in the CL-import tree where it occurs
         self.nonlogical_symbols = set([])
         
+        self.defined_nonlogical_symbols = set([])
+        
         # the primitive and potentially some defined predicates occurring in any imported files
         self.primitive_predicates = set([])
     
@@ -102,6 +104,8 @@ class ClifModuleSet(object):
         print "\n+++++++++++++++++++++\nall " + str(len(self.imports))  + " modules of "+ self.module_name +":\n+++++++++++++++++++++"
 
         imports = self.get_sorted_imports()
+
+        print "Undefined nonlogical symbols: " + str(self.get_undefined_nonlogical_symbols()) 
 
         for n in imports:
             indent = ''
@@ -170,31 +174,58 @@ class ClifModuleSet(object):
         return imports
         
     
-    def get_non_logical_symbol_info (self,symbol):
-        """get relevant information about a nonlogical symbol"""        
-    
-    def update_nonlogical_symbols(self,new_nonlogical_symbols,depth):
-        """update the ClifModuleSet's list of nonlogical symbols with the symbols in new_nonlogical_symbols
-           new_nonlogical_symbols -- list of tuples (symbol_name, number of modules this occurs in, minimal_depth in import tree, maximal_depth in import tree)
-         """
-        for symbol in new_nonlogical_symbols:
-            found = False
-            for (entity, count, d_min, d_max) in self.nonlogical_symbols:
-                if symbol == entity:
-                    # already in named entities, we just update the count and the depth:
-                    # we want to keep track of two kinds of depths: the minimal and the maximal
-                    # the new max. depth is the furthest away from the actual module_name as possible
-                    found = True
-                    index = self.nonlogical_symbols.index([symbol, count, d_min, d_max])
-                    self.nonlogical_symbols[index]=[symbol, count+1, d_min, depth]
-                    break;
-                else:
-                    continue
-            if not found:
-                #print 'found ' + words[0] + ' in line: ' + line
-                #a NEW meaningful named entity has been found
-                self.nonlogical_symbols.append([symbol, 1, depth, depth])
+#     def update_nonlogical_symbols (self,new_nonlogical_symbols,depth):
+#         """update the ClifModuleSet's list of nonlogical symbols with the symbols in new_nonlogical_symbols
+#            new_nonlogical_symbols -- list of tuples (symbol_name, number of modules this occurs in, minimal_depth in import tree, maximal_depth in import tree)
+#          """
+#         for symbol in new_nonlogical_symbols:
+#             found = False
+#             for (entity, count, d_min, d_max) in self.nonlogical_symbols:
+#                 if symbol == entity:
+#                     # already in named entities, we just update the count and the depth:
+#                     # we want to keep track of two kinds of depths: the minimal and the maximal
+#                     # the new max. depth is the furthest away from the actual module_name as possible
+#                     found = True
+#                     index = self.nonlogical_symbols.index([symbol, count, d_min, d_max])
+#                     self.nonlogical_symbols[index]=[symbol, count+1, d_min, depth]
+#                     break;
+#                 else:
+#                     continue
+#             if not found:
+#                 #print 'found ' + words[0] + ' in line: ' + line
+#                 #a NEW meaningful named entity has been found
+#                 self.nonlogical_symbols.append([symbol, 1, depth, depth])
+
+
+    def get_all_nonlogical_symbols (self):
+        """Determine all the nonlogical symbols that are used in one of the imported modules (including the top module).
+        Returns a set of symbols without arity (this is different from the format used for the return value of get_defined_nonlogical_symbols)."""
+        if self.completely_processed:
+            for i in self.imports:
+                #print str(i) + " has nonlogical symbols: " + str(i.get_nonlogical_symbols()) 
+                self.nonlogical_symbols.update(i.get_nonlogical_symbols())
+            return self.nonlogical_symbols
+        else:
+            return False
+        
+
+    def get_defined_nonlogical_symbols (self):
+        """Determine all the nonlogical symbols that are defined in one of the imported modules that are definitions (including the top module).
+        Returns a set of tuples (symbol, arity)."""
+        if self.completely_processed:
+            for i in self.imports:
+                self.defined_nonlogical_symbols.update(i.get_defined_symbols())
+            #print "Defined symbols: " + str(self.defined_nonlogical_symbols)
+            return self.defined_nonlogical_symbols
+        else:
+            return False
             
+    def get_undefined_nonlogical_symbols (self):
+        if self.completely_processed:
+            undefined_nonlogical_symbols = self.get_all_nonlogical_symbols() - set([sym for (sym, _) in self.get_defined_nonlogical_symbols()])
+            return undefined_nonlogical_symbols
+        else:
+            return False
             
     def add_lemma_module (self, lemma_module):
         """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwritten."""
