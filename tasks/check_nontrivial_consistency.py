@@ -39,11 +39,14 @@ def nontrivially_consistent(filename, options=[]):
         
         for i in definitional_modules:
             if i.is_simple_definition():
-                defined_symbols = i.get_defined_symbols()
+                if "-all" in options:
+                    defined_symbols = m.get_defined_nonlogical_symbols()
+                else:
+                    defined_symbols = i.get_defined_symbols()
 
                 symbol_string = ""
                 for (symbol, arity) in defined_symbols:
-                    symbol_string += symbol + '('+ str(arity) + ')'
+                    symbol_string += symbol + '('+ str(arity) + ') '
 
                 print "\n+++++++++++++++++++++\nProving "+weak +" nontrivial consistency of nonlogical symbols " + symbol_string + " in module " + i.module_name + "\n+++++++++++++++++++++\n"
                 
@@ -52,10 +55,12 @@ def nontrivially_consistent(filename, options=[]):
                 
                 # need to create new CL file that imports the definition module and adds a sentence stating that n distinct elements in this relation exist
 
+                module_name_modifier = "" 
+                if "-all" in options:
+                    module_name_modifier += "_all"
                 if "-weak" in options:
-                    (module_name, path) = filemgt.get_path_with_ending_for_nontrivial_consistency_checks(i.module_name+"_weak")
-                else:
-                    (module_name, path) = filemgt.get_path_with_ending_for_nontrivial_consistency_checks(i.module_name)
+                    module_name_modifier += "_weak"
+                (module_name, path) = filemgt.get_path_with_ending_for_nontrivial_consistency_checks(i.module_name+module_name_modifier)
 
                 now = datetime.datetime.now()
                 
@@ -100,7 +105,7 @@ def construct_existential_sentence (symbol, arity, negation=False, all_distinct=
         term = ""
         for i in range(arity):
             if i!=position: # add distinct from all others condition 
-                existential_sentence += '    (not (= X' + str(position) + ' X' + str(i) + '))\n'  
+                term += '    (not (= X' + str(position) + ' X' + str(i) + '))\n'  
         return term
     
     
@@ -115,8 +120,7 @@ def construct_existential_sentence (symbol, arity, negation=False, all_distinct=
     existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
     for i in range(arity):
         existential_sentence += 'X' + str(i) + ' '
-        existential_sentence = existential_sentence[:-1]
-    existential_sentence += ')\n  (and\n'
+    existential_sentence = existential_sentence[:-1] + ')\n  (and\n' # remove last space which is unnecessary
     if negation:
         existential_sentence += '  (not\n' 
     existential_sentence += '    (' + symbol
