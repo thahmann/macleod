@@ -320,7 +320,8 @@ class ClifModule(object):
             i = 0
             sentences = clif.get_logical_sentences_from_file(self.clif_processed_file_name)
             if len(sentences)==0:
-                logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
+                if len(self.imports)==0: 
+                    logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
             else:
                 #print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
                 new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
