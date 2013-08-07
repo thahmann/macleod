@@ -133,15 +133,16 @@ class ClifModule(object):
 #                         print "new depth = " + str(self.depth)
         return self.parents
             
+    """returns the set of immediate imports."""
     def get_imports (self):
-        """returns the set of immediate imports."""
         return self.imports
         
     def get_imports_as_modules (self):
         return [self.module_set.get_import_by_name(i) for i in self.imports]
         
+    """ return a set of a (symbol, arity) tuples for all nonlogical symbols found in this particular clif module (not considering imports."""
     def get_nonlogical_symbols (self):
-        return self.nonlogical_symbols
+        return [(symbol, clif.get_nonlogical_symbol_arity(self.clif_processed_file_name,symbol)) for symbol in self.nonlogical_symbols]
     
 #     def get_ancestors (self):
 #         if not self.ancestors:
@@ -150,7 +151,7 @@ class ClifModule(object):
 #                 self.ancestors.update(self.get_module_set().get_import_closure(self.get_module_set().get_import_by_name(parent)))
 #         return self.ancestors
         
-    """ gets all nonlogical symbols that are used in this module or any of the directly or indirectly imported modules.  This module can only be called once all imports have been processed."""
+    """ gets a set of (symbol, arity) tuples for all nonlogical symbols that are used in this module or any of the directly or indirectly imported modules.  This module can only be called once all imports have been processed."""
     def get_import_closure_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
             logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
@@ -164,7 +165,7 @@ class ClifModule(object):
                 self.import_closure_nonlogical_symbols.update(i.get_nonlogical_symbols())
         return self.import_closure_nonlogical_symbols
 
-    """ gets all nonlogical symbols that are used in any of this module's directly or indirectly imported modules."""
+    """ get a set of all nonlogical symbols (without arity) that are used in any of this module's directly or indirectly imported modules."""
     def get_irreflexive_import_closure_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
             logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
@@ -173,6 +174,7 @@ class ClifModule(object):
         for i in self.get_imports_as_modules():
             #print i.module_name + " USES THE NONLOGICAL SYMBOLS " + str(i.get_import_closure_nonlogical_symbols())
             import_closure_nonlogical_symbols.update(i.get_import_closure_nonlogical_symbols())
+        import_closure_nonlogical_symbols = set([symbol for (symbol, _) in import_closure_nonlogical_symbols])
         return import_closure_nonlogical_symbols
     
     """ gets all nonlogical symbols that are used in this module but not in any of the directly or indirectly imported modules."""
@@ -180,6 +182,8 @@ class ClifModule(object):
         if not self.module_set.completely_processed:
             logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
             return False
+        print "Import closure nonlogical symbols: " + str(self.get_import_closure_nonlogical_symbols())
+        print "Import closure nonlogical symbols: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
         return self.get_import_closure_nonlogical_symbols() - self.get_irreflexive_import_closure_nonlogical_symbols()
 
         
@@ -324,6 +328,7 @@ class ClifModule(object):
                     logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
             else:
                 #print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
+                #print "SENTENCE SYMBOLS: " + str(clif.get_nonlogical_symbols(sentences[0]))
                 new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
                 #new_symbols = [clif.get_nonlogical_symbols(sentence) - self.get_irreflexive_import_closure_nonlogical_symbols() for sentence in sentences]
                 #print new_symbols

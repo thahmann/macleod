@@ -19,17 +19,20 @@ def nontrivially_consistent(filename, options=[]):
         definitional_modules = []
         if "-simple" in options:
             i = m.get_top_module()
-            if i.is_simple_definition():
+            if "-defs" not in options or i.is_simple_definition():
                 definitional_modules.append(i)
         else:
             for i in m.get_imports():
-                if i.is_simple_definition():
+                if "-defs" not in options or i.is_simple_definition():
                     definitional_modules.append(i)
         
         weak = "strong"
+        defs = ""
         if "-weak" in options:
             weak = "weak"
-        print "\n+++++++++++++++++++++\nProving "+weak +" nontrivial consistency for all " + str(len(definitional_modules))  + " definitional modules of "+ m.get_module_name() +":\n+++++++++++++++++++++"
+        if "-defs" in options:
+            defs = "definitional "
+        print "\n+++++++++++++++++++++\nProving "+weak +" nontrivial consistency for all " + str(len(definitional_modules))  + " " + defs + "modules of "+ m.get_module_name() +":\n+++++++++++++++++++++"
         for n in definitional_modules:
             print n.module_name
         print "+++++++++++++++++++++\n"
@@ -38,11 +41,17 @@ def nontrivially_consistent(filename, options=[]):
             print "NO DEFINITIONS FOUND TO CHECK NONTRIVIAL CONSISTENCY FOR."
         
         for i in definitional_modules:
-            if i.is_simple_definition():
-                if "-all" in options:
-                    defined_symbols = m.get_defined_nonlogical_symbols()
-                else:
-                    defined_symbols = i.get_defined_symbols()
+            if "-defs" not in options or i.is_simple_definition():
+                if "-defs" in options:
+                    if "-all" in options:
+                        defined_symbols = m.get_defined_nonlogical_symbols()
+                    else:
+                        defined_symbols = i.get_defined_symbols()
+                else: # not just definitions
+                    if "-all" in options:
+                        defined_symbols = m.get_nonlogical_symbols()
+                    else:
+                        defined_symbols = i.get_nonlogical_symbols()
 
                 symbol_string = ""
                 for (symbol, arity) in defined_symbols:
@@ -148,6 +157,8 @@ def print_options ():
     print "with the following options:"
     print "-simple: check only consistency of the entire ontology and nontrivial consistency of the top definitions, assuming that file contains definitions."
     print "-weak: for the nontrivial consistency check only ensure that every pair of parameters can have distinct values. Otherwise, the values of all parameters must be allowed to be distinct."
+    print "-all: check for all symbols in module(s)."
+    print "-defs: check only for defined symbols."
 
 
 if __name__ == '__main__':
