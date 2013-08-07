@@ -222,8 +222,7 @@ class ClifModuleSet(object):
             
     def get_undefined_nonlogical_symbols (self):
         if self.completely_processed:
-            undefined_nonlogical_symbols = self.get_all_nonlogical_symbols() - set([sym for (sym, _) in self.get_defined_nonlogical_symbols()])
-            return undefined_nonlogical_symbols
+            return self.get_all_nonlogical_symbols() - self.get_defined_nonlogical_symbols()
         else:
             return False
             
