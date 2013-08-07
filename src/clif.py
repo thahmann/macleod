@@ -163,14 +163,13 @@ def remove_all_comments(input_file, output_file):
     # MAIN METHOD remove_all_comments()
     lines = []
 
-    with open(input_file, 'r') as single_file:
+    with open(input_file, 'rb') as single_file:
         try:
             lines = single_file.readlines()
-            #print lines
             # DO stuff
             lines = strip_sections(lines, '/*', '*/')
             lines = strip_clif_comments(lines)
-            lines = strip_lines(lines,'//')
+            lines = strip_lines(lines,';')
         except IOError:
             single_file.close()
         except ClifParsingError as e:
@@ -198,9 +197,10 @@ def reformat_urls(lines):
     prefixes = sorted([p.strip() for p in prefixes], key=lambda s: len(s), reverse=True) 
     for i in range(0,len(lines)):
         for prefix in prefixes:
-            lines[i] = lines[i].replace(prefix,'')
-            lines[i] = lines[i].strip('/')
-            #print lines[i]
+            if prefix in lines[i]:
+                #print "replacing prefix: " + prefix + " in " + lines[i]
+                lines[i] = lines[i].replace(prefix+'/','')
+                #print lines[i]
     return lines
                 
 
@@ -216,8 +216,9 @@ def get_all_nonlogical_symbols (filename):
 
 def get_sentences_from_file (input_file_name):
         """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set of sentences includes, e.g., import declarations."""
-        cl_file = open(input_file_name, 'r')
+        cl_file = open(input_file_name, 'rb')
         text = cl_file.readlines()
+        text = reformat_urls(text)
         cl_file.close()
         text = "".join(text)    # compile into a single string
         sentences = get_sentences(text)     
@@ -613,11 +614,7 @@ def get_imports(input_file):
 
     imports = set([])
 
-    cl_file = open(input_file, 'r')
-    text = cl_file.read()
-    cl_file.close()
-
-    sentences = get_sentences(text)
+    sentences = get_sentences_from_file(input_file)
     for s in sentences:
         if len(s)==2 and s[0]==CLIF_IMPORT:
             imports.add(filemgt.get_canonical_relative_path(s[1]))
