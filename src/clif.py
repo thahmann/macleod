@@ -163,7 +163,7 @@ def remove_all_comments(input_file, output_file):
     # MAIN METHOD remove_all_comments()
     lines = []
 
-    with open(input_file, 'rb') as single_file:
+    with open(input_file, 'r') as single_file:
         try:
             lines = single_file.readlines()
             # DO stuff
@@ -198,8 +198,10 @@ def reformat_urls(lines):
     for i in range(0,len(lines)):
         for prefix in prefixes:
             if prefix in lines[i]:
+                if not prefix.endswith('/'):
+                    prefix = prefix+'/'
                 #print "replacing prefix: " + prefix + " in " + lines[i]
-                lines[i] = lines[i].replace(prefix+'/','')
+                lines[i] = lines[i].replace(prefix,'')
                 #print lines[i]
     return lines
                 
@@ -216,7 +218,7 @@ def get_all_nonlogical_symbols (filename):
 
 def get_sentences_from_file (input_file_name):
         """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set of sentences includes, e.g., import declarations."""
-        cl_file = open(input_file_name, 'rb')
+        cl_file = open(input_file_name, 'r')
         text = cl_file.readlines()
         text = reformat_urls(text)
         cl_file.close()
