@@ -32,8 +32,9 @@ class ReasonerSet (list):
       
       
     def constructAllCommands (self, modules, outfile_stem):
+        import copy
         for r in self:
-            r.constructCommand(modules, outfile_stem)  
+            r.constructCommand(copy.copy(modules), outfile_stem)  
     
     def getByName (self, name):
         for i in range(0,len(self)):

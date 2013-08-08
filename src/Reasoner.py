@@ -58,7 +58,7 @@ class Reasoner (object):
         """Construct the command to invoke the reasoner."""
         self.modules = modules
         self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
-        (self.args, self.input_files) = commands.get_system_command(self.name, self.modules, self.output_file)
+        (self.args, self.input_files) = commands.get_system_command(self.name, modules, self.output_file)
         return self.args
     
     def getCommand (self, modules=None, outfile_stem=None):
