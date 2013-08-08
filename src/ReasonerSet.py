@@ -19,6 +19,9 @@ class ReasonerSet (list):
         
         provers = [ s.strip() for s in provers ]
         finders = [ s.strip() for s in finders ]
+        
+        provers = filter(lambda x: len(x)>0, provers)
+        finders = filter(lambda x: len(x)>0, finders)
 
         self.extend([Reasoner(r) for r in provers])
         self.extend([Reasoner(r, reasoner_type=Reasoner.MODEL_FINDER) for r in finders])
