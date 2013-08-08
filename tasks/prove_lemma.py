@@ -91,7 +91,14 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
     single_file.close()
     
     return (proofs, counterexamples, unknown)
-    
+
+def print_options ():
+    print "USAGE: prove_lemma [axiom_file] lemmas_file [options]"
+    print "with the following options:"
+    print "-find: only to be used when omitting the axiom_file. The axiom_file will be inferred from the lemmas_file. If this option is not used, the axiom_file MUST be specified."
+    print "-simple:"
+    print "-module:"
+    print "-depth:"
 
 if __name__ == '__main__':
     # global variables
@@ -100,6 +107,9 @@ if __name__ == '__main__':
     options = sys.argv
     options.reverse()
     options.pop()
+    if not options:
+        print_options()
+        sys.exit()
     if '-find' in options:
         options.remove('-find')
         axioms_filename = None
