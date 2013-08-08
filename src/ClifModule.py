@@ -236,7 +236,7 @@ class ClifModule(object):
         if not isinstance(other, ClifModule):
             return False
         # first compare name and depth
-        elif self.module == other.module_name and self.depth == other.depth:
+        elif self.module_name == other.module_name and self.depth == other.depth:
             # simple length checks to avoid unnecessary work
             if len(self.imports)!=len(other.imports):
                 return False
