@@ -16,4 +16,3 @@ Instructions:
 3. Ensure that the directories that are specified as destination for the log files exist (see logging.conf and macleod_linux.conf or macleod_win.conf in the conf directory).
 4. Adapt the configuration file (macleod_linux.conf or macleod_win.conf depending on your system) as explained in conf/config_documentation.txt.
 5. The tasks directory contains a set of tasks with self-explanatory names, e.g. to run consistency checks, to prove lemmas, to convert the clif files to other notations (ladr or tptp), etc.
-  
