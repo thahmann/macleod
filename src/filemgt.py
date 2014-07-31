@@ -135,14 +135,15 @@ def format(record):
   
 def get_full_path (module_name, folder=None, ending=''):
     """determines the suitable subfolder for a given file_name."""
+    module_name = os.path.normpath(module_name)
     if os.sep in module_name:
         #print "Getting path for: " + module_name
         path = module_name.rsplit(os.sep,1)
         module_name = path[1]
         path = path[0]
-        path = os.path.normpath(read_config('system','path') + os.sep + path)
+        path = os.path.abspath(os.path.join(read_config('system','path'), path))
         if folder:
-            path = os.path.normpath(path + os.sep + folder + os.sep)
+            path = os.path.abspath(os.path.join(path, folder))
             # create this folder if it does not exist yet
         if not os.path.exists(path):
             print "Trying to create folder " + path
@@ -150,11 +151,16 @@ def get_full_path (module_name, folder=None, ending=''):
                 print "Created folder " + path
         
         if module_name.endswith(ending):
-            return os.path.abspath(path + os.sep + module_name)
+            return os.path.abspath(os.path.join(path, module_name))
         else:
-            return os.path.abspath(path + os.sep + module_name + ending)
+            return os.path.abspath(os.path.join(path, module_name + ending))
     else:
-        return os.path.abspath(os.path.join(read_config('system','path'), module_name) + ending)
+        if folder:
+            path = os.path.abspath(os.path.join(read_config('system','path'), folder))
+        else:
+            path = os.path.abspath(read_config('system','path'))
+        
+        return os.path.abspath(os.path.join(path, module_name + ending))
 
 
 def get_canonical_relative_path (path):

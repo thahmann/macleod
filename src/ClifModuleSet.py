@@ -740,7 +740,7 @@ class ClifModuleSet(object):
     
 
     def get_single_tptp_file (self, imports = None):
-        """translate the module and all imported modules to a single TPTP file. Uses the LADR format as intermediate step."""
+        """translate the module and all imported modules to a single TPTP file."""
         
         # if the given imports are identical to the modules imports, treat it as the modules imports were used
         if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
@@ -775,10 +775,12 @@ class ClifModuleSet(object):
         files_to_translate = [i.clif_processed_file_name for i in imports]
         while None in files_to_translate:
             files_to_translate.remove(None)
-        tptp_sentences.extend(clif.to_tptp(files_to_translate))
+        tptp_sentences.extend(clif.translate_sentences(files_to_translate, "TPTP"))
         tptp_file = open(tptp_file_name, 'w')
         tptp_file.writelines([t+"\n" for t in tptp_sentences])
         tptp_file.close()
+
+        logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + tptp_file_name)
 
         return tptp_file_name                
 
