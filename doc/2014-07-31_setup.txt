@@ -1,0 +1,54 @@
+Macleod updated installation (2014-07-31)
+
+
+PYTHON
+===
+
+check for Python version on Windows: Python27 folder exist in main drive (C:)
+if not yet installed, install python
+Windows (currently 2.7.8): https://www.python.org/download/releases/2.7.8/
+
+Also install "Python for Windows extension" (pywin32) from http://sourceforge.net/projects/pywin32/files/
+It has to match your Python installation (either both 32-bit or both 64-bit)
+
+Finally, install the "WMI module", a wrapper for the Python for Windows extension (pywin32) from
+http://timgolden.me.uk/python/wmi/index.html
+
+
+THEOREM PROVERS
+===
+
+create folder: C:\Reasoning
+place the following three in there:
+paradox3.exe
+vampire_win.exe
+prover9-bin (bin folder of ladr, i.e. prover9-mace4, distribution)
+
+
+MACLEOD
+===
+
+copy the macleod folders conf, pyparsing, src, tasks to some "macleod" directory: C:\Reasoning\macleod
+
+edit C:\Reasoning\macleod\conf\macleod_win.conf
+[system] path, subprocess_log
+[cl] prefix 
+[prover9] command
+[mace4] command
+[vampire] command
+[paradox] command
+
+edit C:\Reasoning\macleod\conf\logging.conf
+[handler_fHandler] args=("C:/Reasoning/macleod/log/macleod.log",)
+[subprocess_logging] file="C:/Reasoning/macleod/log/macleod_sub.log"
+Make sure the directory exists! (You may have to create C:/Reasoning/macleod/log/ first)
+
+
+PATH, PYTHONPATH
+===
+
+add entries that point to python (e.g. C:\Python27) to PATH and PYTHONPATH to system environment variables (My Computer -> Properties -> Advanced System Settings -> Environment Variables)
+
+add entry that points to macleod (e.g. C:\Reasoning\macleod) to PYTHONPATH
+
+use "echo %PYTHONPATH%" on the commandline to check whether the path is set correctly (should contain both entries)
