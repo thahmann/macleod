@@ -43,6 +43,8 @@ edit C:\Reasoning\macleod\conf\logging.conf
 [subprocess_logging] file="C:/Reasoning/macleod/log/macleod_sub.log"
 Make sure the directory exists! (You may have to create C:/Reasoning/macleod/log/ first)
 
+edit C:\Reasoning\macleod\src\filemgt.py:
+config_dir = 'C:\Reasoning\macleod\conf'
 
 PATH, PYTHONPATH
 ===
