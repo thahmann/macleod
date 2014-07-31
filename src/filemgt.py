@@ -19,7 +19,7 @@ subprocess_log_file = None
 
 def find_config (filename):
     """tries to find some configuration file."""
-    for loc in os.path.curdir, os.path.join(os.path.curdir,config_dir), os.path.expanduser("~"), os.environ.get("MACLEOD_CONF"):
+    for loc in os.path.curdir, os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,'..',config_dir), os.path.expanduser("~"), os.environ.get("MACLEOD_CONF"):
         try:
             if not loc:
                 loc = ""
@@ -66,6 +66,7 @@ def find_log_config():
     global log_config_file
     """tries to find the MacLeod logging configuration file."""
     log_config_file = find_config(log_config_file)
+    #print("Log config file found: " + log_config_file)
          
 
 def read_config(section, key):
@@ -85,9 +86,6 @@ def read_config(section, key):
         
     # read from config
     return CONFIG_PARSER.get(section,key)
-
-        # test config parser
-        #print(CONFIG_PARSER.get('converters', 'clif-to-prover9'))
      
 
 def start_logging():
@@ -98,7 +96,7 @@ def start_logging():
         if len(log_config_file)==0:
             print("Problem reading logging config file from " + log_config_file)
         else:
-            #print("Read logging config file from " + log_config_file)
+            print("Read logging config file from " + log_config_file)
             logging.config.fileConfig(log_config_file)
             # create logger
             LOGGER = logging.getLogger(__name__)
@@ -156,7 +154,7 @@ def get_full_path (module_name, folder=None, ending=''):
         else:
             return os.path.abspath(path + os.sep + module_name + ending)
     else:
-        return module_name + ending
+        return os.path.abspath(os.path.join(read_config('system','path'), module_name) + ending)
 
 
 def get_canonical_relative_path (path):
@@ -169,9 +167,9 @@ def get_canonical_relative_path (path):
     else:
         # if the path does not contain the system-configured path, keep the original name, but remove standard prefixes
         import re
-        prefix = re.compile(re.escape(read_config('cl','prefix')), re.IGNORECASE)
-        #print "PREFIX = " + read_config('cl','prefix')
-        prefix.sub('', path)
+        prefix = read_config('cl','prefix')
+        if path.startswith(prefix):
+            path = path.replace(prefix,'',1)
     if path.endswith(read_config('cl','ending')):
         path = path.rsplit(read_config('cl','ending'),1)[0]
     return path

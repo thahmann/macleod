@@ -8,8 +8,6 @@ def cumulate_ladr_files (input_files, output_file):
     
     logging.getLogger(__name__).debug("Special symbols: " + str(special_symbols))
     
-    filemgt.read_config('converters','clif-to-prover9')
-    
     text = []
     for f in input_files:
         in_file = open(f, 'r')
@@ -24,7 +22,6 @@ def cumulate_ladr_files (input_files, output_file):
         in_file.close()
     
     text = strip_inner_commands(text)
-    text = comment_imports(text)
     
     # store the location of all "<-" to be able to replace them back later on:
    
@@ -83,19 +80,6 @@ def strip_inner_commands(text):
 
     #print text
     return text
-
-
-def comment_imports (lines):
-    #print "Commenting imports in LADR file"
-    for i in range(0,len(lines)):
-        keyword = 'imports('    # this is the syntax used by the clif-to-prover9 converter
-        if lines[i].strip().find(keyword) > -1:
-            logging.getLogger(__name__).debug("module import found: " + lines[i].strip('\n'))
-            lines[i] = '% ' + lines[i]
-            #new_module_name = line.strip()[len(keyword)+1:-3].strip()
-        else:
-            pass
-    return lines
         
         
 def get_ladr_goal_files (lemmas_file,  lemmas_name):
@@ -110,11 +94,6 @@ def split_lemma_into_sentences(lemmas_file):
     lines = input_file.readlines()
     input_file.close()
     
-    # comment all the imports
-    logging.getLogger(__name__).debug("commenting all imports in " + lemmas_file)
-    lines = comment_imports(lines)
-        
-    #print(lines)    
     sentences = []
 
     started = False

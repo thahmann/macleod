@@ -49,7 +49,7 @@ class ClifModule(object):
         
         self.set_module_name(name)
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
-        # remove any obsolete URL prefix as specified in the configuration file
+        # remove any obsolete URL ending as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
             self.module_name = os.path.normpath(self.module_name.replace(filemgt.read_config('cl','ending'),''))
             
@@ -273,20 +273,8 @@ class ClifModule(object):
             self.p9_file_name = filemgt.get_full_path(self.module_name,
                                                        folder=filemgt.read_config('ladr','folder'),
                                                        ending=filemgt.read_config('ladr','ending'))
-            cmd = commands.get_clif_to_ladr_cmd(self)
-            process.executeSubprocess(cmd)
+            self.get_translated_file(self.p9_file_name, "LADR")
             logging.getLogger(__name__).info("CREATED LADR TRANSLATION: " + self.p9_file_name)
-            
-            p9_file = open(self.p9_file_name,'r')
-            lines = p9_file.readlines()
-            p9_file.close()
-            lines = ladr.comment_imports(lines)
-            #print "".join(lines)
-            p9_file = open(self.p9_file_name,'w')
-            p9_file.writelines(lines)
-            p9_file.close()
-            logging.getLogger(__name__).debug("COMMENTED IMPORTS IN LADR FILE: " + self.p9_file_name)
-             
         return self.p9_file_name
 
 
@@ -298,16 +286,22 @@ class ClifModule(object):
             self.tptp_file_name = filemgt.get_full_path(self.module_name,
                                                        folder=filemgt.read_config('tptp','folder'),
                                                        ending=filemgt.read_config('tptp','ending'))
-            
-            tptp_sentences = clif.to_tptp([self.clif_processed_file_name])
-            tptp_file = open(self.tptp_file_name, 'w')
-            tptp_file.writelines([t+"\n" for t in tptp_sentences])
-            tptp_file.close()
-
+                         
+            self.get_translated_file(self.tptp_file_name, "TPTP")
             logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + self.tptp_file_name)
-             
         return self.tptp_file_name
-    
+
+    def get_translated_file(self, output_file_name, language):
+#        try:
+        sentences = clif.translate_sentences([self.clif_processed_file_name], language)
+        output_file = open(output_file_name, 'w')
+        output_file.writelines([t+"\n" for t in sentences])
+        output_file.close()
+        return True
+#        except:
+#            logging.getLogger(__name__).error("PROBLEM CREATING TRANSLATION: " + str(output_file_name))
+
+        
     """
     Find sentences in a definitional module (in the current module only) that are obviously faulty, e.g. that introduce no new symbols or that introduce more than one new symbol. 
     It does not check whether a specific definition is an explicit definition (of the form P(x,...) <=> ...) or whether the newly defined symbols are completely defined.

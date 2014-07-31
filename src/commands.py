@@ -41,8 +41,7 @@ def get_empty_cmd():
     return ""
 
 def get_p9_cmd (imports,output_stem, option_files = None):
-    """get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance. 
-    This invokes the clif_to_ladr translation if necessary."""
+    """get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance."""
 
     args = []
     args.append(filemgt.read_config('prover9','command'))
@@ -59,8 +58,7 @@ def get_p9_cmd (imports,output_stem, option_files = None):
     
 
 def get_m4_cmd (imports,output_stem):
-    """get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance. 
-    This invokes the clif_to_ladr translation if necessary."""
+    """get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance."""
 
     args = []
     args.append(filemgt.read_config('mace4','command'))
@@ -105,13 +103,6 @@ def get_vampire_cmd (imports,ouput_stem):
     args.append(filemgt.read_config('vampire','timeout'))
 
     return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])
-
-
-def get_clif_to_ladr_cmd (module):
-    cmd = (filemgt.read_config('converters','clif-to-prover9') + ' ' + 
-            module.clif_processed_file_name + ' > ' + 
-            module.p9_file_name)
-    return cmd
 
 
 def get_ladr_to_tptp_cmd (input_file_name, output_file_name):
