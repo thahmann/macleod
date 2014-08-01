@@ -12,7 +12,7 @@ LOGGER = None
 CONFIG_PARSER = None
 log_config_file = 'logging.conf'
 config_file = 'macleod.conf'
-config_dir = 'conf'
+config_dir = 'C:\Reasoning\macleod\conf'
 
 subprocess_log_file = None
 
@@ -146,9 +146,11 @@ def get_full_path (module_name, folder=None, ending=''):
             path = os.path.abspath(os.path.join(path, folder))
             # create this folder if it does not exist yet
         if not os.path.exists(path):
-            print "Trying to create folder " + path
-            if os.mkdir(path):
-                print "Created folder " + path
+            try:
+                os.mkdir(path)
+                LOGGER.info('CREATED FOLDER: ' + path)
+            except OSError, e:
+                LOGGER.warn('COULD NOT CREATE FOLDER: ' + path + ' Error: ' + e)
         
         if module_name.endswith(ending):
             return os.path.abspath(os.path.join(path, module_name))
