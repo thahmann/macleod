@@ -53,7 +53,7 @@ def get_p9_cmd (imports,output_stem, option_files = None):
     if option_files:
         for f in option_files:
             args.append(f)
-    
+            
     return (args, [])
     
 
@@ -101,8 +101,15 @@ def get_vampire_cmd (imports,ouput_stem):
     args.append('tptp')
     args.append('-t')
     args.append(filemgt.read_config('vampire','timeout'))
-
-    return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])
+    # needed for Windows
+    args.append('--input_file')
+    args.append(list(imports)[0].get_module_set(imports).get_single_tptp_file(imports))
+    logging.getLogger(__name__).debug("COMMAND FOR vampire IS " + str(args))
+    # works for linux, not for Windows
+    #return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])
+    
+    return (args, [])
+    
 
 
 def get_ladr_to_tptp_cmd (input_file_name, output_file_name):
