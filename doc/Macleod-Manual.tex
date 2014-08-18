@@ -1,0 +1,154 @@
+\documentclass{article}
+
+\usepackage{url}
+\usepackage[margin=0.6in]{geometry}
+
+\title{Macleod: A Common Logic Environment for Ontology Development\\
+\begin{Large}
+--- Installation Instructions ---
+\end{Large}
+}
+
+\author{Torsten Hahmann}
+
+
+\begin{document}
+
+\maketitle
+
+\section{The COLORE tools}
+
+The Macleod tools have been developed to assist with ontology design, exploration, and verification by offering a set of scripts and associated tools that read ontologies specified in Common Logic, aggregate imported ontologies, translate them to the TPTP format (now the de-facto standard input format for automated theorem provers specified by the problem library ``Thousand Problems for Theorem Provers '' accessible at \url{tptp.org}) and the LADR format (used mainly by the automated theorem prover Prover9-Mace4), check their consistency and nontrivial consistency, and prove desired properties. Consistency checking and proving on properties relies on using existing theorem provers (currently Vampire and Prover9) and model finders (currently Paradox and Mace4) in parallel, looking for both a positive (``found a proof'' or ``found a model'') and negative answers (``found a counterexample'', ``proved inconsistency''). 
+
+The toolset's functionality can be easily extended by adding new scripts that build on existing functionality (such as translation and aggregation of modules) but also by plugging in additional theorem provers and model finders in a configuration file.
+All scripts can be run using either Windows and Linux.
+
+The purpose of this document is to provide step-by-step installation instructions and give a brief overview of the use of the configuration options and how to run scripts. 
+
+\section{Setup}
+
+Follow these instructions to install Macleod on a Windows machine (tested with Windows 7 and 8).  For installation on Linux, follow the same instructions but skip the Windows specific steps and replace all paths by appropriate Linux paths.
+
+\paragraph{Step 1: Install Python 2.7 and Python for Windows}
+You will need a local installation of Python 2.x (tested with 2.7.1 and 2.7.8; the scripts rely on libraries that will not work with Python 3.x). If you do not have Python 2 already installed, download and follow the instructions from \url{http://www.python.org/download/releases/2.7/}.
+For later reference, we assume that you install Python to the directory \texttt{C:\textbackslash Python27}.
+
+You will also need the ``Python for Windows extension'' (called \texttt{pywin32}) from \url{http://sourceforge.net/projects/pywin32/files/}. If your Python installation is 64-bit, choose the 64-bit version of pywin, otherwise use the 32-bit version of pywin.
+
+Finally, you will need to install the ``WMI module'', a wrapper for the Python for Windows extension (pywin32), from
+\url{http://timgolden.me.uk/python/wmi/index.html}.
+
+
+\paragraph{Step 2: Install Theorem Provers and Model Finders}
+
+You will need to locally install the theorem provers and model finders you which to use. While some functionality of Macleod works without them, proving properties or consistency relies on them.
+So far, Macleod has successfully utilized Prover9-Mace4, Paradox, and Vampire. 
+Due to licencing restrictions, the theorem provers and model finders cannot be distributed as part of Macleod and must be installed individually by the user. 
+
+For simplicity, we assume that the executables are placed in the common folder \texttt{C:\textbackslash Reasoning}. This includes \texttt{paradox3.exe}, \texttt{vampire\_win.exe}, and the \texttt{bin} folder from Prover9-Mace4, subsequently called  \texttt{prover9-bin}. 
+
+You can download Prover9-Mace4, see \url{http://www.cs.unm.edu/~mccune/mace4/download/} and Vampire from \url{http://www.vprover.org/download.cgi}. The sources for Paradox are available from \url{http://www.cse.chalmers.se/~koen/code/}. If you need the Windows binary, contact the author of Macleod.
+
+\paragraph{Step 3: Install Macleod}
+
+Download the Macleod sources from \url{https://github.com/thahmann/macleod} and copy the folders \texttt{conf}, \texttt{pyparsing}, \texttt{src}, and \texttt{tasks} to the directory \texttt{C:\textbackslash Reasoning\textbackslash macleod}.
+
+Depending on where you placed your Macleod installation and the theorem provers and model finders, you may need to edit the files
+\begin{itemize}
+\item \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash conf\textbackslash macleod\_win.conf}
+\item \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash conf\textbackslash logging.conf}
+\item \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash src\textbackslash filemgt.py}
+\end{itemize}
+in the following way. 
+
+Edit the following entries in \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash conf\textbackslash macleod\_win.conf}:
+\begin{itemize}
+\item  \texttt{path}, \texttt{subprocess\_log} in the section \texttt{system};
+\item \texttt{prover9}, \texttt{mace4}, \texttt{vampire}, \texttt{paradox} in the section \texttt{command};
+\item ensure that only the theorem provers and model finders that you installed locally are listed in the entries \texttt{provers} and \texttt{modelfinders} in the section \texttt{active}.
+\end{itemize}
+In \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash conf\textbackslash logging.conf}, you may need to edit the entries:
+\begin{itemize}
+\item \texttt{args} in the section \texttt{handler\_fHandler},
+\item \texttt{file}  in the section \texttt{subprocess\_logging}.
+\end{itemize}
+In \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash src\textbackslash filemgt.py}, you may need to edit the variable assignment \texttt{config\_dir = `C:\textbackslash Reasoning \textbackslash macleod \textbackslash conf'} on line 15.
+
+
+\paragraph{Step 4: Add directories to local PATH environment variable}
+
+Add the directories where the Python executable resides (\texttt{C:\textbackslash Python27}) to the \texttt{PATH} variable. In Windows, open \texttt{My Computer} (or \texttt{This PC}) \texttt{-> Properties -> Advanced System Settings -> Environment Variables} and add the path \texttt{C:\textbackslash Python27} to the variable \texttt{Path} either in \texttt{User variables} or \texttt{System variables}. If the variable already exists, add the directory to the end, using a semicolon as separator, otherwise create a new variable with that name. 
+
+Use the command ``echo \%PATH\%'' in the command line to ensure your edits are correct.
+
+\paragraph{Step 5: Add directories to local PYTHONPATH environment variables}
+
+In the same way as in the previous step, edit or create a variable called \texttt{PYTHONPATH}. You need to include the paths \texttt{C:\textbackslash Python27} and \texttt{C:\textbackslash Reasoning\textbackslash macleod} in \texttt{PYTHONPATH}.
+
+Again, use the command ``echo \%PYTHONPATH\%'' in the command line to ensure your edits are correct.
+
+Having the \texttt{PYTHONPATH} variable point to the folder of the Macleod installation will allow you to call scripts by their name, omitting the full path. For example, we can use (in Windows)
+\begin{verbatim}
+check\_consistency.py input\_file
+\end{verbatim}
+or (in Linux)
+\begin{verbatim}
+python -m check\_consistency input\_file
+\end{verbatim}
+instead of
+\begin{verbatim}
+python C:\Reasoning\macleod\scripts\check\_consistency. input\_file
+\end{verbatim}
+
+\paragraph{Editing your environment variables in Linux}
+If you are using the TC shell (\texttt{tcsh}) as your default shell in Linux, you can change the environment variables by the following to your configuration file \texttt{.tcshrc} located in your home directory.  Make sure that you keep all other directories that were previously in the \texttt{PATH} variable.
+\begin{verbatim}
+setenv PATH /usr/bin:/usr/local/bin/:/torsten/macleod/
+setenv PYTHONPATH /torsten/macleod
+\end{verbatim}
+
+
+\section{Configuration options}
+
+The following settings are configured in the main configuration file \texttt{C:\textbackslash Reasoning\textbackslash macleod\textbackslash conf\textbackslash macleod\_win.conf}.
+
+\subsection{Input Common Logic ontologies and ontology modules}
+
+The section \texttt{cl} contains the following entries:
+
+\begin{description}
+\item \texttt{prefix} the namespace that all ontologies are used and that is ignored when resolving imports in the ontology. For example, the default setting of \url{http://colore.oor.net} means when the ontology \url{http://colore.oor.net/multidim\_space\_codi/codi.clif}  is processed, the imported module \url{http://colore.oor.net/multidim\_space\_codi/codi\_basic.clif} is expected to be located in the same directory as the importing file \texttt{codi.clif}, while the imported module \url{http://colore.oor.net/multidim\_space\_cont/definitions/c.clif)} is expected to be located in the directory \texttt{..\textbackslash multidim\_space\_cont\textbackslash multidim\_space\_cont} relative to \texttt{codi.clif}'s location.
+\item \texttt{ending} the file name  ending that all ontology files are expected to have (default: \texttt{.clif})
+\item \texttt{definitions\_subfolder} the subfolder (relative to an ontology) that contains ontology modules whose only purpose is to define a new symbol. This information is only used to distinguish primitive from defined symbols in the ontologies. 
+\item \texttt{theorems\_subfolder}  the subfolder (relative to an ontology) where each ontology module contains one or multiple properties that we would like to prove about an ontology. Those modules most import the ontology that the belong to. 
+\item \texttt{interpretations\_subfolder} the subfolder (relative to an ontology) where relative interpretations relationships to other ontologies are located  \textbf{Currently not in use}
+\item \texttt{consistency\_subfolder} the subfolder (relative to an ontology) where logical extensions that test for nontrivial consistency will be placed. 
+\item \texttt{mappings\_subfolder} the subfolder (relative to an ontology) where mappings of all its symbols in terms of another ontology's symbols are located \textbf{Currently not in use}.
+\end{description}
+
+
+\subsection{Translations}
+For the translations to LADR and TPTP syntax, the sections \texttt{ladr} and \texttt{tptp} specify the folder where all translations are placed (relative to the original Common Logic file's location, \texttt{conversions} by default) and the ending that is automatically assigned (by default \texttt{.p9} and \texttt{.tptp}. The entry \texttt{all\_ending} specifies the additional name that is added to a cumulative translation of a Common Logic ontology. Such a cumulative translation contains the axioms of all imported ontology modules as well. Setting this configuration to \texttt{.all} as by default results in the file \texttt{ontology.clif} to be translated to \texttt{conversions\textbackslash ontology.all.tptp}.
+
+\subsection{Symbol Replacements}
+
+While Common Logic is very flexible in the use of non-alphanumeric names for relations, functions, and constants, TPTP is not. For this reason, all relation, function, and constants with non-alphanumeric names are substituted automatically with names of the form \texttt{clifsymX} where X is a numeric identifier. Often, this makes the translations much less accessible to humans. For this reason, one can specify more meaningful replacements in \texttt{src\textbackslash clif.py} using the variable \texttt{SYMBOL\_TRANSLATIONS} starting on line 55. The variables is a set of pairs, the first element indicated the symbol to be replaced and the second element its alphanumeric replacement symbol.
+
+\section{Tasks}
+
+\subsection{Translating a Common Logic theory to Prover9 syntax}
+
+Use the script \texttt{clif\_to\_ladr.py} to translate an ontology to the LADR syntax.  
+All imported modules are also translated, each module is located in a subdirectory (as specified by the entry \texttt{folder} in the \texttt{ladr} section of the configuration, the subdirectory is called ``conversions'' by default) from where the original Common Logic file is located.
+
+The available options restrict the translation to a single ontology and its imports (\texttt{-single}) or to a single ontology module (\texttt{-module}). If all translations are to be cumulated into a single output file, use the option \texttt{-cumulate}.
+
+If one wants to translate all ontologies within a folder (and, recursively, all its subfolders), the script \texttt{clif\_to\_ladr\_all.py} can be used. All options (currently \texttt{-single}, \texttt{-module}, \texttt{-cumulate}) available for \texttt{clif\_to\_ladr.py} can be used.
+
+
+\subsection{Translating a Common Logic theory to TPTP syntax}
+
+Use the scripts \texttt{clif\_to\_tptp.py} and \texttt{clif\_to\_tptp\_all.py} to translate an ontology or a set of ontologies to the TPTP syntax. The same options as for \texttt{clif\_to\_ladr.py} are available. 
+
+
+\end{document}
