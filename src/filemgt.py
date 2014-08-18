@@ -254,6 +254,7 @@ def module_is_theorem_set (module_name):
     
 
 def get_tptp_symbols ():
+    global CONFIG_PARSER
     """get all options and their values from a section as a dictionary."""
     options = {}
     if not CONFIG_PARSER:
