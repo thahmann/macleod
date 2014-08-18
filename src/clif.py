@@ -51,7 +51,9 @@ LADR_QUANTIFIER_SUBSTITUTIONS = {CLIF_UNIVERSAL:'all', CLIF_EXISTENTIAL:'exists'
 
 LADR_SUBSTITUTIONS = [LADR_UNARY_SUBSTITUTIONS, LADR_NARY_SUBSTITUTIONS, LADR_BINARY_SUBSTITUTIONS, LADR_QUANTIFIER_SUBSTITUTIONS] 
 
-SYMBOL_TRANSLATIONS = {'<': 'less',
+# TODO: need to read translations from file
+SYMBOL_TRANSLATIONS = {'<': 'lt',
+                    '>': 'gt',
 					'<=': 'leq',
 					'>=': 'geq'}
 
@@ -431,7 +433,7 @@ def translate_sentences (input_file_names, language, axiom=True):
 	def get_ladr_ending():
 		return "end_of_list."
 	
-	logging.getLogger(__name__).info("Translating to " + language)
+	#logging.getLogger(__name__).info("Translating to " + language)
 	
 	sentences = []
 	for file_name in input_file_names:
@@ -554,6 +556,8 @@ def replace_logical_connectives (pieces, nonlogical_symbols, language):
 		pieces[i] = replacement
 		#print "RETURNING: " +  pieces[i]
 	
+	if len(pieces)==1:
+		raise ClifParsingError("missing argument for logical connective or predicate '" + pieces[0])
 	
 	if len(pieces)==2:
 		#sentence = pieces[0].strip('(').strip(')')
