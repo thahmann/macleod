@@ -371,7 +371,10 @@ def get_nonlogical_symbol_arity (input_file_name, symbol):
 			del pieces[0]
 			if found_symbol==symbol:
 				if not arity:
-					arity = len(pieces) # set the arity
+					if len(pieces)>0:
+						arity = len(pieces) # set the arity
+					else:
+						arity = 0
 					#logging.getLogger(__name__).info("Nonlogical symbol: " + symbol + " has arity " + str(arity))
 				elif arity!=len(pieces):
 					raise ClifParsingError("the symbol "+ symbol + " is used with two different arities: " + str(arity) +" and " + str(len(pieces)))
@@ -404,7 +407,7 @@ def get_nonlogical_symbol_arity (input_file_name, symbol):
 
 
 def translate_sentences (input_file_names, language, axiom=True):
-	"""Translates a set of Clif files to TPTP syntax.
+	"""Translates a set of Clif files to TPTP or LADR syntax.
 	All sentences are treated as FOL sentences in the segregated dialect of CLIF.
 	Quantifying over relations or functions is currently not supported.
 	All nonlogical symbols are converted to lowercase. 
@@ -565,7 +568,7 @@ def replace_logical_connectives (pieces, nonlogical_symbols, language):
 		for connective in UNARY_SUBSTITUTIONS.keys():
 			if connective==pieces[0]:
 				pieces[0] = pieces[0].replace(connective, UNARY_SUBSTITUTIONS[connective] + " ")
-				sentence = "(" + pieces[0] + pieces[1] + ")"
+				sentence = pieces[0] + "(" + pieces[1] + ")"
 				#print "UNARY: " + sentence
 				return sentence
 		
