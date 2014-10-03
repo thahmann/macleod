@@ -150,7 +150,7 @@ def get_full_path (module_name, folder=None, ending=''):
                 os.mkdir(path)
                 LOGGER.info('CREATED FOLDER: ' + path)
             except OSError, e:
-                LOGGER.warn('COULD NOT CREATE FOLDER: ' + path + ' Error: ' + e)
+                LOGGER.warn('COULD NOT CREATE FOLDER: ' + path + ' Error: ' + str(e))
         
         if module_name.endswith(ending):
             return os.path.abspath(os.path.join(path, module_name))
