@@ -206,14 +206,25 @@ class ClifModule(object):
         long_repr = (self.module_name
                 + ' (depth=' + str(self.get_depth())
                 + ', parents: ' + str(self.get_parents()))
-                
+
+        long_repr +=  ')'
+        long_repr += '\n'
+        
         if self.module_set.completely_processed:
             if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
-                long_repr += ', defines:'
+                long_repr += '| '
+                for _ in range(self.get_depth()):
+                    long_repr += '    '
+                long_repr += '  + Defines symbols:'
                 for (symbol, arity) in self.get_defined_symbols():
                     long_repr += ' ' + str(symbol) + '(' + str(arity) +')'
-        long_repr +=  ')'
-            
+                long_repr += '\n'
+        long_repr += '| '
+        for _ in range(self.get_depth()):
+            long_repr += '    '
+        long_repr += '  + Uses symbols: '
+        for (symbol, arity) in self.get_nonlogical_symbols():
+            long_repr += ' ' + str(symbol) + '(' + str(arity) +')'
         return long_repr
 
     def shortstr(self):

@@ -110,8 +110,10 @@ class ClifModuleSet(object):
         for n in imports:
             indent = ''
             for _ in range(n.get_depth()):
-                indent += "--"
-            print '|-'+indent+ str(n)+'\n|'
+                indent += "----"
+            print '|-' + indent + str(n)
+            print '|'
+            print '|'
 
         print "+++++++++++++++++++++\n"
     
@@ -215,7 +217,7 @@ class ClifModuleSet(object):
         if self.completely_processed:
             for i in self.imports:
                 self.defined_nonlogical_symbols.update(i.get_defined_symbols())
-            #print "Defined symbols: " + str(self.defined_nonlogical_symbols)
+            print "Defined symbols: " + str(self.defined_nonlogical_symbols)
             return self.defined_nonlogical_symbols
         else:
             return False

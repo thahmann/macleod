@@ -180,7 +180,7 @@ def get_canonical_relative_path (path):
             path = path.replace(prefix,'',1)
     if path.endswith(read_config('cl','ending')):
         path = path.rsplit(read_config('cl','ending'),1)[0]
-    return path
+    return os.path.normcase(path)
         
 
 def get_path_with_ending_for_nontrivial_consistency_checks (module_name):
@@ -199,6 +199,7 @@ def get_path_with_ending_for_nontrivial_consistency_checks (module_name):
     
 def	get_hierarchy_name (module_name):
     """determines the part of the module_name that denotes the hierarchy."""
+    module_name = os.path.normcase(module_name)
     if os.sep in module_name:
         path = module_name.rsplit(os.sep,1)[0]
         sentence_type = get_type(module_name)
@@ -212,6 +213,7 @@ def	get_hierarchy_name (module_name):
 
 def get_type (module_name):
     """determines whether this is a axiom, definition, mapping, theorem, etc. file"""
+    module_name = os.path.normcase(module_name)
     if os.sep in module_name:
         path = module_name.rsplit(os.sep,1)[0]
         if os.sep in path:
