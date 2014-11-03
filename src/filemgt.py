@@ -55,6 +55,8 @@ def find_macleod_config():
             new_basename = basename[0]
             if os.name == 'nt':
                 new_basename += "_win"
+			elif (os.name == 'posix'):
+				new_basename += "_mac"
             else:
                 new_basename += "_linux"
             new_basename += "." + basename[1]
