@@ -71,7 +71,7 @@ class ClifModule(object):
         logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
         logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
         
-        clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
+        clif.remove_all_comments(self.clif_file_name, self.clif_processed_file_name)
         
         
         self.imports = clif.get_imports(self.clif_processed_file_name)

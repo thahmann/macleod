@@ -10,9 +10,9 @@ from ConfigParser import SafeConfigParser
 
 LOGGER = None
 CONFIG_PARSER = None
-log_config_file = 'logging.conf'
-config_file = 'macleod.conf'
-config_dir = 'C:\Reasoning\macleod\conf'
+log_config_file = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/logging.conf'
+config_file = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/macleod_mac.conf'
+config_dir = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/'
 
 subprocess_log_file = None
 
@@ -55,8 +55,8 @@ def find_macleod_config():
             new_basename = basename[0]
             if os.name == 'nt':
                 new_basename += "_win"
-			elif (os.name == 'posix'):
-				new_basename += "_mac"
+	    elif (os.name == 'posix'):
+		new_basename += "_mac"
             else:
                 new_basename += "_linux"
             new_basename += "." + basename[1]
@@ -67,7 +67,7 @@ def find_macleod_config():
 def find_log_config():
     global log_config_file
     """tries to find the MacLeod logging configuration file."""
-    log_config_file = find_config(log_config_file)
+    #log_config_file = find_config(log_config_file)
     #print("Log config file found: " + log_config_file)
          
 

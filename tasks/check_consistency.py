@@ -4,11 +4,13 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
+import sys
+sys.path.append("/Users/rpskillet/Dropbox/Code/GitHub/rocleod")
+
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
-import sys, logging
+import logging
 
-    
 def consistent(filename, options=[]):  
     m = ClifModuleSet(filename)
      
