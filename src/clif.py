@@ -190,6 +190,7 @@ def remove_all_comments(input_file, output_file):
 		except IOError:
 			single_file.close()
 		except ClifParsingError as e:
+		        print "COWSSS"
 			logging.getLogger(__name__).error(e)
 			single_file.close()
 			lines = []
@@ -280,7 +281,8 @@ def get_sentences (text):
 	from pyparsing import nestedExpr, ParseException  
 	try:
 		pieces = nestedExpr('(',')').parseString(text)
-	except ParseException:
+	except ParseException as e:
+		logging.getLogger(__name__).error(e)
 		raise ClifParsingError("input is not valid Clif format, ensure that parentheses match\n\n" + text)
 		return        
 	if len(pieces)!=1:
