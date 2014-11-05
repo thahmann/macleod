@@ -9,9 +9,6 @@ import subprocess
 import sys
 import time
 
-#Fix for mac
-import math
-
 
 class ReasonerProcess(multiprocessing.Process):
 	

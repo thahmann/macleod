@@ -10,9 +10,9 @@ from ConfigParser import SafeConfigParser
 
 LOGGER = None
 CONFIG_PARSER = None
-log_config_file = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/logging.conf'
-config_file = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/macleod_mac.conf'
-config_dir = '/Users/rpskillet/Dropbox/Code/Github/rocleod/conf/'
+log_config_file = '../conf/logging.conf'
+config_file = '../conf/macleod_mac.conf'
+config_dir = '../conf/'
 
 subprocess_log_file = None
 
