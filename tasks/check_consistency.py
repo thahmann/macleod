@@ -5,7 +5,7 @@ Created on 2013-03-19
 '''
 
 import sys
-sys.path.append("/Users/rpskillet/Dropbox/Code/GitHub/rocleod")
+sys.path.append("../")
 
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
