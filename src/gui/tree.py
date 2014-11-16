@@ -11,19 +11,109 @@ from Tkinter import *
 import ttk
 # Bootstrapped GUI Stuff -- Will be pushed into gui_alpha.py
 
+class Tree(object):
+    """ Drawable extension of the ClifModuleSet """
+
+    def __init__(self, canvas, clif_set):
+        """ Create a tree with a canvas to draw on and the root node """
+
+        self.canvas = canvas
+        self.max_width = canvas.winfo_width()
+        self.clif_set = clif_set
+        self.root = clif_set.imports(clif_set.module_name)
+        self.levels = []
+
+#    def generate_tree(self):
+#        """ Take a ClifModuleSet and translate it to a generic tree """
+#
+#        self.root = Node(self.canvas, 0, [], None, \
+#                self.clif_set.imports(self.clif_set.module_name))
+#
+#        queue = []
+#        queue.append([self.clif_set.imports(self.clif_set.module_name)])
+#        while queue:
+#            current_level = queue.pop(0)
+#            next_level = []
+#            for node in current_level:
+#                ### Create a new node for the tree ###
+#                node_children = []
+#                node_depth = node.depth
+#                if node.parents: node_parent = node.parents
+#                else: node_parent = None
+#
+#                self.nodes.append(Node(self.canvas, node_depth, node_parent, node_children))
+#
+#                ### End of new node creation ###
+#                next_level += node.children
+#            queue.append(next_level)
+#
+#        for node in self.clif_set.imports:
+#            node_name = node.module_name
+#            node_depth = node.depth
+#            node_canvas = self.canvas
+
+    def layer_tree(self):
+        """ A BFS search to draw each level of tree """
+
+        queue = []
+        queue.append([self.root])
+        while queue:
+            current_level = queue.pop(0)
+            self.levels.append(current_level)
+            next_level = []
+            for node in current_level:
+                next_level += list(node.imports)
+            queue.append(next_level)
+
+    def weight_level(self):
+        """ Traverse through the levels and weight each node """
+
+        #TODO: It's called recursion, I should learn to use it...
+        for level in reversed(self.levels):
+            for node in level:
+                if len(node.imports <= 1):
+                    node.width = 5
+                else:
+                    for child in node.imports:
+                        node.width += child.width
+
+    def draw_tree(self):
+        """ Draw the tree from the top down with correct spacing """
+
+        for level in self.levels:
+            sorted_level = sorted(level, key=lambda n: n.width, reverse=True)
+            spacer = -sorted_level[0].width
+            for node in sorted_level:
+                node.get_coordinates(spacer)
+                spacer += node.width
+
+
 class Node(object):
     """ Basic abstraction for each ClifModule """
 
-    def __init__(self, canvas, center_x, center_y):
+    def __init__(self, canvas, depth, children, parent, module):
         """ Create a node """
-        #TODO: Do something with the ClifModule
+        #TODO: Remember to translate to a ClifModule
 
         self.canvas = canvas
-        self.x = center_x
-        self.y = center_y
+        self.depth = depth
+        self.children = children
+        self.parent = parent
+        self.x = 0
+        self.y = 0
+        self.module = module
 
-    def draw(self, size=50):
-        """ Draw a node as a rectangle about its center """
+    def get_coordinates(self, offset, modifier=10):
+        """ Establish a nodes correct coordinates """
+
+        self.y = self.depth * modifier
+        if self.parent:
+            self.x = self.parent.x + offset
+
+        self.draw()
+
+    def draw(self, size=10):
+        """ Call to Tkinter to draw the node on a canvas """
 
         self.canvas.create_rectangle(self.x - size, self.y - size, \
                 self.x + size, self.y + size)
