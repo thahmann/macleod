@@ -6,9 +6,11 @@ Created on 2013-03-19
 
 import sys
 sys.path.append("../")
+sys.path.append("../src/")
 
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
+from gui.tree import Tree
 import logging
 
 def consistent(filename, options=[]):  
@@ -53,4 +55,9 @@ if __name__ == '__main__':
     options.reverse()
     options.pop()
     filename = options.pop()
-    consistent(filename, options)
+    M = consistent(filename, options)
+
+    """More of ROB's TEST STUFF"""
+    GUI(M)
+    
+

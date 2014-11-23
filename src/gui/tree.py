@@ -85,6 +85,7 @@ class Tree(object):
             spacer = -sorted_level[0].width
             for node in sorted_level:
                 node.get_coordinates(spacer)
+                node.draw(self.canvas)
                 spacer += node.width
 
 
@@ -119,15 +120,17 @@ class Node(object):
                 self.x + size, self.y + size)
 
 
-def main():
+def GUI(SET):
     """ Main method to launch the app """
 
     root = Tk()
     frame = ttk.Frame(root)
     canvas = Canvas(frame)
 
-    test_node = Node(canvas, 50, 50)
-    test_node.draw(25)
+    t = Tree(canvas, SET)
+    t.layer_tree()
+    t.weight_level()
+    t.draw_tree()
 
     canvas.pack(fill=BOTH, expand=1)
     frame.grid(column=0, row=0)

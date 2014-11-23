@@ -12,6 +12,13 @@ class ClifModule(object):
     classdocs
     '''
     def __init__(self,name,depth=None):
+
+        """ Quick tree test ROB """
+        self.width = 5
+        self.x = 0
+        self.y = 0
+        """ End of ROB's stuff """
+
         '''
         Constructor
         '''
@@ -57,7 +64,22 @@ class ClifModule(object):
             
         self.preprocess_clif_file()
 
+    """ MORE OF ROB'S QUICK TEST STUFF """
+    def get_coordinates(self, offset, modifier=10):
+        """ Establish a nodes correct coordinates """
 
+        self.y = self.depth * modifier
+        if self.parent:
+            self.x = self.parent.x + offset
+
+        self.draw()
+
+    def draw(self, canvas, size=10):
+        """ Call to Tkinter to draw the node on a canvas """
+
+        self.canvas.create_rectangle(self.x - size, self.y - size, \
+                self.x + size, self.y + size)
+    """ END OF THE QUICK TEST STUFF """
 
     def preprocess_clif_file (self):
         # add the standard ending for CLIF files to the module name
