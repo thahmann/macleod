@@ -23,22 +23,36 @@ class GUI(Frame):
     def load_window(self):
         """ Setup the with placeholders for stuff """
 
+        style = ttk.Style()
+        style.theme_use('default')
+
         left_pane = Frame(self, relief=RAISED, borderwidth=1)
-        label_1 = Label(left_pane, text="File Browser", height=20)
+        label_1 = Label(left_pane, text="File Browser")
         label_1.pack(fill=BOTH)
         left_pane.grid(row=1, column=1, rowspan=2, sticky=E+W+S+N)
 
-        right_top_pane = Frame(self, borderwidth=1, relief=SUNKEN)
-        label_2 = Label(right_top_pane, text="TREE", width=20)
-        label_2.pack(fill=BOTH)
-        right_top_pane.grid(row=1, column=2, sticky=E+W+S+N)
+        notebook = ttk.Notebook(self, name='cool Stuff')
+        notebook.grid(row=1, column=2, rowspan=2, stick=E+W+S+N)
 
-        right_bottom_pane = Frame(self, borderwidth=1, relief=SUNKEN)
-        button_consist = Button(right_bottom_pane, text="Check Consistency")
-        button_other = Button(right_bottom_pane, text="Other Thing")
+        first_tab = Frame(notebook)
+        first_tab.pack(fill=BOTH)
+        notebook.add(first_tab, text="Visual")
+
+        top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
+        label_2 = Label(top_pane, text="TREE")
+        label_2.pack(fill=BOTH)
+        top_pane.pack(fill=BOTH, expand=1)
+
+        bottom_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
+        button_consist = Button(bottom_pane, text="Check Consistency")
+        button_other = Button(bottom_pane, text="Other Thing")
         button_consist.pack(side=LEFT)
         button_other.pack(side=LEFT)
-        right_bottom_pane.grid(row=2, column=2, sticky=E+W+S+N)
+        bottom_pane.pack(fill=BOTH, expand=1)
+
+        second_tab = Frame(notebook)
+        second_tab.pack(fill=BOTH)
+        notebook.add(second_tab, text="Summary")
 
         self.pack(fill=BOTH)
 
@@ -46,6 +60,7 @@ def main():
     """ Create a new GUI object """
 
     root = Tk()
+    root.geometry("500x700")
     app = GUI(root)
     root.mainloop()
 
