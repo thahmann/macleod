@@ -53,7 +53,7 @@ class GUI(Frame):
         notebook.add(first_tab, text="Visual")
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
-        canvas = Canvas(top_pane)
+        canvas = Canvas(top_pane, width=500, height=500)
         canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
 
@@ -75,7 +75,7 @@ def main():
     """ Create a new GUI object """
 
     root = Tk()
-    root.geometry("500x700")
+    root.geometry("800x800")
     app = GUI(root)
     root.mainloop()
 

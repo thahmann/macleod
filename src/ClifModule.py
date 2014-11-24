@@ -14,8 +14,8 @@ class ClifModule(object):
     def __init__(self,name,depth=None):
 
         """ Quick tree test ROB """
-        self.width = 5
-        self.x = 0
+        self.width = 10 
+        self.x = 50 
         self.y = 0
         """ End of ROB's stuff """
 
@@ -65,20 +65,23 @@ class ClifModule(object):
         self.preprocess_clif_file()
 
     """ MORE OF ROB'S QUICK TEST STUFF """
-    def get_coordinates(self, offset, modifier=10):
+    def get_coordinates(self, offset, modifier=50):
         """ Establish a nodes correct coordinates """
 
         print "Been here a few times!"
+        print self.module_name
 
         self.parents = self.get_parents_as_modules()
 
         self.y = self.depth * modifier
-        if list(self.parents)[0]:
-            self.x = list(self.parents)[0].x + offset
+        if self.parents:
+            self.x = list(self.parents)[0].x + offset + 400
 
 
     def draw(self, canvas, size=10):
         """ Call to Tkinter to draw the node on a canvas """
+
+        print "DRAWING SOMETHING"
 
         canvas.create_rectangle(self.x - size, self.y - size, \
                 self.x + size, self.y + size)

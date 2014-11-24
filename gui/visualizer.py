@@ -74,7 +74,7 @@ class Tree(object):
         for level in reversed(self.levels):
             for node in level:
                 if len(node.get_imports_as_modules()) <= 1:
-                    node.width = 5
+                    node.width = 10
                 else:
                     for child in node.get_imports_as_modules():
                         node.width += child.width
@@ -85,6 +85,7 @@ class Tree(object):
         for level in self.levels:
             sorted_level = sorted(level, key=lambda n: n.width, reverse=True)
             spacer = -sorted_level[0].width
+            print spacer
             for node in sorted_level:
                 node.get_coordinates(spacer)
                 node.draw(self.canvas)
@@ -117,6 +118,8 @@ class Node(object):
 
     def draw(self, size=10):
         """ Call to Tkinter to draw the node on a canvas """
+
+        print "I'm DRAWING SOMETHING!"
 
         self.canvas.create_rectangle(self.x - size, self.y - size, \
                 self.x + size, self.y + size)
