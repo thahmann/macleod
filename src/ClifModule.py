@@ -68,16 +68,19 @@ class ClifModule(object):
     def get_coordinates(self, offset, modifier=10):
         """ Establish a nodes correct coordinates """
 
-        self.y = self.depth * modifier
-        if self.parent:
-            self.x = self.parent.x + offset
+        print "Been here a few times!"
 
-        self.draw()
+        self.parents = self.get_parents_as_modules()
+
+        self.y = self.depth * modifier
+        if list(self.parents)[0]:
+            self.x = list(self.parents)[0].x + offset
+
 
     def draw(self, canvas, size=10):
         """ Call to Tkinter to draw the node on a canvas """
 
-        self.canvas.create_rectangle(self.x - size, self.y - size, \
+        canvas.create_rectangle(self.x - size, self.y - size, \
                 self.x + size, self.y + size)
     """ END OF THE QUICK TEST STUFF """
 
@@ -154,7 +157,12 @@ class ClifModule(object):
 #                         self.depth=module.depth+1
 #                         print "new depth = " + str(self.depth)
         return self.parents
-            
+
+    def get_parents_as_modules (self):
+        """ Return a set of parents as modules """
+        parent_names = self.get_parents()
+        return [self.module_set.get_import_by_name(i) for i in parent_names]
+        
     """returns the set of immediate imports."""
     def get_imports (self):
         return self.imports

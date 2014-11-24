@@ -5,8 +5,22 @@ High-level overview of graphical element to be added to Macleod
 
 """
 
+import sys
+sys.path.append("../tasks")
+
+from visualizer import *
+from check_consistency import *
 from Tkinter import *
 import ttk
+
+def consistency(canvas):
+    """ Run a hardcoded consistent() """
+
+    M = consistent("codi/codi")
+    t = Tree(canvas, M[1])
+    t.layer_tree()
+    t.weight_level()
+    t.draw_tree()
 
 class GUI(Frame):
     """ The object representing our GUI """
@@ -39,12 +53,13 @@ class GUI(Frame):
         notebook.add(first_tab, text="Visual")
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
-        label_2 = Label(top_pane, text="TREE")
-        label_2.pack(fill=BOTH)
+        canvas = Canvas(top_pane)
+        canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
 
         bottom_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
-        button_consist = Button(bottom_pane, text="Check Consistency")
+        button_consist = Button(bottom_pane, text="Check Consistency", \
+                command=lambda: consistency(canvas))
         button_other = Button(bottom_pane, text="Other Thing")
         button_consist.pack(side=LEFT)
         button_other.pack(side=LEFT)

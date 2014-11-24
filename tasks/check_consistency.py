@@ -9,7 +9,7 @@ sys.path.append("../")
 
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
-from src.tree import Tree
+
 import logging
 
 def consistent(filename, options=[]):  
@@ -56,7 +56,5 @@ if __name__ == '__main__':
     filename = options.pop()
     M = consistent(filename, options)
 
-    """More of ROB's TEST STUFF"""
-    GUI(M)
     
 

@@ -20,7 +20,7 @@ class Tree(object):
         self.canvas = canvas
         self.max_width = canvas.winfo_width()
         self.clif_set = clif_set
-        self.root = clif_set.imports(clif_set.module_name)
+        self.root = clif_set.get_top_module()
         self.levels = []
 
 #    def generate_tree(self):
@@ -57,24 +57,26 @@ class Tree(object):
 
         queue = []
         queue.append([self.root])
-        while queue:
+        while queue != [[]]:
+            print queue
             current_level = queue.pop(0)
             self.levels.append(current_level)
             next_level = []
             for node in current_level:
-                next_level += list(node.imports)
+                next_level += list(node.get_imports_as_modules())
             queue.append(next_level)
 
     def weight_level(self):
         """ Traverse through the levels and weight each node """
 
         #TODO: It's called recursion, I should learn to use it...
+        print self.levels
         for level in reversed(self.levels):
             for node in level:
-                if len(node.imports <= 1):
+                if len(node.get_imports_as_modules()) <= 1:
                     node.width = 5
                 else:
-                    for child in node.imports:
+                    for child in node.get_imports_as_modules():
                         node.width += child.width
 
     def draw_tree(self):
