@@ -6,11 +6,10 @@ Created on 2013-03-19
 
 import sys
 sys.path.append("../")
-sys.path.append("../src/")
 
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
-from gui.tree import Tree
+from src.tree import Tree
 import logging
 
 def consistent(filename, options=[]):  
