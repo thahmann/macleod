@@ -75,7 +75,6 @@ class VisualArborist(Arborist):
         Arborist.__init__(self)
         self.canvas = canvas
         self.max_width = 600
-        print 'HERE IT IS!', self.max_width
 
 
     def gather_nodes(self, clif_set):
@@ -92,12 +91,15 @@ class VisualArborist(Arborist):
         for node in nodes:
             node.set_visual_parent()
             node.set_visual_children()
-            if len(node.visual_children) <= 1:
-                pass
+            if len(node.visual_children) == 0:
+                node.width = 40
+            elif len(node.visual_children) == 1:
+                node.width = node.visual_children[0].width
             else:
+                # Don't count nodes own width
+                node.width -= 40
                 for child in node.visual_children:
                     node.width += child.width
-            print node.name, node.width
 
     def layout_tree(self):
         """ Layout the tree by setting the coordinates for each node """
@@ -113,20 +115,20 @@ class VisualArborist(Arborist):
                 levels[node.depth] = [node]
 
         for level_index in sorted(levels, key=lambda n: int(n)):
-            level = levels[level_index]
-            level_width = 0
-            offset = 0
-
-            for node in level:
-                level_width += node.width
+            level = sorted(levels[level_index], key=lambda n: n.width, \
+                    reverse=True)
 
             for node in level:
                 if node.visual_parent is not None:
-                    node.x_pos = node.visual_parent.x_pos - (0.5 * level_width)\
-                            + (0.5 * node.width) + offset
-                    offset += node.width
-                    node.y_pos = node.visual_parent.y_pos + node.width 
-                    print node.width
+                    if len(node.visual_parent.visual_children) == 1:
+                        node.x_pos = node.visual_parent.x_pos
+                    else:
+                        node.x_pos = node.visual_parent.x_pos - \
+                                (0.5 * node.visual_parent.width) + \
+                                node.visual_parent.offset
+
+                    node.visual_parent.offset += node.width
+                    node.y_pos = node.visual_parent.y_pos + 40
 
     def draw_tree(self):
         """ Use Tkinter to draw the nodes on canvas """
@@ -173,13 +175,31 @@ class VisualNode(Node):
         self.y_pos = 0
         self.visual_parent = None
         self.visual_children = []
-        self.width = 40
+        self.width = 0
         self.offset = 0
+        self.information = {}
+        self.child_links = []
+        self.parent_links = []
 
     def on_click(self, event):
         """ What to do when a visual node is clicked """
-        print 'You clicked me! I am', self.name
-        print event.widget.find_closest(event.x, event.y)
+        print '-----------------------------'
+        print 'Name:', self.name
+        print 'Parent:', self.visual_parent.name
+        print '# of children:', len(self.children)
+        print '# of visual children:', len(self.visual_children)
+        print 'x:', self.x_pos, 'y:', self.y_pos
+        print '-----------------------------'
+
+    def on_enter(self, event):
+        """ Draw all child links of node """
+        
+        self.draw_all_links()
+
+    def on_leave(self, event):
+        """ Do stuff when mouse outta box """
+
+        self.hide_all_links()
 
     def set_visual_parent(self):
         """ Set the visual parent to the parent who is depth-- above """
@@ -208,9 +228,12 @@ class VisualNode(Node):
     def draw(self, size=10):
         """ Call to Tkinter to draw the node on a canvas """
 
-        self.box = self.canvas.create_rectangle(self.x_pos - size, self.y_pos - size, \
-                self.x_pos + size, self.y_pos + size, activefill='blue')
+        self.box = self.canvas.create_rectangle(self.x_pos - size, \
+                self.y_pos - size, self.x_pos + size, self.y_pos + size, \
+                activefill='grey')
         self.canvas.tag_bind(self.box, '<ButtonPress-1>', self.on_click)
+        self.canvas.tag_bind(self.box, "<Enter>", self.on_enter)
+        self.canvas.tag_bind(self.box, "<Leave>", self.on_leave)
 
     def draw_links(self):
         """ Draw the links linking children to parents """
@@ -219,5 +242,14 @@ class VisualNode(Node):
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
                     node.x_pos, node.y_pos - 11, arrow='last')
 
+    def draw_all_links(self):
+        """ Draw the links linking children to parents """
 
+        for node in self.children:
+            self.canvas.itemconfig(node.box, fill="blue")
 
+    def hide_all_links(self):
+        """ Remove the all child links from canvas """
+
+        for node in self.children:
+            self.canvas.itemconfig(node.box, fill="white")
