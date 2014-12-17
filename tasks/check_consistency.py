@@ -49,7 +49,7 @@ def consistent(filename, options=[]):
     return (None, m)
 
 def popup(event):
-    popup.post(event.x_root, event.y_root)
+    men.post(event.x_root, event.y_root)
 
 def derp():
     print 'derpy derpy'
@@ -61,13 +61,17 @@ if __name__ == '__main__':
     root = Tk()
     s = ttk.Style()
     s.theme_use('default')
-    frame = ttk.Frame(root, width=500, height = 500)
+    frame = Frame(root, width=500, height = 500)
     canvas = Canvas(frame, width = 600, height = 600)
 
-    popup = Menu(root, tearoff=0)
-    popup.add_command(label='Save', command=derp)
-    popup.add_command(label='See as root', command=derp)
-    canvas.bind("<Button-2>", popup)
+    #men = Menu(root, tearoff=0)
+    #men.add_command(label="See as root")
+    #men.add_command(label="See as derp")
+    #men.add_command(label="Work plz")
+
+    #canvas.bind("<ButtonPress-2>", popup)
+
+
 
     canvas.pack(fill=BOTH, expand=1)
     frame.pack(fill=BOTH, expand=1)

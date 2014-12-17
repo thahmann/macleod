@@ -170,6 +170,7 @@ class VisualNode(Node):
         Node.__init__(self, clif_module)
 
         self.canvas = canvas
+        self.menu = Menu(self.canvas, tearoff=0)
         self.box = None
         self.x_pos = 0
         self.y_pos = 0
@@ -180,26 +181,54 @@ class VisualNode(Node):
         self.information = {}
         self.child_links = []
         self.parent_links = []
+        self.drawn_hidden = False
+
+
+    def show_popup(self, event):
+        """ Display the context menu for the node """
+
+        self.menu.post(event.x_root, event.y_root)
+
+
+    def fill_menu(self):
+        """ The the context menu for this node """
+
+        self.menu.add_command(label="Node item 1")
+        self.menu.add_command(label="Node item 2")
+        self.canvas.tag_bind(self.box, "<ButtonPress-2>", self.show_popup)
 
     def on_click(self, event):
         """ What to do when a visual node is clicked """
+
+        if self.visual_parent is None:
+            parent = 'None'
+        else:
+            parent = self.visual_parent.name
+
         print '-----------------------------'
-        print 'Name:', self.name
-        print 'Parent:', self.visual_parent.name
-        print '# of children:', len(self.children)
-        print '# of visual children:', len(self.visual_children)
-        print 'x:', self.x_pos, 'y:', self.y_pos
+        print '| Name:', self.name
+        print '| Depth:', self.depth
+        print '| Parent:', parent
+        print '| # of children:', len(self.children)
+        print '| # of visual children:', len(self.visual_children)
+        print '| x:', self.x_pos, 'y:', self.y_pos
         print '-----------------------------'
+
+        if self.drawn_hidden:
+            self.hide_links()
+        else:
+            self.draw_hidden_links()
+
 
     def on_enter(self, event):
         """ Draw all child links of node """
         
-        self.draw_all_links()
+        self.shade_all_children()
 
     def on_leave(self, event):
         """ Do stuff when mouse outta box """
 
-        self.hide_all_links()
+        self.unshade_all_children()
 
     def set_visual_parent(self):
         """ Set the visual parent to the parent who is depth-- above """
@@ -234,6 +263,7 @@ class VisualNode(Node):
         self.canvas.tag_bind(self.box, '<ButtonPress-1>', self.on_click)
         self.canvas.tag_bind(self.box, "<Enter>", self.on_enter)
         self.canvas.tag_bind(self.box, "<Leave>", self.on_leave)
+        self.fill_menu()
 
     def draw_links(self):
         """ Draw the links linking children to parents """
@@ -242,14 +272,30 @@ class VisualNode(Node):
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
                     node.x_pos, node.y_pos - 11, arrow='last')
 
-    def draw_all_links(self):
-        """ Draw the links linking children to parents """
+    def shade_all_children(self):
+        """ Shade all children of node """
 
         for node in self.children:
             self.canvas.itemconfig(node.box, fill="blue")
 
-    def hide_all_links(self):
-        """ Remove the all child links from canvas """
+    def unshade_all_children(self):
+        """ Unshade all children of node """
 
         for node in self.children:
             self.canvas.itemconfig(node.box, fill="white")
+
+    def draw_hidden_links(self):
+        """ Draw links to all children """
+
+        for child in self.children:
+            self.child_links.append(self.canvas.create_line(self.x_pos, \
+                    self.y_pos + 11, child.x_pos, child.y_pos - 11, \
+                    arrow='last', fill='green'))
+        self.drawn_hidden = True
+
+    def hide_links(self):
+        """ Hide all drawn links to children """
+
+        for child_link in self.child_links:
+            self.canvas.delete(child_link)
+        self.drawn_hidden = False
