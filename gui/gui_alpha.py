@@ -6,12 +6,15 @@ High-level overview of graphical element to be added to Macleod
 """
 
 import sys
+import tkFileDialog
 sys.path.append("../tasks")
 
 from visualizer import *
 from check_consistency import *
 from Tkinter import *
 import ttk
+
+
 
 def consistency(canvas):
     """ Run a hardcoded consistent() """
@@ -23,16 +26,27 @@ def consistency(canvas):
     t.draw_tree()
 
 class GUI(Frame):
+    
+
+    
+    
     """ The object representing our GUI """
 
     def __init__(self, parent):
         """ Derp derp """
-
+        
         Frame.__init__(self, parent)
         self.parent = parent
+        
+        # defining options for opening a directory
+        self.dir_opt = self.options = {}
+        self.options['initialdir'] = '.'
+        self.options['mustexist'] = False
+        self.options['parent'] = self.parent
+        self.options['title'] = 'This is a title'
         self.load_window()
-
         self.parent.title("Macleod!")
+        
 
     def load_window(self):
         """ Setup the with placeholders for stuff """
@@ -40,42 +54,86 @@ class GUI(Frame):
         style = ttk.Style()
         style.theme_use('default')
 
-        left_pane = Frame(self, relief=RAISED, borderwidth=1)
-        label_1 = Label(left_pane, text="File Browser")
-        label_1.pack(fill=BOTH)
-        left_pane.grid(row=1, column=1, rowspan=2, sticky=E+W+S+N)
+		
+		
 
-        notebook = ttk.Notebook(self, name='cool Stuff')
-        notebook.grid(row=1, column=2, rowspan=2, stick=E+W+S+N)
+        
+        right_pane = Frame(self, relief=RAISED, borderwidth=1, width=400, height=500)
+        
+        label_1 = Label(right_pane, text="Details").pack(fill=BOTH)
+                
+        self.openmenu = StringVar(right_pane)
+        self.openmenu.set("Open...")
+        
+        openFiles = OptionMenu(right_pane, self.openmenu, "File...", "Folder...",command=self.getOption).pack(side=TOP)
+        
+        right_pane.grid(row=1, column=2, rowspan=2, sticky=E+W+S+N)
+        
+        """ Create a notebook. This holds the tabs """
+        tabs = ttk.Notebook(self, name='the cooliest stuff')
+        tabs.grid(row=1, column=1, rowspan=2, stick=E+W+S+N)
 
-        first_tab = Frame(notebook)
+        """ First tab creation """
+        first_tab = Frame(tabs)
         first_tab.pack(fill=BOTH)
-        notebook.add(first_tab, text="Visual")
+        tabs.add(first_tab, text="Visual")
+
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
-        canvas = Canvas(top_pane, width=500, height=500)
+        
+        canvas = Canvas(top_pane, width=700, height=500)
         canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
-
+        
+        """ Bottom pane for the first tab """
         bottom_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
+        
+        """ Creating the buttons for the first tab """
         button_consist = Button(bottom_pane, text="Check Consistency", \
                 command=lambda: consistency(canvas))
         button_other = Button(bottom_pane, text="Other Thing")
+        
+        """ Pack the buttons in the bottom pane """
         button_consist.pack(side=LEFT)
         button_other.pack(side=LEFT)
         bottom_pane.pack(fill=BOTH, expand=1)
 
-        second_tab = Frame(notebook)
+        """ Add a second tab in the tabs frame """
+        second_tab = Frame(tabs)
         second_tab.pack(fill=BOTH)
-        notebook.add(second_tab, text="Summary")
+        tabs.add(second_tab, text="Summary")
 
         self.pack(fill=BOTH)
+
+    
+        
+            
+                
+    def getOption(self,event):
+        """ Determine what to do with the selected option """
+        
+        if (self.openmenu.get() == "File..."):
+            self.askopenfilename()
+        elif (self.openmenu.get() == "Folder..."):
+            self.askdirectory()
+    
+                    
+    def askopenfilename(self):
+        """ Returns a selected directory name """
+    
+        print tkFileDialog.askopenfilename()
+        
+    def askdirectory(self):
+        """ Returns a selected directory name """
+    
+        print tkFileDialog.askdirectory()
+
 
 def main():
     """ Create a new GUI object """
 
     root = Tk()
-    root.geometry("800x800")
+    root.geometry("1080x600")
     app = GUI(root)
     root.mainloop()
 
