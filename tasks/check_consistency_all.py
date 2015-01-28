@@ -4,7 +4,7 @@ if __name__ == '__main__':
 
     # Mac-a-Hack again
     import sys
-    sys.path.append("/Users/rpskillet/Dropbox/Code/GitHub/rocleod")
+    sys.path.append("../")
 
     from tasks import check_consistency
 
