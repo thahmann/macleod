@@ -34,9 +34,9 @@ def consistent(filename, options=[]):
     #            return (False, m)
     #    result_sets = [r[0] for r in results]
     #    result_sets.sort(lambda x,y: cmp(len(x), len(y)))
-#   #     print result_sets[0]
-#   #     print results
-#   #     print "+++++" + str(value)
+    #     print result_sets[0]
+    #     print results
+    #     print "+++++" + str(value)
     #    if results[0][1]==1:
     #        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
     #        return (True, m)
@@ -48,11 +48,6 @@ def consistent(filename, options=[]):
     #                    logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
     return (None, m)
 
-def popup(event):
-    men.post(event.x_root, event.y_root)
-
-def derp():
-    print 'derpy derpy'
 
 if __name__ == '__main__':
     licence.print_terms()
@@ -64,14 +59,10 @@ if __name__ == '__main__':
     frame = Frame(root, width=500, height = 500)
     canvas = Canvas(frame, width = 600, height = 600)
 
-    #men = Menu(root, tearoff=0)
-    #men.add_command(label="See as root")
-    #men.add_command(label="See as derp")
-    #men.add_command(label="Work plz")
-
-    #canvas.bind("<ButtonPress-2>", popup)
-
-
+    men = Menu(root, tearoff=0)
+    men.add_command(label="See as root")
+    men.add_command(label="See as derp")
+    men.add_command(label="Work plz")
 
     canvas.pack(fill=BOTH, expand=1)
     frame.pack(fill=BOTH, expand=1)
@@ -88,10 +79,7 @@ if __name__ == '__main__':
     arborist.prune_tree(arborist.tree, None, 0)
     arborist.weight_tree()
     arborist.layout_tree()
-    #arborist.dfs(arborist.tree, 0)
     arborist.draw_tree()
 
+    canvas.addtag_all("all")
     root.mainloop()
-
-    
-
