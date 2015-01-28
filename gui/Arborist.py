@@ -74,7 +74,8 @@ class VisualArborist(Arborist):
 
         Arborist.__init__(self)
         self.canvas = canvas
-        self.max_width = 600
+        self.max_width = 1200
+        self.selected_node = None
 
 
     def gather_nodes(self, clif_set):
@@ -82,7 +83,7 @@ class VisualArborist(Arborist):
 
         self.clif_set = clif_set
         for module in clif_set.imports:
-            self.nodes[module.module_name] = VisualNode(module, self.canvas)
+            self.nodes[module.module_name] = VisualNode(module, self.canvas, self)
 
     def weight_tree(self):
         """ Climb the tree and weight each level based on its children """
@@ -166,9 +167,9 @@ class Node(object):
 class VisualNode(Node):
     """ The visual extension of the Node """
 
-    def __init__(self, clif_module, canvas):
-        Node.__init__(self, clif_module)
+    def __init__(self, clif_module, canvas, owner):
 
+        Node.__init__(self, clif_module)
         self.canvas = canvas
         self.menu = Menu(self.canvas, tearoff=0)
         self.box = None
@@ -182,13 +183,12 @@ class VisualNode(Node):
         self.child_links = []
         self.parent_links = []
         self.drawn_hidden = False
-
+        self.owner = owner
 
     def show_popup(self, event):
         """ Display the context menu for the node """
 
         self.menu.post(event.x_root, event.y_root)
-
 
     def fill_menu(self):
         """ The the context menu for this node """
@@ -200,6 +200,9 @@ class VisualNode(Node):
     def on_click(self, event):
         """ What to do when a visual node is clicked """
 
+        # Allow arborist to see the visualnode
+        self.owner.selected_node = self
+        self.canvas.update_idletasks()
         if self.visual_parent is None:
             parent = 'None'
         else:
@@ -218,7 +221,6 @@ class VisualNode(Node):
             self.hide_links()
         else:
             self.draw_hidden_links()
-
 
     def on_enter(self, event):
         """ Draw all child links of node """
@@ -259,7 +261,7 @@ class VisualNode(Node):
 
         self.box = self.canvas.create_rectangle(self.x_pos - size, \
                 self.y_pos - size, self.x_pos + size, self.y_pos + size, \
-                activefill='grey')
+                activefill='grey', tags=("all"))
         self.canvas.tag_bind(self.box, '<ButtonPress-1>', self.on_click)
         self.canvas.tag_bind(self.box, "<Enter>", self.on_enter)
         self.canvas.tag_bind(self.box, "<Leave>", self.on_leave)
@@ -270,7 +272,7 @@ class VisualNode(Node):
 
         for node in self.visual_children:
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
-                    node.x_pos, node.y_pos - 11, arrow='last')
+                    node.x_pos, node.y_pos - 11, arrow='last', tags=("all"))
 
     def shade_all_children(self):
         """ Shade all children of node """
@@ -288,9 +290,10 @@ class VisualNode(Node):
         """ Draw links to all children """
 
         for child in self.children:
-            self.child_links.append(self.canvas.create_line(self.x_pos, \
-                    self.y_pos + 11, child.x_pos, child.y_pos - 11, \
-                    arrow='last', fill='green'))
+            if child not in self.visual_children:
+                self.child_links.append(self.canvas.create_line(self.x_pos, \
+                        self.y_pos + 11, child.x_pos, child.y_pos - 11, \
+                        arrow='last', fill='green', tags=("all")))
         self.drawn_hidden = True
 
     def hide_links(self):

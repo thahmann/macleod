@@ -10,26 +10,15 @@ import tkFileDialog
 sys.path.append("../tasks")
 
 from visualizer import *
+from Arborist import *
 from check_consistency import *
 from Tkinter import *
 import ttk
 
 
 
-def consistency(canvas):
-    """ Run a hardcoded consistent() """
-
-    M = consistent("codi/codi")
-    t = Tree(canvas, M[1])
-    t.layer_tree()
-    t.weight_level()
-    t.draw_tree()
 
 class GUI(Frame):
-    
-
-    
-    
     """ The object representing our GUI """
 
     def __init__(self, parent):
@@ -47,6 +36,20 @@ class GUI(Frame):
         self.load_window()
         self.parent.title("Macleod!")
         
+        # define some state variables
+
+    def consistency(self, canvas):
+        """ Run a hardcoded consistent() """
+
+        derp, clif = consistent("codi/codi_down")
+        self.arborist = VisualArborist(canvas)
+        self.arborist.gather_nodes(clif)
+        self.arborist.grow_tree()
+        self.arborist.prune_tree(self.arborist.tree, None, 0)
+        self.arborist.weight_tree()
+        self.arborist.layout_tree()
+        self.arborist.draw_tree()
+        self.merp.set(self.arborist.selected_node.name)
 
     def load_window(self):
         """ Setup the with placeholders for stuff """
@@ -54,13 +57,13 @@ class GUI(Frame):
         style = ttk.Style()
         style.theme_use('default')
 
-		
-		
-
-        
         right_pane = Frame(self, relief=RAISED, borderwidth=1, width=400, height=500)
         
         label_1 = Label(right_pane, text="Details").pack(fill=BOTH)
+
+        #TODO remove this later
+        self.merp = StringVar()
+        self.label_2 = Label(right_pane, text=self.merp).pack(fill=BOTH)
                 
         self.openmenu = StringVar(right_pane)
         self.openmenu.set("Open...")
@@ -90,7 +93,7 @@ class GUI(Frame):
         
         """ Creating the buttons for the first tab """
         button_consist = Button(bottom_pane, text="Check Consistency", \
-                command=lambda: consistency(canvas))
+                command=lambda: self.consistency(canvas))
         button_other = Button(bottom_pane, text="Other Thing")
         
         """ Pack the buttons in the bottom pane """
@@ -105,10 +108,6 @@ class GUI(Frame):
 
         self.pack(fill=BOTH)
 
-    
-        
-            
-                
     def getOption(self,event):
         """ Determine what to do with the selected option """
         
@@ -117,7 +116,6 @@ class GUI(Frame):
         elif (self.openmenu.get() == "Folder..."):
             self.askdirectory()
     
-                    
     def askopenfilename(self):
         """ Returns a selected directory name """
     
@@ -127,6 +125,9 @@ class GUI(Frame):
         """ Returns a selected directory name """
     
         print tkFileDialog.askdirectory()
+
+
+
 
 
 def main():
