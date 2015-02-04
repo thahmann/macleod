@@ -59,8 +59,10 @@ class GUI(Frame):
     
     def zoom(self, io):
         """ Zoom into and out of the tree """
-        self.scale+=io
-        self.canvas.scale("all",0,0,self.scale,self.scale)
+        if io:
+            self.canvas.scale("all", 0 , 0, 1.1, 1.1)
+        else:
+            self.canvas.scale("all", 0, 0, 0.9, 0.9)
 		
 		    
     def load_window(self):
@@ -114,9 +116,9 @@ class GUI(Frame):
 
         """ Button + Button Button - Button = Pants """
         bPlus = Button(bottom_pane, text=" + ", \
-                command=lambda: self.zoom(0.1)).pack(side=RIGHT)
+                command=lambda: self.zoom(True)).pack(side=RIGHT)
         bMinus = Button(bottom_pane, text=" - ", \
-                command=lambda: self.zoom(-0.1)).pack(side=RIGHT)
+                command=lambda: self.zoom(False)).pack(side=RIGHT)
         
         
         """ Creating the buttons for the first tab """
