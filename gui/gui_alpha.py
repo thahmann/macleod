@@ -45,7 +45,7 @@ class GUI(Frame):
         """ Run a hardcoded consistent() """
 
 
-		#change this later to catch a folder and file, not just file
+	#change this later to catch a folder and file, not just file
 		
         derp, clif = consistent(self.selected_file)
         self.arborist = VisualArborist(canvas)
@@ -60,7 +60,7 @@ class GUI(Frame):
     def zoom(self, io):
         """ Zoom into and out of the tree """
         if io:
-            self.canvas.scale("all", 0 , 0, 1.1, 1.1)
+            self.canvas.scale("all", 0, 0, 1.1, 1.1)
         else:
             self.canvas.scale("all", 0, 0, 0.9, 0.9)
 		
@@ -87,7 +87,7 @@ class GUI(Frame):
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
         
-        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(0,0,700,700))
+        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(0,0,950,550))
         self.canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
         
@@ -184,7 +184,7 @@ def main():
     # get screen width and height
     ws = root.winfo_screenwidth()#This value is the width of the screen
     hs = root.winfo_screenheight()#This is the height of the screen
-    
+  
     # calculate position x, y
     x = (ws/2) - (w/2)
     y = (hs/2) - (h/2)
@@ -192,7 +192,8 @@ def main():
     #This is responsible for setting the dimensions of the screen and where it is
     #placed
     
-    root.geometry('%dx%d+%d+%d' % (w, h, x, y))
+    #root.geometry('%dx%d+%d+%d' % (w, h, x, y))
+    root.geometry()
 
     
     #root.geometry()
