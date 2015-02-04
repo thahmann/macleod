@@ -59,7 +59,7 @@ class GUI(Frame):
     
     def zoom(self, io):
         """ Zoom into and out of the tree """
-        self.scale+=io*.1
+        self.scale+=io
         self.canvas.scale("all",0,0,self.scale,self.scale)
 		
 		    
@@ -85,9 +85,19 @@ class GUI(Frame):
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
         
-        self.canvas = Canvas(top_pane, width=950, height=550)
+        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(0,0,700,700))
         self.canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
+        
+        
+        """ Add vertical and horizontal scroll bars """
+        hbar=Scrollbar(top_pane,orient=HORIZONTAL)
+        hbar.pack(side=BOTTOM,fill=X)
+        hbar.config(command=self.canvas.xview)
+        
+        vbar=Scrollbar(top_pane,orient=VERTICAL)
+        vbar.pack(side=RIGHT,fill=Y)
+        vbar.config(command=self.canvas.yview)
         
         #ccatch folder again stuff ya
         """ Footer pane for top level frame """
@@ -104,9 +114,9 @@ class GUI(Frame):
 
         """ Button + Button Button - Button = Pants """
         bPlus = Button(bottom_pane, text=" + ", \
-                command=lambda: self.zoom(1)).pack(side=RIGHT)
+                command=lambda: self.zoom(0.1)).pack(side=RIGHT)
         bMinus = Button(bottom_pane, text=" - ", \
-                command=lambda: self.zoom(-1)).pack(side=RIGHT)
+                command=lambda: self.zoom(-0.1)).pack(side=RIGHT)
         
         
         """ Creating the buttons for the first tab """
@@ -117,7 +127,7 @@ class GUI(Frame):
 
         
         self.default_dropdown_text = StringVar()
-        self.default_dropdown_text.set("Select File(s)...")
+        self.default_dropdown_text.set("Choose File(s)...")
         
         
         openFiles = OptionMenu(bottom_pane, self.default_dropdown_text, "File...", "Folder...",command=self.getOption)
@@ -151,7 +161,8 @@ class GUI(Frame):
         """ Returns a selected directory name """
     
         self.selected_file = tkFileDialog.askopenfilename()
-        self.selected_path.set("Path:\t"+self.selected_file)
+        self.selected_path.set("  Path:\t"+self.selected_file)
+        self.default_dropdown_text.set("Choose File(s)...")
         
     def askdirectory(self):
         """ Returns a selected directory name """
@@ -164,9 +175,25 @@ class GUI(Frame):
 
 def main():
     """ Create a new GUI object """
-
     root = Tk()
-    root.geometry()
+    
+    w = 1040
+    h = 675
+    # get screen width and height
+    ws = root.winfo_screenwidth()#This value is the width of the screen
+    hs = root.winfo_screenheight()#This is the height of the screen
+    
+    # calculate position x, y
+    x = (ws/2) - (w/2)
+    y = (hs/2) - (h/2)
+    
+    #This is responsible for setting the dimensions of the screen and where it is
+    #placed
+    
+    root.geometry('%dx%d+%d+%d' % (w, h, x, y))
+
+    
+    #root.geometry()
     root.resizable(0,0)
     app = GUI(root)
     root.mainloop()
