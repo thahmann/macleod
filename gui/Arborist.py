@@ -74,7 +74,7 @@ class VisualArborist(Arborist):
 
         Arborist.__init__(self)
         self.canvas = canvas
-        self.max_width = 1200
+        self.max_width = 1000
         self.selected_node = None
 
 
@@ -87,6 +87,7 @@ class VisualArborist(Arborist):
 
     def weight_tree(self):
         """ Climb the tree and weight each level based on its children """
+        #TODO Change the logic so that % 2 # of children is reduced while % 3 isn't
 
         nodes = sorted(self.nodes.values(), key=lambda n: n.depth, reverse=True)
         for node in nodes:
@@ -98,9 +99,12 @@ class VisualArborist(Arborist):
                 node.width = node.visual_children[0].width
             else:
                 # Don't count nodes own width
-                node.width -= 40
                 for child in node.visual_children:
                     node.width += child.width
+
+                # This only should be considered while drawing!
+                # if len(node.visual_children) % 2 == 0:
+                #    node.width -= 40
 
     def layout_tree(self):
         """ Layout the tree by setting the coordinates for each node """
@@ -118,15 +122,22 @@ class VisualArborist(Arborist):
         for level_index in sorted(levels, key=lambda n: int(n)):
             level = sorted(levels[level_index], key=lambda n: n.width, \
                     reverse=True)
+            print 'Starting a new level'
 
             for node in level:
+                print 'Node has width:', node.width
                 if node.visual_parent is not None:
                     if len(node.visual_parent.visual_children) == 1:
                         node.x_pos = node.visual_parent.x_pos
                     else:
-                        node.x_pos = node.visual_parent.x_pos - \
-                                (0.5 * node.visual_parent.width) + \
-                                node.visual_parent.offset
+                        if (len(node.visual_parent.visual_children) % 2 == 0):
+                            node.x_pos = node.visual_parent.x_pos - \
+                                    (0.5 * (node.visual_parent.width - 40)) + \
+                                    node.visual_parent.offset
+                        else:
+                            node.x_pos = node.visual_parent.x_pos - \
+                                    (0.5 * node.visual_parent.width) + \
+                                    node.visual_parent.offset
 
                     node.visual_parent.offset += node.width
                     node.y_pos = node.visual_parent.y_pos + 40
@@ -212,6 +223,7 @@ class VisualNode(Node):
         print '| Name:', self.name
         print '| Depth:', self.depth
         print '| Parent:', parent
+        print '| Width:', self.width
         print '| # of children:', len(self.children)
         print '| # of visual children:', len(self.visual_children)
         print '| x:', self.x_pos, 'y:', self.y_pos
