@@ -1,0 +1,63 @@
+
+
+(cl-text http://colore.oor.net/multidim_space_cont/cont_basic.clif
+
+
+(forall (x)
+	(iff
+		(and
+			(S x)
+			(not (ZEX x))
+		)
+		(Cont x x)
+	)
+)
+
+
+(forall (x y)
+	(if	
+		(and 
+			(Cont x y)
+			(Cont y x)
+		)
+		(= x y)
+	)
+)
+
+
+(forall (x y z)
+	(if 	
+		(and 
+			(Cont x y)
+			(Cont y z)
+		)
+		(Cont x z)
+	)
+)
+
+
+(forall (x y)
+	(if
+		(ZEX x)
+		(and
+			(S x)
+			(not (Cont y x))
+			(not (Cont x y))
+		)
+	)
+)
+
+
+
+
+(forall (x y)
+	(if
+		(and 
+			(ZEX x)
+			(ZEX y)
+		)
+		(= x y)
+	)
+)
+
+)

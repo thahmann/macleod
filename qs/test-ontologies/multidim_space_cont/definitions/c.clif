@@ -1,0 +1,20 @@
+
+
+(cl-text http://colore.oor.net/multidim_space_codi/definitions/c.clif
+
+(cl-imports http://colore.oor.net/multidim_space_cont/cont_basic.clif)
+
+
+
+(forall (x y)
+	(iff
+		(C x y)
+		(exists (z)
+			(and (Cont z x) (Cont z y))
+		)
+	)
+)
+
+
+
+)
