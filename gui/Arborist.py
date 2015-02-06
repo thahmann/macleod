@@ -105,6 +105,10 @@ class VisualArborist(Arborist):
                 # This only should be considered while drawing!
                 # if len(node.visual_children) % 2 == 0:
                 #    node.width -= 40
+                
+                
+    def remove_tree(self):
+        self.canvas.delete(ALL) 
 
     def layout_tree(self):
         """ Layout the tree by setting the coordinates for each node """
@@ -286,6 +290,10 @@ class VisualNode(Node):
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
                     node.x_pos, node.y_pos - 11, arrow='last', tags=("all"))
 
+    
+        
+       
+                
     def shade_all_children(self):
         """ Shade all children of node """
 

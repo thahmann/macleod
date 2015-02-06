@@ -14,9 +14,6 @@ from check_consistency import *
 from Tkinter import *
 import ttk
 
-
-
-
 class GUI(Frame):
     """ The object representing our GUI """
 
@@ -29,6 +26,7 @@ class GUI(Frame):
         # defining options for opening a directory
         self.selected_file = False
         self.selected_folder = False
+        
         self.dir_opt = self.options = {}
         self.options['initialdir'] = '.'
         self.options['mustexist'] = False
@@ -83,11 +81,17 @@ class GUI(Frame):
         first_tab = Frame(tabs)
         first_tab.pack(fill=BOTH)
         tabs.add(first_tab, text="Visual")
+        
+        """ Add a second tab in the tabs frame """
+        second_tab = Frame(tabs)
+        second_tab.pack(fill=BOTH)
+        tabs.add(second_tab, text="Summary")
+        self.pack(fill=BOTH)
 
 
         top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
         
-        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(0,0,950,550))
+        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(-950,-550,1900,1100))
         self.canvas.pack(fill=BOTH)
         top_pane.pack(fill=BOTH, expand=1)
         
@@ -124,14 +128,13 @@ class GUI(Frame):
         """ Creating the buttons for the first tab """
         button_consist = Button(bottom_pane, text="Check Consistency", \
                 command=lambda: self.consistency(self.canvas))
-        button_other = Button(bottom_pane, text="Other Thing")
+        button_other = Button(bottom_pane, text="Axe the Tree", \
+                command=lambda: self.deforestation())
         
 
         
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
-        
-        
         openFiles = OptionMenu(bottom_pane, self.default_dropdown_text, "File...", "Folder...",command=self.getOption)
         
         right_pane.grid(row=1, column=2, rowspan=2, sticky=E+W+S+N)
@@ -142,15 +145,7 @@ class GUI(Frame):
         button_other.pack(side=LEFT)
         self.selected_label.pack(side=LEFT)
         bottom_pane.pack(fill=BOTH, expand=1)
-        
-
-        """ Add a second tab in the tabs frame """
-        second_tab = Frame(tabs)
-        second_tab.pack(fill=BOTH)
-        tabs.add(second_tab, text="Summary")
-        self.pack(fill=BOTH)
-        
-      
+    
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
@@ -161,17 +156,22 @@ class GUI(Frame):
     
     def askopenfilename(self):
         """ Returns a selected directory name """
-    
         self.selected_file = tkFileDialog.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose File(s)...")
+        self.deforestation()
+
+
         
     def askdirectory(self):
         """ Returns a selected directory name """
-    
         self.selected_folder = tkFileDialog.askdirectory()
+        self.selected_path.set("  Path:\t"+self.selected_folder)
+        self.default_dropdown_text.set("Choose File(s)...")
+        self.deforestation()
 
-
+    def deforestation(self):
+        self.arborist.remove_tree()
 
 
 
@@ -195,9 +195,12 @@ def main():
     #root.geometry('%dx%d+%d+%d' % (w, h, x, y))
     root.geometry()
 
+    #development convenience - make window topmost menu
+    #root.attributes("-topmost", True)
     
-    #root.geometry()
+    #this window will NOT be resizable
     root.resizable(0,0)
+    
     app = GUI(root)
     root.mainloop()
 
