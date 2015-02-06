@@ -41,10 +41,7 @@ class GUI(Frame):
 
     def consistency(self, canvas):
         """ Run a hardcoded consistent() """
-
-
-	#change this later to catch a folder and file, not just file
-		
+        #change this later to catch a folder and file, not just file		
         derp, clif = consistent(self.selected_file)
         self.arborist = VisualArborist(canvas)
         self.arborist.gather_nodes(clif)
@@ -68,84 +65,58 @@ class GUI(Frame):
 
         style = ttk.Style()
         style.theme_use('default')
-
-        right_pane = Frame(self, relief=RAISED, borderwidth=1, width=400, height=500)
         
-        label_1 = Label(right_pane, text="Details").pack(fill=BOTH)     
-
-        """ Create a notebook. This holds the tabs """
-        tabs = ttk.Notebook(self, name='the cooliest stuff')
-        tabs.grid(row=1, column=1, rowspan=2, stick=E+W+S+N)
-
-        """ First tab creation """
-        first_tab = Frame(tabs)
-        first_tab.pack(fill=BOTH)
-        tabs.add(first_tab, text="Visual")
+        """ All encompassing main frame """
+        main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
         
-        """ Add a second tab in the tabs frame """
-        second_tab = Frame(tabs)
-        second_tab.pack(fill=BOTH)
-        tabs.add(second_tab, text="Summary")
-        self.pack(fill=BOTH)
-
-
-        top_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
+        """ Top pane for choosing file and displaying path - gridded to (0,0) """
+        choose_file_pane = Frame(main_frame, borderwidth=1, relief=SUNKEN)
+        choose_file_pane.grid(row=0, column=0, columnspan=2, stick=E+W+S+N)
         
-        self.canvas = Canvas(top_pane, width=950, height=550, scrollregion=(-950,-550,1900,1100))
-        self.canvas.pack(fill=BOTH)
-        top_pane.pack(fill=BOTH, expand=1)
-        
-        
-        """ Add vertical and horizontal scroll bars """
-        hbar=Scrollbar(top_pane,orient=HORIZONTAL)
-        hbar.pack(side=BOTTOM,fill=X)
-        hbar.config(command=self.canvas.xview)
-        
-        vbar=Scrollbar(top_pane,orient=VERTICAL)
-        vbar.pack(side=RIGHT,fill=Y)
-        vbar.config(command=self.canvas.yview)
-        
-        #ccatch folder again stuff ya
-        """ Footer pane for top level frame """
-        path_pane = Frame(self, borderwidth=1, relief=RAISED)
-        self.selected_path = StringVar()
-        self.selected_label = Label(path_pane, textvariable=self.selected_path)
-        self.selected_path.set("")
-        path_pane.grid(row=3, column=1, columnspan=2, sticky=E+W+S+N)
-        
-        """ Bottom pane for the first tab """
-        bottom_pane = Frame(first_tab, borderwidth=1, relief=SUNKEN)
-        
-
-
-        """ Button + Button Button - Button = Pants """
-        bPlus = Button(bottom_pane, text=" + ", \
-                command=lambda: self.zoom(True)).pack(side=RIGHT)
-        bMinus = Button(bottom_pane, text=" - ", \
-                command=lambda: self.zoom(False)).pack(side=RIGHT)
-        
-        
-        """ Creating the buttons for the first tab """
-        button_consist = Button(bottom_pane, text="Check Consistency", \
-                command=lambda: self.consistency(self.canvas))
-        button_other = Button(bottom_pane, text="Axe the Tree", \
-                command=lambda: self.deforestation())
-        
-
-        
+        """ Create the dropdown option menu - pack to choose_file_pane """
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
-        openFiles = OptionMenu(bottom_pane, self.default_dropdown_text, "File...", "Folder...",command=self.getOption)
+        openFiles = OptionMenu(choose_file_pane, self.default_dropdown_text, "File...", \
+                "Folder...",command=self.getOption).pack(side=LEFT) 
+                
+        """ Buttons for clearing tree and checking consistency, for now """
+        button_consist = Button(choose_file_pane, text="Check Consistency", \
+                command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
+        button_other = Button(choose_file_pane, text="Axe the Tree", \
+                command=lambda: self.set_scroll()).pack(side=LEFT)
         
-        right_pane.grid(row=1, column=2, rowspan=2, sticky=E+W+S+N)
+        """ Create label that will hold the path string """
+        self.selected_path = StringVar()
+        self.selected_path.set("")
+        self.selected_label = Label(choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
         
-        """ Pack the buttons in the bottom pane """
-        openFiles.pack(side=LEFT)
-        button_consist.pack(side=LEFT)
-        button_other.pack(side=LEFT)
-        self.selected_label.pack(side=LEFT)
-        bottom_pane.pack(fill=BOTH, expand=1)
-    
+        """ Button + Button Button - Button = Pants """
+        bPlus = Button(choose_file_pane, text=" + ", \
+                command=lambda: self.zoom(True)).pack(side=RIGHT)
+        bMinus = Button(choose_file_pane, text=" - ", \
+                command=lambda: self.zoom(False)).pack(side=RIGHT)
+        
+        """ Now set up the two resizable paned window frames"""
+        paned_windows_frame = Frame(main_frame, borderwidth=1, relief=SUNKEN)
+        paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)      
+
+        """ paned window will allow resizing each half of the screen """
+        paned_window = PanedWindow(paned_windows_frame,orient=VERTICAL)
+        
+        """ Created canvas and notebook (tab stuff) inside of paned_window  """
+        self.canvas = Canvas(paned_window, width=950, height=275)
+        paned_window.add(self.canvas)
+        self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
+        
+        """ Setup the tabs for the bottom pane """
+        console_tab = Frame(self.notebook)
+        self.notebook.add(console_tab, text="Console")   
+        report_tab = Frame(self.notebook)
+        self.notebook.add(report_tab, text="Report")    
+         
+        """ Add tabs to paned window frame and pack the result """ 
+        paned_window.add(self.notebook)
+        paned_window.pack(fill=BOTH, expand=1)        
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
@@ -171,32 +142,28 @@ class GUI(Frame):
         self.deforestation()
 
     def deforestation(self):
+        """ Remove the drawn tree after selecting another file/folder to run"""
         self.arborist.remove_tree()
-
-
+        
+    def set_scroll(self):
+        self.canvas.config(scrollregion=self.canvas.bbox(ALL))
+ 
+#     def grab(self,event):
+#         self._y = event.y
+#         self._x = event.x
+# 
+#     def drag(self,event):
+#         if (self._y-event.y < 0): self.canvas.yview("scroll",-1,"units")
+#         elif (self._y-event.y > 0): self.canvas.yview("scroll",1,"units")
+#         if (self._x-event.x < 0): self.canvas.xview("scroll",-1,"units")
+#         elif (self._x-event.x > 0): self.canvas.xview("scroll",1,"units")
+#         self._x = event.x
+#         self._y = event.y
 
 def main():
     """ Create a new GUI object """
     root = Tk()
-    
-    w = 1040
-    h = 675
-    # get screen width and height
-    ws = root.winfo_screenwidth()#This value is the width of the screen
-    hs = root.winfo_screenheight()#This is the height of the screen
-  
-    # calculate position x, y
-    x = (ws/2) - (w/2)
-    y = (hs/2) - (h/2)
-    
-    #This is responsible for setting the dimensions of the screen and where it is
-    #placed
-    
-    #root.geometry('%dx%d+%d+%d' % (w, h, x, y))
     root.geometry()
-
-    #development convenience - make window topmost menu
-    #root.attributes("-topmost", True)
     
     #this window will NOT be resizable
     root.resizable(0,0)
