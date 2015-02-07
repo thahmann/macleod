@@ -13,10 +13,28 @@ from Arborist import *
 from check_consistency import *
 from Tkinter import *
 import ttk
+import tkMessageBox
+
+class IORedirector(object):
+    def __init__(self,console_text):
+        self.console_text = console_text
+
+class StdoutRedirector(IORedirector):
+    def write(self,str):
+        self.console_text.insert(END,str,'justified')
+        self.flush()
+        
+    def flush(self):
+        #sys.stdout.flush()
+        pass
 
 class GUI(Frame):
     """ The object representing our GUI """
 
+    
+        
+            
+                
     def __init__(self, parent):
         """ Derp derp """
         
@@ -36,6 +54,8 @@ class GUI(Frame):
         self.parent.title("Macleod!")
         self.scale = 1
         
+        
+
         
         # define some state variables
 
@@ -62,7 +82,6 @@ class GUI(Frame):
 		    
     def load_window(self):
         """ Setup the with placeholders for stuff """
-
         style = ttk.Style()
         style.theme_use('default')
         
@@ -83,7 +102,7 @@ class GUI(Frame):
         button_consist = Button(choose_file_pane, text="Check Consistency", \
                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
         button_other = Button(choose_file_pane, text="Axe the Tree", \
-                command=lambda: self.set_scroll()).pack(side=LEFT)
+                command=lambda: self.print_test()).pack(side=LEFT)
         
         """ Create label that will hold the path string """
         self.selected_path = StringVar()
@@ -96,12 +115,12 @@ class GUI(Frame):
         bMinus = Button(choose_file_pane, text=" - ", \
                 command=lambda: self.zoom(False)).pack(side=RIGHT)
         
-        """ Now set up the two resizable paned window frames"""
+        """ Now set up the two resizable paned window frames """
         paned_windows_frame = Frame(main_frame, borderwidth=1, relief=SUNKEN)
         paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)      
 
         """ paned window will allow resizing each half of the screen """
-        paned_window = PanedWindow(paned_windows_frame,orient=VERTICAL)
+        paned_window = PanedWindow(paned_windows_frame, orient=VERTICAL, sashrelief=SUNKEN, sashwidth=6)
         
         """ Created canvas and notebook (tab stuff) inside of paned_window  """
         self.canvas = Canvas(paned_window, width=950, height=275)
@@ -109,14 +128,33 @@ class GUI(Frame):
         self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
         
         """ Setup the tabs for the bottom pane """
-        console_tab = Frame(self.notebook)
-        self.notebook.add(console_tab, text="Console")   
-        report_tab = Frame(self.notebook)
-        self.notebook.add(report_tab, text="Report")    
+        self.console_tab = Frame(self.notebook)
+        self.console_scrollbar = Scrollbar(self.console_tab)
+        self.console_scrollbar.pack(side=RIGHT, fill=Y)
+        self.console_text = Text(self.console_tab, wrap=WORD, yscrollcommand=self.console_scrollbar.set)
+        #self.console_text.tag_add("justified", "%s.first" % "justified", "%s.last" % "justified")
+        self.console_text.tag_add("justified", "1.0", "end")    
+        self.console_text.tag_config("justified",justify=LEFT)    
+        self.console_text.insert(END,"",'justified')
+        self.console_text.pack(fill=BOTH, expand=1)
+        self.console_scrollbar.config(command=self.console_text.yview)
+
+#         self.raw_log = StringVar()
+#         self.console_canvas = Canvas(self.console_tab, width=950,
+#         self.console_scroll = Scrollbar(self.console_canvas, command=self.console_canvas.yview)
+#         self.console_canvas.config(yscrollcommand=self.console_scroll.set, scrollregion=(0,0,100,1000))
+#         self.console_label = Label(self.console_tab, width=940, wraplength=850, anchor=W, text="STDOUT OUTPUT HERE", \
+#                 borderwidth=1, textvariable=self.raw_log, justify=LEFT, relief=SUNKEN).pack()
+        self.notebook.add(self.console_tab, text="Console") 
+          
+        self.report_tab = Frame(self.notebook)
+        self.notebook.add(self.report_tab, text="Report")    
          
         """ Add tabs to paned window frame and pack the result """ 
         paned_window.add(self.notebook)
-        paned_window.pack(fill=BOTH, expand=1)        
+        paned_window.pack(fill=BOTH, expand=1)
+        sys.stdout = StdoutRedirector(self.console_text)
+    
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
@@ -132,8 +170,6 @@ class GUI(Frame):
         self.default_dropdown_text.set("Choose File(s)...")
         self.deforestation()
 
-
-        
     def askdirectory(self):
         """ Returns a selected directory name """
         self.selected_folder = tkFileDialog.askdirectory()
@@ -147,6 +183,7 @@ class GUI(Frame):
         
     def set_scroll(self):
         self.canvas.config(scrollregion=self.canvas.bbox(ALL))
+        self.console_text.config(scrollregion=self.console_text.bbox(ALL))
  
 #     def grab(self,event):
 #         self._y = event.y
