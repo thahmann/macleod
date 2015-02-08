@@ -31,9 +31,6 @@ class StdoutRedirector(IORedirector):
 class GUI(Frame):
     """ The object representing our GUI """
 
-    
-        
-            
                 
     def __init__(self, parent):
         """ Derp derp """
@@ -53,8 +50,6 @@ class GUI(Frame):
         self.load_window()
         self.parent.title("Macleod!")
         self.scale = 1
-        
-        
 
         
         # define some state variables
@@ -102,7 +97,7 @@ class GUI(Frame):
         button_consist = Button(choose_file_pane, text="Check Consistency", \
                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
         button_other = Button(choose_file_pane, text="Axe the Tree", \
-                command=lambda: self.print_test()).pack(side=LEFT)
+                command=lambda: self.deforestation()).pack(side=LEFT)
         
         """ Create label that will hold the path string """
         self.selected_path = StringVar()
@@ -179,7 +174,8 @@ class GUI(Frame):
 
     def deforestation(self):
         """ Remove the drawn tree after selecting another file/folder to run"""
-        self.arborist.remove_tree()
+#         self.arborist.remove_tree()
+        self.canvas.delete(ALL)
         
     def set_scroll(self):
         self.canvas.config(scrollregion=self.canvas.bbox(ALL))
