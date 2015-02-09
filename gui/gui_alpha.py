@@ -51,8 +51,10 @@ class GUI(Frame):
         self.parent.title("Macleod!")
         self.scale = 1
 
+        # Proto some mouse pan support
+
+
         
-        # define some state variables
 
     def consistency(self, canvas):
         """ Run a hardcoded consistent() """
@@ -80,49 +82,49 @@ class GUI(Frame):
         style = ttk.Style()
         style.theme_use('default')
         
-        """ All encompassing main frame """
+        # All encompassing main frame """
         main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
         
-        """ Top pane for choosing file and displaying path - gridded to (0,0) """
+        # Top pane for choosing file and displaying path - gridded to (0,0) """
         choose_file_pane = Frame(main_frame, borderwidth=1, relief=SUNKEN)
         choose_file_pane.grid(row=0, column=0, columnspan=2, stick=E+W+S+N)
         
-        """ Create the dropdown option menu - pack to choose_file_pane """
+        # Create the dropdown option menu - pack to choose_file_pane """
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
         openFiles = OptionMenu(choose_file_pane, self.default_dropdown_text, "File...", \
                 "Folder...",command=self.getOption).pack(side=LEFT) 
                 
-        """ Buttons for clearing tree and checking consistency, for now """
+        # Buttons for clearing tree and checking consistency, for now """
         button_consist = Button(choose_file_pane, text="Check Consistency", \
                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
         button_other = Button(choose_file_pane, text="Axe the Tree", \
                 command=lambda: self.deforestation()).pack(side=LEFT)
         
-        """ Create label that will hold the path string """
+        # Create label that will hold the path string """
         self.selected_path = StringVar()
         self.selected_path.set("")
         self.selected_label = Label(choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
         
-        """ Button + Button Button - Button = Pants """
+        # Button + Button Button - Button = Pants """
         bPlus = Button(choose_file_pane, text=" + ", \
                 command=lambda: self.zoom(True)).pack(side=RIGHT)
         bMinus = Button(choose_file_pane, text=" - ", \
                 command=lambda: self.zoom(False)).pack(side=RIGHT)
         
-        """ Now set up the two resizable paned window frames """
+        # Now set up the two resizable paned window frames """
         paned_windows_frame = Frame(main_frame, borderwidth=1, relief=SUNKEN)
         paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)      
 
-        """ paned window will allow resizing each half of the screen """
+        # paned window will allow resizing each half of the screen """
         paned_window = PanedWindow(paned_windows_frame, orient=VERTICAL, sashrelief=SUNKEN, sashwidth=6)
         
-        """ Created canvas and notebook (tab stuff) inside of paned_window  """
+        # Created canvas and notebook (tab stuff) inside of paned_window  """
         self.canvas = Canvas(paned_window, width=950, height=275)
         paned_window.add(self.canvas)
         self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
         
-        """ Setup the tabs for the bottom pane """
+        # Setup the tabs for the bottom pane
         self.console_tab = Frame(self.notebook)
         self.console_scrollbar = Scrollbar(self.console_tab)
         self.console_scrollbar.pack(side=RIGHT, fill=Y)
@@ -145,10 +147,26 @@ class GUI(Frame):
         self.report_tab = Frame(self.notebook)
         self.notebook.add(self.report_tab, text="Report")    
          
-        """ Add tabs to paned window frame and pack the result """ 
+        # Add tabs to paned window frame and pack the result 
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
         sys.stdout = StdoutRedirector(self.console_text)
+
+        # Proto some mouse pan support on the canvas
+        self.canvas.bind("<ButtonPress-1>", self.scroll_start)
+        self.canvas.bind("<B1-Motion>", self.scroll_move)
+
+    def scroll_start(self, event):
+        """ Launch internal TKinter mouse track """
+
+        self.canvas.scan_mark(event.x, event.y)
+
+    def scroll_move(self, event):
+        """ Adjust the canvas by the amount of mouse pan """
+
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
+
+
     
 
     def getOption(self,event):
