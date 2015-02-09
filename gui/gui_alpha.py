@@ -16,22 +16,33 @@ import ttk
 import tkMessageBox
 
 class IORedirector(object):
-    def __init__(self,console_text):
+    """ Some python magic """
+
+    def __init__(self, console_text):
+        """ Make the magic """
+
         self.console_text = console_text
 
 class StdoutRedirector(IORedirector):
-    def write(self,str):
-        self.console_text.insert(END,str,'justified')
+    """ Stub class to catch stdout """
+
+    def write(self, str):
+        """ Write the contents of stdout to text widget """
+
+        self.console_text.insert(END, str, 'justified')
+        # Keep the window scrolled to bottomw
+        self.console_text.see(END)
         self.flush()
-        
+
     def flush(self):
+        """ Clear stdout? """
         #sys.stdout.flush()
         pass
+
 
 class GUI(Frame):
     """ The object representing our GUI """
 
-                
     def __init__(self, parent):
         """ Derp derp """
         
@@ -143,31 +154,28 @@ class GUI(Frame):
 #         self.console_label = Label(self.console_tab, width=940, wraplength=850, anchor=W, text="STDOUT OUTPUT HERE", \
 #                 borderwidth=1, textvariable=self.raw_log, justify=LEFT, relief=SUNKEN).pack()
         self.notebook.add(self.console_tab, text="Console") 
-          
+ 
         self.report_tab = Frame(self.notebook)
         self.notebook.add(self.report_tab, text="Report")    
-         
+
         # Add tabs to paned window frame and pack the result 
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
         sys.stdout = StdoutRedirector(self.console_text)
 
         # Proto some mouse pan support on the canvas
-        self.canvas.bind("<ButtonPress-1>", self.scroll_start)
-        self.canvas.bind("<B1-Motion>", self.scroll_move)
+        self.canvas.bind("<ButtonPress-1>", self.scrollStart)
+        self.canvas.bind("<B1-Motion>", self.scrollMove)
 
-    def scroll_start(self, event):
+    def scrollStart(self, event):
         """ Launch internal TKinter mouse track """
 
         self.canvas.scan_mark(event.x, event.y)
 
-    def scroll_move(self, event):
+    def scrollMove(self, event):
         """ Adjust the canvas by the amount of mouse pan """
 
         self.canvas.scan_dragto(event.x, event.y, gain=1)
-
-
-    
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
