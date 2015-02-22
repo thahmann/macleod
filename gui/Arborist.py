@@ -7,6 +7,7 @@ more generic tree structure
 
 from Tkinter import *
 import ttk
+from summary import *
 
 class Arborist(object):
     """ Arborist that can create trees """
@@ -210,8 +211,7 @@ class VisualNode(Node):
     def fill_menu(self):
         """ The the context menu for this node """
 
-        self.menu.add_command(label="Node item 1")
-        self.menu.add_command(label="Node item 2")
+        self.menu.add_command(label="Edit", command=lambda: edit_external_file(self.name))
         self.canvas.tag_bind(self.box, "<ButtonPress-2>", self.show_popup)
 
     def on_click(self, event):

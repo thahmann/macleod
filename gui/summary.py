@@ -6,13 +6,14 @@ Anything that the tree needs to know about the GUI should happen here
 """
 from Tkinter import *
 from ttk import *
+import os
 
-def edit_external_file():
+def edit_external_file(module_name):
     """ Open system editor on file """
 
-    # TODO Implement
-
-    print 'Derps'
+    # TODO Consider relative paths + windows version
+    #os.system("open "+module_name+'.clif')
+    print 'Will eventually open', module_name
 
 class Visualizer(object):
     """ Create the link between the VisualAborist and GUI """
@@ -52,7 +53,7 @@ class Visualizer(object):
 
         node_info.insert(INSERT, 'Name: ')
         node_info.insert(INSERT, node.name + '\n', \
-                         hyperlink.add(edit_external_file))
+                hyperlink.add(lambda:edit_external_file(node.name)))
         node_info.insert(INSERT, 'Depth: ' + str(node.depth) + '\n')
         node_info.insert(INSERT, 'Parent: ' + node.visual_parent.name + '\n')
         node_info.insert(INSERT, '\n\n')
@@ -108,4 +109,3 @@ class HyperLink(object):
             if tag[:6] == 'hyper-':
                 self.links[tag]()
                 return
-            
