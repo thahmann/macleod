@@ -10,6 +10,7 @@ import tkFileDialog
 sys.path.append("../tasks")
 
 from Arborist import *
+from summary import *
 from check_consistency import *
 from Tkinter import *
 import ttk
@@ -62,16 +63,12 @@ class GUI(Frame):
         self.parent.title("Macleod!")
         self.scale = 1
 
-        # Proto some mouse pan support
-
-
-        
-
     def consistency(self, canvas):
         """ Run a hardcoded consistent() """
         #change this later to catch a folder and file, not just file		
         derp, clif = consistent(self.selected_file)
-        self.arborist = VisualArborist(canvas)
+        visualizer = Visualizer(canvas, self.notebook)
+        self.arborist = VisualArborist(visualizer)
         self.arborist.gather_nodes(clif)
         self.arborist.grow_tree()
         self.arborist.prune_tree(self.arborist.tree, None, 0)
@@ -79,15 +76,13 @@ class GUI(Frame):
         self.arborist.layout_tree()
         self.arborist.draw_tree()
 
-    
     def zoom(self, io):
         """ Zoom into and out of the tree """
         if io:
             self.canvas.scale("all", 0, 0, 1.1, 1.1)
         else:
             self.canvas.scale("all", 0, 0, 0.9, 0.9)
-		
-		    
+
     def load_window(self):
         """ Setup the with placeholders for stuff """
         style = ttk.Style()
@@ -166,6 +161,7 @@ class GUI(Frame):
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
         self.canvas.bind("<B1-Motion>", self.scrollMove)
+
 
     def scrollStart(self, event):
         """ Launch internal TKinter mouse track """

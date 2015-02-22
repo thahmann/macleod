@@ -69,11 +69,12 @@ class Arborist(object):
 class VisualArborist(Arborist):
     """ Visual extension of the Arborist """
 
-    def __init__(self, canvas):
+    def __init__(self, visualizer):
         """ Create a new VisualArborist """
 
         Arborist.__init__(self)
-        self.canvas = canvas
+        self.visualizer = visualizer
+        self.canvas = visualizer.canvas
         self.max_width = 1000
         self.selected_node = None
 
@@ -83,7 +84,7 @@ class VisualArborist(Arborist):
 
         self.clif_set = clif_set
         for module in clif_set.imports:
-            self.nodes[module.module_name] = VisualNode(module, self.canvas, self)
+            self.nodes[module.module_name] = VisualNode(module, self.visualizer, self)
 
     def weight_tree(self):
         """ Climb the tree and weight each level based on its children """
@@ -103,10 +104,9 @@ class VisualArborist(Arborist):
                     node.width += child.width
 
                 # This only should be considered while drawing!
-                # if len(node.visual_children) % 2 == 0:
+                #if len(node.visual_children) % 2 != 0:
                 #    node.width -= 40
-                
-                
+
     def remove_tree(self):
         self.canvas.delete(ALL) 
 
@@ -182,10 +182,12 @@ class Node(object):
 class VisualNode(Node):
     """ The visual extension of the Node """
 
-    def __init__(self, clif_module, canvas, owner):
+    def __init__(self, clif_module, visualizer, owner):
 
         Node.__init__(self, clif_module)
-        self.canvas = canvas
+        self.module = clif_module
+        self.canvas = visualizer.canvas
+        self.visualizer = visualizer
         self.menu = Menu(self.canvas, tearoff=0)
         self.box = None
         self.x_pos = 0
@@ -215,9 +217,13 @@ class VisualNode(Node):
     def on_click(self, event):
         """ What to do when a visual node is clicked """
 
+        # TODO Flesh this out
+        self.visualizer.create_tab(self)
+
         # Allow arborist to see the visualnode
         self.owner.selected_node = self
         self.canvas.update_idletasks()
+
         if self.visual_parent is None:
             parent = 'None'
         else:
@@ -290,10 +296,6 @@ class VisualNode(Node):
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
                     node.x_pos, node.y_pos - 11, arrow='last', tags=("all"))
 
-    
-        
-       
-                
     def shade_all_children(self):
         """ Shade all children of node """
 
