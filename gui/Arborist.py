@@ -217,9 +217,6 @@ class VisualNode(Node):
     def on_click(self, event):
         """ What to do when a visual node is clicked """
 
-        # TODO Flesh this out
-        self.visualizer.create_tab(self)
-
         # Allow arborist to see the visualnode
         self.owner.selected_node = self
         self.canvas.update_idletasks()
@@ -228,6 +225,11 @@ class VisualNode(Node):
             parent = 'None'
         else:
             parent = self.visual_parent.name
+
+        # TODO Flesh this out
+        self.visualizer.create_tab(self)
+
+
 
         print '-----------------------------'
         print '| Name:', self.name
@@ -239,20 +241,19 @@ class VisualNode(Node):
         print '| x:', self.x_pos, 'y:', self.y_pos
         print '-----------------------------'
 
-        if self.drawn_hidden:
-            self.hide_links()
-        else:
-            self.draw_hidden_links()
 
     def on_enter(self, event):
         """ Draw all child links of node """
         
         self.shade_all_children()
 
+        self.draw_hidden_links()
+
     def on_leave(self, event):
         """ Do stuff when mouse outta box """
 
         self.unshade_all_children()
+        self.hide_links()
 
     def set_visual_parent(self):
         """ Set the visual parent to the parent who is depth-- above """

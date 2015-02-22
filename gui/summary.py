@@ -21,22 +21,28 @@ class Visualizer(object):
 
         self.canvas = canvas
         self.notebook = notebook
+        self.tabs = {}
 
 
     def create_tab(self, node):
         """ Create node tab in GUI notebook """
 
-        node_tab = Frame(self.notebook)
-        node_scrollbar = Scrollbar(node_tab)
-        node_scrollbar.pack(side=RIGHT, fill=Y)
+        if node.name not in self.tabs:
+            node_tab = Frame(self.notebook)
+            node_scrollbar = Scrollbar(node_tab)
+            node_scrollbar.pack(side=RIGHT, fill=Y)
 
-        self.notebook.add(node_tab, text=node.name)
-        self.fill_node_tab(node_tab, node)
+            self.notebook.add(node_tab, text=node.name)
+            self.tabs[node.name] = node_tab
+            self.fill_node_tab(node_tab, node)
+        else:
+            tab = self.tabs[node.name]
+            self.notebook.add(tab, text=node.name)
 
-    def fill_node_tab(self, nodeTab, node):
+    def fill_node_tab(self, node_tab, node):
         """ Extract info about a node """
 
-        node_info = Text(nodeTab, wrap=WORD)
+        node_info = Text(node_tab, wrap=WORD)
         node_info.tag_add("justified", "1.0", "end")
         node_info.tag_config("justified", justify=LEFT)
         node_info.insert(END, "", 'justified')
@@ -54,24 +60,11 @@ class Visualizer(object):
         node_info.insert(INSERT, 'All Parents: ')
 
         for parent in node.parents:
-            node_info.insert(INSERT, parent.name , \
+            node_info.insert(INSERT, parent.name, \
                              hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
 
         node_info.insert(INSERT, '\n')
-
-    def gather_node_info(self, node):
-        """ Return a list of node attributes """
-
-        attrs = []
-        attrs.append(node.name)
-        attrs.append(node.parents)
-        attrs.append(node.children)
-        attrs.append(node.module.get_p9_file_name())
-        attrs.append(node.module.get_tptp_file_name())
-        attrs.append(node.module.get_nonlogical_symbols())
-
-        return attrs
 
 class HyperLink(object):
     """ Hyperlinks in TKinter! """
