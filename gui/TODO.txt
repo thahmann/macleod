@@ -3,6 +3,7 @@
 (A) Create new tabs with reports if a folder containing multiple ontologies. 
 (A) In terms of styling a nice report, use add_tag() and tag_config() with tkinter text widgets
 (B) The summary tab will include lots of information
+(B) Barbar bar
 (B) Sep the symbols in the files between those introduced in that module vs. the inherited.
 	- A node may not use ALL of its parents symbols
 
