@@ -28,6 +28,7 @@
 (C) Using latex, allow exporting report(s) to pdf
 (?WTF?) Add redraw tree on file change
 	-Prompt user first if the ywould like to redraw the tree
+Okay
 
 
 
