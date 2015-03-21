@@ -6,7 +6,6 @@
 (A) Build a "Tasks" right panel that will store all task buttons
 	Drawer will display certain tasks (_all) if folder; else every (!_all) task
 	Drawer will display upon selecting said file or folder
-
 (A) Make it so selecting a folder actually does that
 (A) Create new tabs with reports if a folder containing multiple ontologies. 
 (B) Redirect standard error to text area as well
@@ -15,7 +14,6 @@
 (C) Remove relief of the drag to resize bar in the center - make it (raised)
 (C) Update all with widgets with the new ttk gui framework
 (C) Barbar bar
-	-Prompt user first if the ywould like to redraw the tree
 (N) Clear specific Canvases? Individually? 
 (N) Reset Application
 (N) In terms of styling a nice report, use add_tag() and tag_config() with tkinter text widgets
