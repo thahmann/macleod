@@ -1,37 +1,24 @@
+(A) Include the defs in drawn nodes
 (A) Clicking on a node gives ability to open translation files + src with default
-(A) Share google doc with Torsten to map out structure for reporting mechanism
-(A) Update all with widgets with the new ttk gui framework
 (A) Add functionality to close ttk notebook tabs
 (A) Upon file selection, draw the tree on canvas prior to running task
-(A) Redirect standard error to text area as well
-(A) 
-(A) Buttons:
-	(A) Zoom to fit button (Resize the tree view top part thing to fit in the area canvas ya)
-	(A) Clear specific Canvases? Individually? 
-	(A) Reset Application
-	(A) Generate Report
-	(A) 4 buttons
-
+(A) Generate Report
 (A) Build a "Tasks" right panel that will store all task buttons
 	Drawer will display certain tasks (_all) if folder; else every (!_all) task
 	Drawer will display upon selecting said file or folder
+
 (A) Make it so selecting a folder actually does that
-(A) Remove relief of the drag to resize bar in the center - make it (raised)
-(A) 
 (A) Create new tabs with reports if a folder containing multiple ontologies. 
-(A) Remove mouse hover coloring to avoid race conditions
-(A) In terms of styling a nice report, use add_tag() and tag_config() with tkinter text widgets
-(B) The summary tab will include lots of information
-(B) Barbar bar
-(B) Sep the symbols in the files between those introduced in that module vs. the inherited.
-	- A node may not use ALL of its parents symbols
-(C) Using latex, allow exporting report(s) to pdf
-(?WTF?) Add redraw tree on file change
+(B) Redirect standard error to text area as well
+(B) Add redraw tree on file change
+(C) Zoom to fit button (Resize the tree view top part thing to fit in the area canvas ya)
+(C) Remove relief of the drag to resize bar in the center - make it (raised)
+(C) Update all with widgets with the new ttk gui framework
+(C) Barbar bar
 	-Prompt user first if the ywould like to redraw the tree
-
-
-
-
-
-
-
+(N) Clear specific Canvases? Individually? 
+(N) Reset Application
+(N) In terms of styling a nice report, use add_tag() and tag_config() with tkinter text widgets
+(x) Sep the symbols in the files between those introduced in that module vs. the inherited.
+(x) Remove mouse hover coloring to avoid race conditions
+(x) Using latex, allow exporting report(s) to pdf
