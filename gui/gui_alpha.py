@@ -12,6 +12,7 @@ sys.path.append("../tasks")
 from Arborist import *
 from summary import *
 from check_consistency import *
+from src.ClifModuleSet import ClifModuleSet
 from Tkinter import *
 import ttk
 import tkMessageBox
@@ -46,14 +47,16 @@ class GUI(Frame):
 
     def __init__(self, parent):
         """ Derp derp """
-        
+
         Frame.__init__(self, parent)
         self.parent = parent
-        
+
+        self.arborist = False
+
         # defining options for opening a directory
         self.selected_file = False
         self.selected_folder = False
-        
+
         self.dir_opt = self.options = {}
         self.options['initialdir'] = '.'
         self.options['mustexist'] = False
@@ -65,11 +68,13 @@ class GUI(Frame):
 
     def consistency(self, canvas):
         """ Run a hardcoded consistent() """
-        #change this later to catch a folder and file, not just file		
-        derp, clif = consistent(self.selected_file)
+        #change this later to catch a folder and file, not just file
+
+        # TODO Code for actually running the consistent stuff
+        module = ClifModuleSet(self.selected_file)
         visualizer = Visualizer(canvas, self.notebook)
         self.arborist = VisualArborist(visualizer)
-        self.arborist.gather_nodes(clif)
+        self.arborist.gather_nodes(module)
         self.arborist.grow_tree()
         self.arborist.prune_tree(self.arborist.tree, None, 0)
         self.arborist.weight_tree()
@@ -156,7 +161,7 @@ class GUI(Frame):
         # Add tabs to paned window frame and pack the result 
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
-        sys.stdout = StdoutRedirector(self.console_text)
+        #sys.stdout = StdoutRedirector(self.console_text)
 
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
@@ -179,13 +184,27 @@ class GUI(Frame):
             self.askopenfilename()
         elif (self.default_dropdown_text.get() == "Folder..."):
             self.askdirectory()
-    
+
+    def drawTree(self, filename):
+        """ Create an arborist object with selected file """
+
+        module = ClifModuleSet(filename)
+        visualizer = Visualizer(self.canvas, self.notebook)
+        self.arborist = VisualArborist(visualizer)
+        self.arborist.gather_nodes(module)
+        self.arborist.grow_tree()
+        self.arborist.prune_tree(self.arborist.tree, None, 0)
+        self.arborist.weight_tree()
+        self.arborist.layout_tree()
+        self.arborist.draw_tree()
+
     def askopenfilename(self):
         """ Returns a selected directory name """
         self.selected_file = tkFileDialog.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose File(s)...")
         self.deforestation()
+        self.drawTree(self.selected_file)
 
     def askdirectory(self):
         """ Returns a selected directory name """
