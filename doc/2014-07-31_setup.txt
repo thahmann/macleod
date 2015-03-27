@@ -32,7 +32,6 @@ copy the macleod folders conf, pyparsing, src, tasks to some "macleod" directory
 
 edit C:\Reasoning\macleod\conf\macleod_win.conf
 [system] path, subprocess_log
-[cl] prefix 
 [prover9] command
 [mace4] command
 [vampire] command
@@ -54,3 +53,7 @@ add entries that point to python (e.g. C:\Python27) to PATH and PYTHONPATH to sy
 add entry that points to macleod (e.g. C:\Reasoning\macleod) to PYTHONPATH
 
 use "echo %PYTHONPATH%" on the commandline to check whether the path is set correctly (should contain both entries)
+
+
+edit C:\Reasoning\macleod\conf\macleod_win.conf
+[cl] prefix 
