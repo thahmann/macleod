@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 @Author Robert Powell && Nate Swan
 
@@ -12,10 +13,17 @@ sys.path.append("../tasks")
 from Arborist import *
 from summary import *
 from check_consistency import *
+from clif_to_ladr import *
+from clif_to_tptp import *
+from prove_lemma import *
+from check_nontrivial_consistency import *
 from src.ClifModuleSet import ClifModuleSet
 from Tkinter import *
 import ttk
 import tkMessageBox
+import logging
+
+LOG = logging.getLogger(__name__)
 
 class IORedirector(object):
     """ Some python magic """
@@ -52,6 +60,7 @@ class GUI(Frame):
         self.parent = parent
 
         self.arborist = False
+        self.module = False
 
         # defining options for opening a directory
         self.selected_file = False
@@ -71,15 +80,7 @@ class GUI(Frame):
         #change this later to catch a folder and file, not just file
 
         # TODO Code for actually running the consistent stuff
-        module = ClifModuleSet(self.selected_file)
-        visualizer = Visualizer(canvas, self.notebook)
-        self.arborist = VisualArborist(visualizer)
-        self.arborist.gather_nodes(module)
-        self.arborist.grow_tree()
-        self.arborist.prune_tree(self.arborist.tree, None, 0)
-        self.arborist.weight_tree()
-        self.arborist.layout_tree()
-        self.arborist.draw_tree()
+        consistent(self.selected_file)
 
     def zoom(self, io):
         """ Zoom into and out of the tree """
@@ -94,37 +95,36 @@ class GUI(Frame):
         style.theme_use('default')
         
         # All encompassing main frame """
-        main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
+        self.main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
         
         # Top pane for choosing file and displaying path - gridded to (0,0) """
-        choose_file_pane = Frame(main_frame, borderwidth=1, relief=SUNKEN)
-        choose_file_pane.grid(row=0, column=0, columnspan=2, stick=E+W+S+N)
+        self.choose_file_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
+        self.choose_file_pane.grid(row=0, column=0, columnspan=2, stick=E+W+S+N)
         
         # Create the dropdown option menu - pack to choose_file_pane """
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
-        openFiles = OptionMenu(choose_file_pane, self.default_dropdown_text, "File...", \
+        openFiles = OptionMenu(self.choose_file_pane, self.default_dropdown_text, "File...", \
                 "Folder...",command=self.getOption).pack(side=LEFT) 
                 
         # Buttons for clearing tree and checking consistency, for now """
-        button_consist = Button(choose_file_pane, text="Check Consistency", \
-                command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
-        button_other = Button(choose_file_pane, text="Axe the Tree", \
-                command=lambda: self.deforestation()).pack(side=LEFT)
+
+                                       
+
         
         # Create label that will hold the path string """
         self.selected_path = StringVar()
         self.selected_path.set("")
-        self.selected_label = Label(choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
+        self.selected_label = Label(self.choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
         
         # Button + Button Button - Button = Pants """
-        bPlus = Button(choose_file_pane, text=" + ", \
+        bPlus = Button(self.choose_file_pane, text=" + ", \
                 command=lambda: self.zoom(True)).pack(side=RIGHT)
-        bMinus = Button(choose_file_pane, text=" - ", \
+        bMinus = Button(self.choose_file_pane, text=" - ", \
                 command=lambda: self.zoom(False)).pack(side=RIGHT)
         
         # Now set up the two resizable paned window frames """
-        paned_windows_frame = Frame(main_frame, borderwidth=1, relief=SUNKEN)
+        paned_windows_frame = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
         paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)      
 
         # paned window will allow resizing each half of the screen """
@@ -161,11 +161,44 @@ class GUI(Frame):
         # Add tabs to paned window frame and pack the result 
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
-        #sys.stdout = StdoutRedirector(self.console_text)
+        sys.stdout = StdoutRedirector(self.console_text)
 
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
         self.canvas.bind("<B1-Motion>", self.scrollMove)
+        
+    def create_task_pane(self, identifier):
+        # Now set up the two resizable paned window frames """
+        self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
+
+        if(identifier == "file"):
+            consist = Button(self.task_pane, text="Check Consistency", \
+                command=lambda: consistent(selected_file,self.module)).pack(side=TOP) 
+            non_trivial_consist = Button(self.task_pane, text="Check Non-Trivial Consistency", \
+                command=lambda: nontrivially_consistent(self.selected_file, self.module)).pack(side=TOP)
+            clif_to_ladr = Button(self.task_pane, text="Clif to LADR", \
+                command=lambda: ladr(self.selected_file, self.module)).pack(side=TOP)
+            clif_to_tptp = Button(self.task_pane, text="Clif to TPTP", \
+                command=lambda: tptp(self.selected_file, self.module)).pack(side=TOP)
+            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
+                command=lambda: self.consistency(self.canvas)).pack(side=TOP)           
+        else:
+            button_other = Button(self.task_pane, text="Axe the Tree", \
+                    command=lambda: self.deforestation()).pack(side=TOP)
+#         button_consist = Button(choose_file_pane, text="Check Consistency", \
+#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
+#         button_consist = Button(choose_file_pane, text="Check Consistency", \
+#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
+#         button_consist = Button(choose_file_pane, text="Check Consistency", \
+#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
+#         button_consist = Button(choose_file_pane, text="Check Consistency", \
+#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)  
+        
+        self.task_pane.grid(row=0, column=1, stick=E+W+S+N, rowspan=2)
+        # going to need to reset this pane, or remove it, then redraw, lets say if user picks a folder,
+        # and then decides to choose a file
+        
+    
 
 
     def scrollStart(self, event):
@@ -180,6 +213,7 @@ class GUI(Frame):
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
+        
         if (self.default_dropdown_text.get() == "File..."):
             self.askopenfilename()
         elif (self.default_dropdown_text.get() == "Folder..."):
@@ -188,10 +222,10 @@ class GUI(Frame):
     def drawTree(self, filename):
         """ Create an arborist object with selected file """
 
-        module = ClifModuleSet(filename)
+        self.module = ClifModuleSet(filename)
         visualizer = Visualizer(self.canvas, self.notebook)
         self.arborist = VisualArborist(visualizer)
-        self.arborist.gather_nodes(module)
+        self.arborist.gather_nodes(self.module)
         self.arborist.grow_tree()
         self.arborist.prune_tree(self.arborist.tree, None, 0)
         self.arborist.weight_tree()
@@ -200,18 +234,22 @@ class GUI(Frame):
 
     def askopenfilename(self):
         """ Returns a selected directory name """
+        
         self.selected_file = tkFileDialog.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose File(s)...")
         self.deforestation()
         self.drawTree(self.selected_file)
+        self.create_task_pane("file")
 
     def askdirectory(self):
         """ Returns a selected directory name """
+        
         self.selected_folder = tkFileDialog.askdirectory()
         self.selected_path.set("  Path:\t"+self.selected_folder)
         self.default_dropdown_text.set("Choose File(s)...")
         self.deforestation()
+        self.create_task_pane("folder")
 
     def deforestation(self):
         """ Remove the drawn tree after selecting another file/folder to run"""
