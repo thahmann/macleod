@@ -1,3 +1,4 @@
+#/usr/bin/python
 """
 Class to manage the conversion from a clifModuleSet to a
 more generic tree structure
@@ -8,6 +9,9 @@ more generic tree structure
 from Tkinter import *
 import ttk
 from summary import *
+import logging
+
+LOG = logging.getLogger(__name__)
 
 class Arborist(object):
     """ Arborist that can create trees """
@@ -46,25 +50,69 @@ class Arborist(object):
                 child_node = self.nodes[child.module_name]
                 node.children.append(child_node)
 
-    def prune_tree(self, node, parent, depth):
-        """ DFS to update the tree for consistency """
+    def deep_clean(self):
+        """ Fix the tree at last """
 
-        # Set depth according to shortest path
-        if depth < node.depth:
-            node.depth = depth
-        elif depth == node.depth or depth > node.depth:
-            node.greatest_depth = depth
-        # Make sure upwards links are consistent
-        if parent not in node.parents:
-            node.parents.append(parent)
-        print  '--' * depth + '>', node.name, node.depth, node.greatest_depth
-        if parent is not None:
-            print '[+]', [n.name for n in node.parents]
-        if len(node.children) == 0:
-            return 0
-        else:
-            for child in node.children:
-                self.prune_tree(child, node, depth + 1)
+        removes = []
+        for name in self.nodes:
+            if 'definitions' in name:
+                removes.append(name)
+
+        for name, node in self.nodes.iteritems():
+            if 'definition' not in name:
+                node.children = [c for c in node.children if 'definitions' not in c.name]
+                node.parents = [p for p in node.parents if 'definitions' not in p.name]
+                for c in node.children:
+                    if 'definitions' in c.name:
+                        LOG.debug('Did not remove definition in ' + node.name)
+                for p in node.parents:
+                    if 'definitions' in p.name:
+                        LOG.debug('Did not remove definition in ' + node.name)
+
+        visited = self.traverse(self.tree)        
+
+        for name, node in self.nodes.iteritems():
+            if node not in visited:
+                removes.append(name)
+
+        for name in removes:
+            try:
+                self.nodes.pop(name)
+            except KeyError:
+                LOG.debug('Already removed definition ' + name)
+
+    def traverse(self, rootnode):
+        visited = [rootnode]
+        thislevel = [rootnode]
+        while thislevel:
+            nextlevel = list()
+            for n in thislevel:
+                visited.append(n)
+                if n.children: nextlevel += n.children
+            print
+            thislevel = nextlevel
+
+        return visited
+
+    def prune_tree_bfs(self, rootnode, depth):
+        visited = [rootnode]
+        thislevel = [rootnode]
+        while thislevel:
+            nextlevel = list()
+            for n in thislevel:
+                visited.append(n)
+
+                # Establish upwards links in tree
+                for child in n.children:
+                    if n not in child.parents:
+                        child.parents.append(n)
+
+                n.depth = depth
+                if n.children:
+                    nextlevel += n.children
+            depth += 1
+            thislevel = nextlevel
+        return visited
 
 
 class VisualArborist(Arborist):
@@ -89,7 +137,6 @@ class VisualArborist(Arborist):
 
     def weight_tree(self):
         """ Climb the tree and weight each level based on its children """
-        #TODO Change the logic so that % 2 # of children is reduced while % 3 isn't
 
         nodes = sorted(self.nodes.values(), key=lambda n: n.depth, reverse=True)
         for node in nodes:
@@ -104,12 +151,11 @@ class VisualArborist(Arborist):
                 for child in node.visual_children:
                     node.width += child.width
 
-                # This only should be considered while drawing!
-                #if len(node.visual_children) % 2 != 0:
-                #    node.width -= 40
-
+    # TODO Don't know if this belongs here
     def remove_tree(self):
-        self.canvas.delete(ALL) 
+        """ Remove the drawn elements of the tree from canvas """
+
+        self.canvas.delete(ALL)
 
     def layout_tree(self):
         """ Layout the tree by setting the coordinates for each node """
@@ -127,10 +173,8 @@ class VisualArborist(Arborist):
         for level_index in sorted(levels, key=lambda n: int(n)):
             level = sorted(levels[level_index], key=lambda n: n.width, \
                     reverse=True)
-            print 'Starting a new level'
 
             for node in level:
-                print 'Node has width:', node.width
                 if node.visual_parent is not None:
                     if len(node.visual_parent.visual_children) == 1:
                         node.x_pos = node.visual_parent.x_pos
@@ -153,18 +197,6 @@ class VisualArborist(Arborist):
         [node.draw() for node in self.nodes.values()]
         [node.draw_links() for node in self.nodes.values()]
 
-    def dfs(self, node, depth):
-        """ Quick and dirty dfs to looks at tree """
-
-        print  '--' * depth + '>', node.name, node.depth, node.greatest_depth
-        if node.visual_parent is not None:
-            print '[+]', node.visual_parent.name
-        if len(node.visual_children) == 0:
-            return 0
-        else:
-            for child in node.visual_children:
-                self.dfs(child, depth + 1)
-
 
 class Node(object):
     """ Generic node object for the tree """
@@ -175,6 +207,7 @@ class Node(object):
         self.name = clif_module.module_name
         self.parents = []
         self.children = []
+        self.definitions = {'parents':[], 'children':[]}
         self.depth = clif_module.depth
         self.greatest_depth = 0
         self.duplicate = False
@@ -229,8 +262,6 @@ class VisualNode(Node):
         # TODO Flesh this out
         self.visualizer.create_tab(self)
 
-
-
         print '-----------------------------'
         print '| Name:', self.name
         print '| Depth:', self.depth
@@ -244,16 +275,17 @@ class VisualNode(Node):
 
     def on_enter(self, event):
         """ Draw all child links of node """
-        
-        self.shade_all_children()
 
-        self.draw_hidden_links()
+        pass
+        #self.shade_all_children()
+        #self.draw_hidden_links()
 
     def on_leave(self, event):
         """ Do stuff when mouse outta box """
 
-        self.unshade_all_children()
-        self.hide_links()
+        pass
+        #self.unshade_all_children()
+        #self.hide_links()
 
     def set_visual_parent(self):
         """ Set the visual parent to the parent who is depth-- above """
@@ -262,7 +294,9 @@ class VisualNode(Node):
             if parent is not None:
                 if parent.depth == self.depth - 1:
                     self.visual_parent = parent
-        if self.visual_parent is None and self.depth != 0:
+        if self.visual_parent is None and self.depth != 1:
+            for parent in self.parents:
+                print parent.name
             print 'Non-root node without direct parent?'
 
     def set_visual_children(self):
@@ -293,9 +327,16 @@ class VisualNode(Node):
     def draw_links(self):
         """ Draw the links linking children to parents """
 
+
         for node in self.visual_children:
+            if 'definitions' in node.name:
+                fill = 'red'
+            else:
+                fill = 'black'
+
             self.canvas.create_line(self.x_pos, self.y_pos + 11, \
-                    node.x_pos, node.y_pos - 11, arrow='last', tags=("all"))
+                    node.x_pos, node.y_pos - 11, arrow='last', fill=fill, tags=("all"))
+        self.draw_hidden_links()
 
     def shade_all_children(self):
         """ Shade all children of node """
@@ -313,10 +354,15 @@ class VisualNode(Node):
         """ Draw links to all children """
 
         for child in self.children:
+            if 'definitions' in child.name:
+                fill = 'blue'
+            else:
+                fill = 'black'
+
             if child not in self.visual_children:
                 self.child_links.append(self.canvas.create_line(self.x_pos, \
                         self.y_pos + 11, child.x_pos, child.y_pos - 11, \
-                        arrow='last', fill='green', tags=("all")))
+                        arrow='last', fill=fill, tags=("all")))
         self.drawn_hidden = True
 
     def hide_links(self):
