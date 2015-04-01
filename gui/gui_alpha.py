@@ -25,6 +25,32 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+imgdir = os.path.join(os.path.dirname(__file__), 'img')
+
+def btn_press(event):
+    x, y, widget = event.x, event.y, event.widget
+    elem = widget.identify(x, y)
+    index = widget.index("@%d,%d" % (x, y))
+
+    if "close" in elem:
+        widget.state(['pressed'])
+        widget.pressed_index = index
+
+def btn_release(event):
+    x, y, widget = event.x, event.y, event.widget
+
+    if not widget.instate(['pressed']):
+        return
+
+    elem =  widget.identify(x, y)
+    index = widget.index("@%d,%d" % (x, y))
+
+    if "close" in elem and widget.pressed_index == index:
+        widget.forget(index)
+        widget.event_generate("<<NotebookClosedTab>>")
+
+    widget.state(["!pressed"])
+    widget.pressed_index = None
 class IORedirector(object):
     """ Some python magic """
 
@@ -59,6 +85,7 @@ class GUI(Frame):
         Frame.__init__(self, parent)
         self.parent = parent
 
+
         self.arborist = False
         self.module = False
 
@@ -71,9 +98,11 @@ class GUI(Frame):
         self.options['mustexist'] = False
         self.options['parent'] = self.parent
         self.options['title'] = 'This is a title'
-        self.load_window()
+
+
         self.parent.title("Macleod!")
         self.scale = 1
+        #self.load_window()
 
     def consistency(self, canvas):
         """ Run a hardcoded consistent() """
@@ -93,6 +122,16 @@ class GUI(Frame):
         """ Setup the with placeholders for stuff """
         style = ttk.Style()
         style.theme_use('default')
+        style.element_create("close", "image", "img_close", \
+        ("active", "pressed", "!disabled", "img_closepressed"), \
+        ("active", "!disabled", "img_closeactive"), border=8, sticky='')
+        style.layout("ButtonNotebook", [("ButtonNotebook.client", {"sticky": "nswe"})])
+        style.layout("ButtonNotebook.Tab", [
+            ("ButtonNotebook.tab", {"sticky": "nswe", "children": \
+                    [("ButtonNotebook.padding", {"side": "top", "sticky": "nswe", "children": \
+                    [("ButtonNotebook.focus", {"side": "top", "sticky": "nswe", "children": \
+                    [("ButtonNotebook.label", {"side": "left", "sticky": ''}), \
+                    ("ButtonNotebook.close", {"side": "left", "sticky": ''})]})]})]})])
         
         # All encompassing main frame """
         self.main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
@@ -106,12 +145,7 @@ class GUI(Frame):
         self.default_dropdown_text.set("Choose File(s)...")
         openFiles = OptionMenu(self.choose_file_pane, self.default_dropdown_text, "File...", \
                 "Folder...",command=self.getOption).pack(side=LEFT) 
-                
-        # Buttons for clearing tree and checking consistency, for now """
 
-                                       
-
-        
         # Create label that will hold the path string """
         self.selected_path = StringVar()
         self.selected_path.set("")
@@ -134,7 +168,9 @@ class GUI(Frame):
         self.canvas = Canvas(paned_window, width=950, height=275)
         paned_window.add(self.canvas)
         self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
-        
+        print ttk.Style().theme_names
+        print self.notebook.winfo_class()
+        self.notebook.configure(style="ButtonNotebook") 
         # Setup the tabs for the bottom pane
         self.console_tab = Frame(self.notebook)
         self.console_scrollbar = Scrollbar(self.console_tab)
@@ -278,51 +314,21 @@ class GUI(Frame):
 
 def main():
     """ Create a new GUI object """
+
     root = Tk()
+
+    i1 = PhotoImage("img_close", file=os.path.join(imgdir, 'close.gif'))
+    i2 = PhotoImage("img_closeactive", file=os.path.join(imgdir, 'close_active.gif'))
+    i3 = PhotoImage("img_closepressed", file=os.path.join(imgdir, 'close_pressed.gif'))
+
+    root.bind_class("TNotebook", "<ButtonPress-1>", btn_press, True)
+    root.bind_class("TNotebook", "<ButtonRelease-1>", btn_release)
+
     root.geometry()
-    
-    #this window will NOT be resizable
     root.resizable(0,0)
-    
     app = GUI(root)
+    app.load_window()
     root.mainloop()
-
-#def main():
-#  
-#    # Toplevel GUI element
-#    root = Tk()
-#
-#    # Use the ttk frames to hold content for compatibility
-#    content = ttk.Frame(root)
-#    frame = ttk.Frame(content, borderwidth=5, relief="sunken", height=500, width=500)
-#
-#    # Labels work like this
-#    new_label = ttk.Label(content, text="A Label")
-#
-#    # Entry field work like this
-#    new_entry = ttk.Entry(content)
-#
-#    # Variables used in frame work like this
-#    var_one = BooleanVar() # For checkboxes
-#    var_one.set(True)
-#    var_two = StringVar() # For entries
-#
-#    # Assign those variables to elements in gui
-#    checkbox_one = ttk.Checkbutton(content, text="First", variable=var_one, onvalue=True)
-#    ok_button = ttk.Button(content, text="Ok")
-#
-#    # Grid the variables on the gui like so
-#    content.grid(column=0, row=0)
-#    frame.grid(column=0, row=0, columnspan=5, rowspan=5)
-#
-#    new_label.grid(column=1, row=1)
-#    new_entry.grid(column=2, row=2)
-#
-#    checkbox_one.grid(column=3, row=3)
-#    ok_button.grid(column=4, row=4)
-#
-#    root.mainloop()
-
 
 if __name__ == '__main__':
     main()
