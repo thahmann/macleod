@@ -60,7 +60,7 @@ class Visualizer(object):
 
         node_info.insert(INSERT, 'All Parents: ')
         for parent in node.parents:
-            node_info.insert(INSERT, parent.name.split('/')[0], \
+            node_info.insert(INSERT, parent.name.split('/')[-1], \
                              hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
 

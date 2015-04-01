@@ -146,6 +146,9 @@ class VisualArborist(Arborist):
         for node in nodes:
             node.set_visual_parent()
             node.set_visual_children()
+            node.set_height()
+            node.set_width()
+
             if len(node.visual_children) == 0:
                 node.width = 40
             elif len(node.visual_children) == 1:
@@ -154,6 +157,8 @@ class VisualArborist(Arborist):
                 # Don't count nodes own width
                 for child in node.visual_children:
                     node.width += child.width
+
+            node.width += node.r_width
 
     # TODO Don't know if this belongs here
     def remove_tree(self):
@@ -192,8 +197,9 @@ class VisualArborist(Arborist):
                                     (0.5 * node.visual_parent.width) + \
                                     node.visual_parent.offset
 
-                    node.visual_parent.offset += node.width
-                    node.y_pos = node.visual_parent.y_pos + 40
+                    node.visual_parent.offset += node.width + 0.5 * node.r_width
+                    node.y_pos = node.visual_parent.y_pos + \
+                                node.visual_parent.height + node.height + 40
 
     def draw_tree(self):
         """ Use Tkinter to draw the nodes on canvas """
@@ -227,9 +233,12 @@ class VisualNode(Node):
         self.canvas = visualizer.canvas
         self.visualizer = visualizer
         self.menu = Menu(self.canvas, tearoff=0)
+        self.canvas_text = None
         self.box = None
         self.x_pos = 0
         self.y_pos = 0
+        self.height = 10
+        self.r_width = 10
         self.visual_parent = None
         self.visual_children = []
         self.width = 0
@@ -239,6 +248,16 @@ class VisualNode(Node):
         self.parent_links = []
         self.drawn_hidden = False
         self.owner = owner
+
+    def set_height(self):
+        """ Set the height of the node relative to definitions """
+
+        self.height = len(self.definitions) * 9
+
+    def set_width(self):
+        """ Set the width relative to maximun definition name """
+
+        self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.15
 
     def show_popup(self, event):
         """ Display the context menu for the node """
@@ -310,23 +329,25 @@ class VisualNode(Node):
             if child.visual_parent == self:
                 self.visual_children.append(child)
 
-    def set_coordinates(self, offset, modifier=20):
-        """ Establish a nodes correct coordinates """
-
-        self.y_pos = self.depth * modifier
-        if self.visual_parent:
-            self.x_pos = self.visual_parent.x_pos + offset
-
     def draw(self, size=10):
         """ Call to Tkinter to draw the node on a canvas """
 
-        self.box = self.canvas.create_rectangle(self.x_pos - size, \
-                self.y_pos - size, self.x_pos + size, self.y_pos + size, \
-                activefill='grey', tags=("all"))
+        self.box = self.canvas.create_rectangle(self.x_pos - self.r_width, \
+                self.y_pos - self.height, self.x_pos + self.r_width, \
+                self.y_pos + self.height, activefill='grey', tags=("all"))
         self.canvas.tag_bind(self.box, '<ButtonPress-1>', self.on_click)
         self.canvas.tag_bind(self.box, "<Enter>", self.on_enter)
         self.canvas.tag_bind(self.box, "<Leave>", self.on_leave)
         self.fill_menu()
+        self.fill_box()
+
+    def fill_box(self):
+        """ Fill in description text in node """
+
+        self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width + 2, \
+                self.y_pos - self.height, anchor="nw")
+        text_string = "\n".join([n.name.split('/')[-1] for n in self.definitions])
+        self.canvas.itemconfig(self.canvas_text, text=text_string)
 
     def draw_links(self):
         """ Draw the links linking children to parents """
@@ -338,8 +359,9 @@ class VisualNode(Node):
             else:
                 fill = 'black'
 
-            self.canvas.create_line(self.x_pos, self.y_pos + 11, \
-                    node.x_pos, node.y_pos - 11, arrow='last', fill=fill, tags=("all"))
+            self.canvas.create_line(self.x_pos, self.y_pos + self.height, \
+                    node.x_pos, node.y_pos - node.height, arrow='last', \
+                    fill=fill, tags=("all"))
         self.draw_hidden_links()
 
     def shade_all_children(self):
@@ -365,8 +387,8 @@ class VisualNode(Node):
 
             if child not in self.visual_children:
                 self.child_links.append(self.canvas.create_line(self.x_pos, \
-                        self.y_pos + 11, child.x_pos, child.y_pos - 11, \
-                        arrow='last', fill=fill, tags=("all")))
+                        self.y_pos + self.height, child.x_pos, child.y_pos - \
+                        child.height, arrow='last', fill=fill, tags=("all")))
         self.drawn_hidden = True
 
     def hide_links(self):
