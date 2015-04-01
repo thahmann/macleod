@@ -29,6 +29,8 @@ LOG = logging.getLogger(__name__)
 imgdir = os.path.join(os.path.dirname(__file__), 'img')
 
 def btn_press(event):
+    """ Notebook tab close action """
+
     x, y, widget = event.x, event.y, event.widget
     elem = widget.identify(x, y)
     index = widget.index("@%d,%d" % (x, y))
@@ -40,6 +42,8 @@ def btn_press(event):
             widget.pressed_index = index
 
 def btn_release(event):
+    """ Notebook tab close/release action """
+
     x, y, widget = event.x, event.y, event.widget
 
     if not widget.instate(['pressed']):
@@ -59,18 +63,18 @@ def btn_release(event):
 class StdoutRedirector(object):
     """ Stub class to catch stdout """
 
-    def __init__(self, console_text):
+    def __init__(self, console_text, window):
         """ Make the magic """
 
         self.console_text = console_text
+        self.window = window
 
     def write(self, str):
         """ Write the contents of stdout to text widget """
 
         self.console_text.insert(END, str, 'justified')
-        # Keep the window scrolled to bottom
         self.console_text.see(END)
-        self.flush()
+        self.window.update()
 
     def flush(self):
         """ Clear stdout? """
@@ -87,8 +91,6 @@ class GUI(Frame):
 
         Frame.__init__(self, parent)
         self.parent = parent
-
-
         self.arborist = False
         self.module = False
 
@@ -101,7 +103,6 @@ class GUI(Frame):
         self.options['mustexist'] = False
         self.options['parent'] = self.parent
         self.options['title'] = 'This is a title'
-
 
         self.parent.title("Macleod!")
         self.scale = 1
@@ -159,42 +160,43 @@ class GUI(Frame):
                 command=lambda: self.zoom(True)).pack(side=RIGHT)
         bMinus = Button(self.choose_file_pane, text=" - ", \
                 command=lambda: self.zoom(False)).pack(side=RIGHT)
-        
+
         # Now set up the two resizable paned window frames """
         paned_windows_frame = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
-        paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)      
+        paned_windows_frame.grid(row=1, column=0, stick=E+W+S+N)
 
         # paned window will allow resizing each half of the screen """
         paned_window = PanedWindow(paned_windows_frame, orient=VERTICAL, sashrelief=SUNKEN, sashwidth=6)
-        
+
         # Created canvas and notebook (tab stuff) inside of paned_window  """
         self.canvas = Canvas(paned_window, width=950, height=275)
         paned_window.add(self.canvas)
         self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
         print ttk.Style().theme_names
         print self.notebook.winfo_class()
-        self.notebook.configure(style="ButtonNotebook") 
+        self.notebook.configure(style="ButtonNotebook")
         # Setup the tabs for the bottom pane
         self.console_tab = Frame(self.notebook)
         self.console_scrollbar = Scrollbar(self.console_tab)
         self.console_scrollbar.pack(side=RIGHT, fill=Y)
         self.console_text = Text(self.console_tab, wrap=WORD, yscrollcommand=self.console_scrollbar.set)
         #self.console_text.tag_add("justified", "%s.first" % "justified", "%s.last" % "justified")
-        self.console_text.tag_add("justified", "1.0", "end")    
-        self.console_text.tag_config("justified",justify=LEFT)    
+        self.console_text.tag_add("justified", "1.0", "end")
+        self.console_text.tag_config("justified", justify=LEFT)
         self.console_text.insert(END,"",'justified')
         self.console_text.pack(fill=BOTH, expand=1)
         self.console_scrollbar.config(command=self.console_text.yview)
 
-        self.notebook.add(self.console_tab, text="Console") 
- 
-        self.report_tab = Frame(self.notebook)
-        self.notebook.add(self.report_tab, text="Report")    
+        self.notebook.add(self.console_tab, text="Console")
 
-        # Add tabs to paned window frame and pack the result 
+        self.report_tab = Frame(self.notebook)
+        self.notebook.add(self.report_tab, text="Report")
+
+        # Add tabs to paned window frame and pack the result
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
-        sys.stdout = StdoutRedirector(self.console_text)
+
+        sys.stdout = StdoutRedirector(self.console_text, self.parent)
 
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
@@ -231,9 +233,6 @@ class GUI(Frame):
         # going to need to reset this pane, or remove it, then redraw, lets say if user picks a folder,
         # and then decides to choose a file
         
-    
-
-
     def scrollStart(self, event):
         """ Launch internal TKinter mouse track """
 
@@ -296,18 +295,6 @@ class GUI(Frame):
     def set_scroll(self):
         self.canvas.config(scrollregion=self.canvas.bbox(ALL))
         self.console_text.config(scrollregion=self.console_text.bbox(ALL))
- 
-#     def grab(self,event):
-#         self._y = event.y
-#         self._x = event.x
-# 
-#     def drag(self,event):
-#         if (self._y-event.y < 0): self.canvas.yview("scroll",-1,"units")
-#         elif (self._y-event.y > 0): self.canvas.yview("scroll",1,"units")
-#         if (self._x-event.x < 0): self.canvas.xview("scroll",-1,"units")
-#         elif (self._x-event.x > 0): self.canvas.xview("scroll",1,"units")
-#         self._x = event.x
-#         self._y = event.y
 
 def main():
     """ Create a new GUI object """
