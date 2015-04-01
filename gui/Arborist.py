@@ -251,13 +251,19 @@ class VisualNode(Node):
 
     def set_height(self):
         """ Set the height of the node relative to definitions """
-
-        self.height = len(self.definitions) * 9
+        
+        if len(self.definitions) > 1:
+            self.height = len(self.definitions) * 9
+        else:
+            self.height = 15 
 
     def set_width(self):
         """ Set the width relative to maximun definition name """
 
-        self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.15
+        if len(self.definitions) > 1:
+            self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.15
+        else:
+            self.r_width = 50
 
     def show_popup(self, event):
         """ Display the context menu for the node """
@@ -345,8 +351,9 @@ class VisualNode(Node):
         """ Fill in description text in node """
 
         self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width + 2, \
-                self.y_pos - self.height, anchor="nw")
-        text_string = "\n".join([n.name.split('/')[-1] for n in self.definitions])
+                self.y_pos - self.height - 15, anchor="nw")
+        text_string = self.name.split('/')[-1] + '\n'
+        text_string += "\n".join([n.name.split('/')[-1] for n in self.definitions])
         self.canvas.itemconfig(self.canvas_text, text=text_string)
 
     def draw_links(self):
@@ -360,7 +367,7 @@ class VisualNode(Node):
                 fill = 'black'
 
             self.canvas.create_line(self.x_pos, self.y_pos + self.height, \
-                    node.x_pos, node.y_pos - node.height, arrow='last', \
+                    node.x_pos, node.y_pos - node.height - 15, arrow='last', \
                     fill=fill, tags=("all"))
         self.draw_hidden_links()
 
@@ -388,7 +395,7 @@ class VisualNode(Node):
             if child not in self.visual_children:
                 self.child_links.append(self.canvas.create_line(self.x_pos, \
                         self.y_pos + self.height, child.x_pos, child.y_pos - \
-                        child.height, arrow='last', fill=fill, tags=("all")))
+                        child.height - 15, arrow='last', fill=fill, tags=("all")))
         self.drawn_hidden = True
 
     def hide_links(self):
