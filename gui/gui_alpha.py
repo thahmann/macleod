@@ -33,8 +33,10 @@ def btn_press(event):
     index = widget.index("@%d,%d" % (x, y))
 
     if "close" in elem:
-        widget.state(['pressed'])
-        widget.pressed_index = index
+        if index != 0 and index != 1:
+            print index, elem
+            widget.state(['pressed'])
+            widget.pressed_index = index
 
 def btn_release(event):
     x, y, widget = event.x, event.y, event.widget
@@ -42,7 +44,7 @@ def btn_release(event):
     if not widget.instate(['pressed']):
         return
 
-    elem =  widget.identify(x, y)
+    elem = widget.identify(x, y)
     index = widget.index("@%d,%d" % (x, y))
 
     if "close" in elem and widget.pressed_index == index:
@@ -183,12 +185,6 @@ class GUI(Frame):
         self.console_text.pack(fill=BOTH, expand=1)
         self.console_scrollbar.config(command=self.console_text.yview)
 
-#         self.raw_log = StringVar()
-#         self.console_canvas = Canvas(self.console_tab, width=950,
-#         self.console_scroll = Scrollbar(self.console_canvas, command=self.console_canvas.yview)
-#         self.console_canvas.config(yscrollcommand=self.console_scroll.set, scrollregion=(0,0,100,1000))
-#         self.console_label = Label(self.console_tab, width=940, wraplength=850, anchor=W, text="STDOUT OUTPUT HERE", \
-#                 borderwidth=1, textvariable=self.raw_log, justify=LEFT, relief=SUNKEN).pack()
         self.notebook.add(self.console_tab, text="Console") 
  
         self.report_tab = Frame(self.notebook)
