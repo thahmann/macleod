@@ -235,7 +235,7 @@ class GUI(Frame):
 
     def askopenfilename(self):
         """ Returns a selected directory name """
-        
+
         self.selected_file = tkFileDialog.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose File(s)...")
@@ -245,7 +245,7 @@ class GUI(Frame):
 
     def askdirectory(self):
         """ Returns a selected directory name """
-        
+
         self.selected_folder = tkFileDialog.askdirectory()
         self.selected_path.set("  Path:\t"+self.selected_folder)
         self.default_dropdown_text.set("Choose File(s)...")
@@ -256,7 +256,10 @@ class GUI(Frame):
         """ Remove the drawn tree after selecting another file/folder to run"""
 #         self.arborist.remove_tree()
         self.canvas.delete(ALL)
-        
+        for i in range(len(self.notebook.tabs())):
+            if i > 1:
+                self.notebook.forget(i)
+
     def set_scroll(self):
         self.canvas.config(scrollregion=self.canvas.bbox(ALL))
         self.console_text.config(scrollregion=self.console_text.bbox(ALL))
