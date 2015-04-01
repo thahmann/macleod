@@ -8,6 +8,7 @@ High-level overview of graphical element to be added to Macleod
 
 import sys
 import tkFileDialog
+import time
 sys.path.append("../tasks")
 
 from Arborist import *
@@ -53,27 +54,27 @@ def btn_release(event):
 
     widget.state(["!pressed"])
     widget.pressed_index = None
-class IORedirector(object):
-    """ Some python magic """
+
+
+class StdoutRedirector(object):
+    """ Stub class to catch stdout """
 
     def __init__(self, console_text):
         """ Make the magic """
 
         self.console_text = console_text
 
-class StdoutRedirector(IORedirector):
-    """ Stub class to catch stdout """
-
     def write(self, str):
         """ Write the contents of stdout to text widget """
 
         self.console_text.insert(END, str, 'justified')
-        # Keep the window scrolled to bottomw
+        # Keep the window scrolled to bottom
         self.console_text.see(END)
         self.flush()
 
     def flush(self):
         """ Clear stdout? """
+
         #sys.stdout.flush()
         pass
 
@@ -205,7 +206,7 @@ class GUI(Frame):
 
         if(identifier == "file"):
             consist = Button(self.task_pane, text="Check Consistency", \
-                command=lambda: consistent(selected_file,self.module)).pack(side=TOP) 
+                command=lambda: consistent(self.selected_file,self.module)).pack(side=TOP) 
             non_trivial_consist = Button(self.task_pane, text="Check Non-Trivial Consistency", \
                 command=lambda: nontrivially_consistent(self.selected_file, self.module)).pack(side=TOP)
             clif_to_ladr = Button(self.task_pane, text="Clif to LADR", \
