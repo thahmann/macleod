@@ -8,7 +8,7 @@ from tasks import *
 import sys
 from src.ClifModuleSet import ClifModuleSet
 
-def tptp(filename, options=[]):
+def tptp(filename, m, options=[]):
 
     m = ClifModuleSet(filename)
     if '-cumulate' in options:
