@@ -60,8 +60,12 @@ class Arborist(object):
 
         for name, node in self.nodes.iteritems():
             if 'definition' not in name:
+                # TODO refactor these comprehensions
+                node.definitions += [c for c in node.children if 'definition' in c.name]
                 node.children = [c for c in node.children if 'definitions' not in c.name]
+                node.definitions += [p for p in node.parents if 'definitions' in p.name]
                 node.parents = [p for p in node.parents if 'definitions' not in p.name]
+
                 for c in node.children:
                     if 'definitions' in c.name:
                         LOG.debug('Did not remove definition in ' + node.name)
@@ -207,7 +211,7 @@ class Node(object):
         self.name = clif_module.module_name
         self.parents = []
         self.children = []
-        self.definitions = {'parents':[], 'children':[]}
+        self.definitions = []
         self.depth = clif_module.depth
         self.greatest_depth = 0
         self.duplicate = False

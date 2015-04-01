@@ -53,19 +53,31 @@ class Visualizer(object):
 
         node_info.insert(INSERT, 'Name: ')
         node_info.insert(INSERT, node.name + '\n', \
-                hyperlink.add(lambda:edit_external_file(node.name)))
+                hyperlink.add(lambda: edit_external_file(node.name)))
         node_info.insert(INSERT, 'Depth: ' + str(node.depth) + '\n')
         node_info.insert(INSERT, 'Parent: ' + node.visual_parent.name + '\n')
         node_info.insert(INSERT, '\n\n')
 
         node_info.insert(INSERT, 'All Parents: ')
-
         for parent in node.parents:
-            node_info.insert(INSERT, parent.name, \
+            node_info.insert(INSERT, parent.name.split('/')[0], \
                              hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
 
         node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'All Children: ')
+        for child in node.children:
+            node_info.insert(INSERT, child.name.split('/')[-1], \
+                            hyperlink.add(edit_external_file))
+            node_info.insert(INSERT, ' ')
+        node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'Definitions: ')
+        for node in node.definitions:
+            node_info.insert(INSERT, node.name.split('/')[-1], \
+                            hyperlink.add(edit_external_file))
+            node_info.insert(INSERT, ' ')
 
 class HyperLink(object):
     """ Hyperlinks in TKinter! """
