@@ -74,7 +74,7 @@ class StdoutRedirector(object):
 
         self.console_text.insert(END, str, 'justified')
         self.console_text.see(END)
-        self.window.update()
+        #self.window.update()
 
     def flush(self):
         """ Clear stdout? """
