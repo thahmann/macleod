@@ -6,9 +6,6 @@
     <note priority="veryhigh" time="1427811222">
         Add functionality to close ttk notebook tabs
     </note>
-    <note priority="veryhigh" time="1427811252">
-        Upon file selection, draw the tree on canvas prior to running task
-    </note>
     <note priority="veryhigh" time="1427811264">
         Generate Report
     </note>
@@ -26,6 +23,9 @@
     </note>
     <note priority="veryhigh" time="1427811671">
         Create new tabs with reports if a folder containing multiple ontologies.
+    </note>
+    <note priority="veryhigh" time="1427860647">
+        Sep. defined and inherited symbols and show in tab
     </note>
     <note priority="high" time="1427811682">
         Redirect standard error to text area as well
