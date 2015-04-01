@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
 <todo version="0.1.20">
-    <note priority="veryhigh" time="1427811023">
-        Include the defs in drawn nodes
-    </note>
     <note priority="veryhigh" time="1427811212">
         Clicking on a node gives ability to open translation files + src with default
     </note>
