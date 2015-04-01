@@ -261,7 +261,7 @@ class VisualNode(Node):
         """ Set the width relative to maximun definition name """
 
         if len(self.definitions) > 1:
-            self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.15
+            self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.5
         else:
             self.r_width = 50
 
@@ -301,7 +301,6 @@ class VisualNode(Node):
         print '| x:', self.x_pos, 'y:', self.y_pos
         print '-----------------------------'
 
-
     def on_enter(self, event):
         """ Draw all child links of node """
 
@@ -326,7 +325,7 @@ class VisualNode(Node):
         if self.visual_parent is None and self.depth != 1:
             for parent in self.parents:
                 print parent.name
-            print 'Non-root node without direct parent?'
+            LOG.debug('Non-root node without parent ' + self.name)
 
     def set_visual_children(self):
         """ Return a list of children who are directly below the node """
