@@ -18,8 +18,13 @@ from clif_to_ladr import *
 from clif_to_tptp import *
 from prove_lemma import *
 from check_nontrivial_consistency import *
-from src.ClifModuleSet import ClifModuleSet
+from check_consistency_all import *
+from clif_to_ladr_all import *
+from clif_to_tptp_all import *
+from prove_lemma_all import *
 from Tkinter import *
+from delete_output import *
+from src.ClifModuleSet import ClifModuleSet
 import ttk
 import tkMessageBox
 import logging
@@ -143,8 +148,8 @@ class GUI(Frame):
 
         # Top pane for choosing file and displaying path - gridded to (0,0) """
         self.choose_file_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
-        self.choose_file_pane.grid(row=0, column=0, columnspan=2, stick=E+W+S+N)
-
+        self.choose_file_pane.grid(row=0, column=0, columnspan=1, stick=E+W+S+N)
+        
         # Create the dropdown option menu - pack to choose_file_pane """
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
@@ -155,8 +160,6 @@ class GUI(Frame):
         self.selected_path = StringVar()
         self.selected_path.set("")
         self.selected_label = Label(self.choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
-
-        # Button + Button Button - Button = Pants """
         bPlus = Button(self.choose_file_pane, text=" + ", \
                 command=lambda: self.zoom(True)).pack(side=RIGHT)
         bMinus = Button(self.choose_file_pane, text=" - ", \
@@ -206,7 +209,7 @@ class GUI(Frame):
     def create_task_pane(self, identifier):
         # Now set up the two resizable paned window frames """
         self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
-
+        print self.selected_folder
         if(identifier == "file"):
             consist = Button(self.task_pane, text="Check Consistency", \
                 command=lambda: consistent(self.selected_file,self.module)).pack(side=TOP)
@@ -217,19 +220,14 @@ class GUI(Frame):
             clif_to_tptp = Button(self.task_pane, text="Clif to TPTP", \
                 command=lambda: tptp(self.selected_file, self.module)).pack(side=TOP)
             prove_lemma = Button(self.task_pane, text="Prove Lemma", \
-                command=lambda: self.consistency(self.canvas)).pack(side=TOP)
+                command=lambda: tptp(self.selected_file, self.module)).pack(side=TOP)           
         else:
             button_other = Button(self.task_pane, text="Axe the Tree", \
-                    command=lambda: self.deforestation()).pack(side=TOP)
-#         button_consist = Button(choose_file_pane, text="Check Consistency", \
-#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
-#         button_consist = Button(choose_file_pane, text="Check Consistency", \
-#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
-#         button_consist = Button(choose_file_pane, text="Check Consistency", \
-#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
-#         button_consist = Button(choose_file_pane, text="Check Consistency", \
-#                 command=lambda: self.consistency(self.canvas)).pack(side=LEFT)
-
+                command=lambda: self.deforestation()).pack(side=TOP)
+            clif_to_ladr_all  = Button(self.task_pane, text="Clif to LADR (ALL)", \
+                command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
+        
+        # Button + Button Button - Button = Pants """
         self.task_pane.grid(row=0, column=1, stick=E+W+S+N, rowspan=2)
         # going to need to reset this pane, or remove it, then redraw, lets say if user picks a folder,
         # and then decides to choose a file
