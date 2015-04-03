@@ -73,7 +73,7 @@ class Arborist(object):
                     if 'definitions' in p.name:
                         LOG.debug('Did not remove definition in ' + node.name)
 
-        visited = self.traverse(self.tree)        
+        visited = self.traverse(self.tree)
 
         for name, node in self.nodes.iteritems():
             if node not in visited:
@@ -251,11 +251,11 @@ class VisualNode(Node):
 
     def set_height(self):
         """ Set the height of the node relative to definitions """
-        
+
         if len(self.definitions) > 1:
             self.height = len(self.definitions) * 9
         else:
-            self.height = 15 
+            self.height = 15
 
     def set_width(self):
         """ Set the width relative to maximun definition name """
@@ -334,7 +334,7 @@ class VisualNode(Node):
             if child.visual_parent == self:
                 self.visual_children.append(child)
 
-    def draw(self, size=10):
+    def draw(self):
         """ Call to Tkinter to draw the node on a canvas """
 
         self.box = self.canvas.create_rectangle(self.x_pos - self.r_width, \
