@@ -5,7 +5,6 @@ from src.ClifModuleSet import ClifModuleSet
 from tasks import clif_to_ladr
 
 def ladr_all(folder):
-    print "HOLY SHIT MAN"
     filemgt.start_logging()
     ending = filemgt.read_config('cl','ending')
     tempfolder = filemgt.read_config('converters', 'tempfolder')
