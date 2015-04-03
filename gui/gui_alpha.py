@@ -129,6 +129,7 @@ class GUI(Frame):
 
     def load_window(self):
         """ Setup the with placeholders for stuff """
+
         style = ttk.Style()
         style.theme_use('default')
         style.element_create("close", "image", "img_close", \
@@ -141,10 +142,10 @@ class GUI(Frame):
                     [("ButtonNotebook.focus", {"side": "top", "sticky": "nswe", "children": \
                     [("ButtonNotebook.label", {"side": "left", "sticky": ''}), \
                     ("ButtonNotebook.close", {"side": "left", "sticky": ''})]})]})]})])
-        
+
         # All encompassing main frame """
         self.main_frame = Frame(self, borderwidth=1, relief=SUNKEN).pack(fill=BOTH, expand=1)
-        
+
         # Top pane for choosing file and displaying path - gridded to (0,0) """
         self.choose_file_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
         self.choose_file_pane.grid(row=0, column=0, columnspan=1, stick=E+W+S+N)
@@ -153,14 +154,12 @@ class GUI(Frame):
         self.default_dropdown_text = StringVar()
         self.default_dropdown_text.set("Choose File(s)...")
         openFiles = OptionMenu(self.choose_file_pane, self.default_dropdown_text, "File...", \
-                "Folder...",command=self.getOption).pack(side=LEFT) 
+                "Folder...",command=self.getOption).pack(side=LEFT)
 
         # Create label that will hold the path string """
         self.selected_path = StringVar()
         self.selected_path.set("")
         self.selected_label = Label(self.choose_file_pane, textvariable=self.selected_path).pack(side=LEFT)
-        
-
         bPlus = Button(self.choose_file_pane, text=" + ", \
                 command=lambda: self.zoom(True)).pack(side=RIGHT)
         bMinus = Button(self.choose_file_pane, text=" - ", \
@@ -206,14 +205,14 @@ class GUI(Frame):
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
         self.canvas.bind("<B1-Motion>", self.scrollMove)
-        
+
     def create_task_pane(self, identifier):
         # Now set up the two resizable paned window frames """
         self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
         print self.selected_folder
         if(identifier == "file"):
             consist = Button(self.task_pane, text="Check Consistency", \
-                command=lambda: consistent(self.selected_file,self.module)).pack(side=TOP) 
+                command=lambda: consistent(self.selected_file,self.module)).pack(side=TOP)
             non_trivial_consist = Button(self.task_pane, text="Check Non-Trivial Consistency", \
                 command=lambda: nontrivially_consistent(self.selected_file, self.module)).pack(side=TOP)
             clif_to_ladr = Button(self.task_pane, text="Clif to LADR", \
@@ -229,11 +228,10 @@ class GUI(Frame):
                 command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
         
         # Button + Button Button - Button = Pants """
-
         self.task_pane.grid(row=0, column=1, stick=E+W+S+N, rowspan=2)
         # going to need to reset this pane, or remove it, then redraw, lets say if user picks a folder,
         # and then decides to choose a file
-        
+
     def scrollStart(self, event):
         """ Launch internal TKinter mouse track """
 
@@ -246,7 +244,7 @@ class GUI(Frame):
 
     def getOption(self,event):
         """ Determine what to do with the selected option """
-        
+
         if (self.default_dropdown_text.get() == "File..."):
             self.askopenfilename()
         elif (self.default_dropdown_text.get() == "Folder..."):
@@ -273,8 +271,9 @@ class GUI(Frame):
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose File(s)...")
         self.deforestation()
-        self.drawTree(self.selected_file)
-        self.create_task_pane("file")
+        if self.selected_file is not None:
+            self.drawTree(self.selected_file)
+            self.create_task_pane("file")
 
     def askdirectory(self):
         """ Returns a selected directory name """
