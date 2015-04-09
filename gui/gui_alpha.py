@@ -39,7 +39,6 @@ def btn_press(event):
     x_pos, y_pos, widget = event.x, event.y, event.widget
     elem = widget.identify(x_pos, y_pos)
     index = widget.index("@%d,%d" % (x_pos, y_pos))
-
     if "close" in elem:
         if index != 0 and index != 1:
             print index, elem
