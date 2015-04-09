@@ -36,9 +36,9 @@ imgdir = os.path.join(os.path.dirname(__file__), 'img')
 def btn_press(event):
     """ Notebook tab close action """
 
-    x, y, widget = event.x, event.y, event.widget
-    elem = widget.identify(x, y)
-    index = widget.index("@%d,%d" % (x, y))
+    x_pos, y_pos, widget = event.x, event.y, event.widget
+    elem = widget.identify(x_pos, y_pos)
+    index = widget.index("@%d,%d" % (x_pos, y_pos))
 
     if "close" in elem:
         if index != 0 and index != 1:
