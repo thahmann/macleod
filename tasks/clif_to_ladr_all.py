@@ -17,24 +17,22 @@ if __name__ == '__main__':
     options.reverse()
     options.pop()
     folder = options.pop()
-    
-    for directory, subdirs, files in os.walk(folder):
-        if any(ignore in directory for ignore in ignores):
-            pass
-        else:
-            for single_file in files:
-                if single_file.endswith(ending):
-                    filename = os.path.join(directory.replace('qs\\',''), single_file)
-                    print filename
-                    m = ClifModuleSet(filename)
-                    clif_to_ladr.ladr(filename, m, options)
+    ladr_all(folder, options)
 
 
-def ladr_all(folder):
-    filemgt.start_logging()
-    ending = filemgt.read_config('cl','ending')
-    tempfolder = filemgt.read_config('converters', 'tempfolder')
-    ignores = [tempfolder]
+#    for directory, subdirs, files in os.walk(folder):
+#        if any(ignore in directory for ignore in ignores):
+#            pass
+#        else:
+#            for single_file in files:
+#                if single_file.endswith(ending):
+#                    filename = os.path.join(directory.replace('qs\\',''), single_file)
+#                    print filename
+#                    m = ClifModuleSet(filename)
+#                    clif_to_ladr.ladr(filename, m, options)
+
+
+def ladr_all(folder, options=[]):
     for directory, subdirs, files in os.walk(folder):
         if any(ignore in directory for ignore in ignores):
             pass
@@ -44,4 +42,4 @@ def ladr_all(folder):
                     filename = os.path.join(directory, single_file)
                     print filename
                     m = ClifModuleSet(filename)
-                    clif_to_ladr.ladr(filename, m)
+                    clif_to_ladr.ladr(filename, m, options)

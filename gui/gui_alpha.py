@@ -226,6 +226,8 @@ class GUI(Frame):
                 command=lambda: self.deforestation()).pack(side=TOP)
             clif_to_ladr_all  = Button(self.task_pane, text="Clif to LADR (ALL)", \
                 command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
+            clif_to_tptp_all  = Button(self.task_pane, text="Clif to TPTP (ALL)", \
+                command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
         
         # Button + Button Button - Button = Pants """
         self.task_pane.grid(row=0, column=1, stick=E+W+S+N, rowspan=2)
