@@ -222,12 +222,22 @@ class GUI(Frame):
             prove_lemma = Button(self.task_pane, text="Prove Lemma", \
                 command=lambda: tptp(self.selected_file, self.module)).pack(side=TOP)           
         else:
-            button_other = Button(self.task_pane, text="Axe the Tree", \
-                command=lambda: self.deforestation()).pack(side=TOP)
             clif_to_ladr_all  = Button(self.task_pane, text="Clif to LADR (ALL)", \
                 command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
             clif_to_tptp_all  = Button(self.task_pane, text="Clif to TPTP (ALL)", \
                 command=lambda: ladr_all(self.selected_folder)).pack(side=TOP)
+            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
+                command=lambda: prove_all(self.selected_folder)).pack(side=TOP)
+
+        #static buttons 
+        view_log = Button(self.task_pane, text="View Log", \
+            command=lambda: self.open_macleod_log()).pack(side=BOTTOM)
+        clear_workspace = Button(self.task_pane, text="Clear Modules", \
+            command=lambda: self.deforestation()).pack(side=BOTTOM)
+        #delete_files = Button(self.task_pane, text="Remove Prover Files", \
+        #    command=lambda: 
+            
+        
         
         # Button + Button Button - Button = Pants """
         self.task_pane.grid(row=0, column=1, stick=E+W+S+N, rowspan=2)
