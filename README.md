@@ -1,8 +1,18 @@
-macleod
-=======
+Macleod
+======================================================
 
-Ontology development environment for Common Logic (CL)
+Start here:
+----------
 
+If you're on Mac or Linux, you are going to have a good time. If you are on Windows, come back tomorrow.
+
+* Navigate to the gui subfolder
+* Execute the gui_alpha.py fil with python
+
+To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
+
+About the project:
+------------------
 
 This program consists of a set of scripts designed for key reasoning tasks frequently encountered in ontology design and verification. At the moment it focuses on automating tasks that can be accomplished independent of the semantic of concepts and relations. These tasks are consistency checking of ontologies and their modules as well as checking whether competency questions, providing as ''lemmas'', are entailed.
 
