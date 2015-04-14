@@ -7,7 +7,7 @@ Start here:
 If you're on Mac or Linux, you are going to have a good time. If you are on Windows, come back tomorrow.
 
 * Navigate to the gui subfolder
-* Execute the gui_alpha.py fil with python
+* Execute the gui_alpha.py file with python
 
 To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
 
