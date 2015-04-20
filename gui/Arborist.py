@@ -13,13 +13,12 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-
-
 NODE_BASE_WIDTH = 40
 NODE_BASE_HEIGHT = 10
 # Minimum space required inside the box
 NODE_BASE_BUFFER = 40
 TREE_VERTICAL_SPACE = 20
+TREE_MAX_WIDTH = 1000
 # How many TKinter units to account for each character
 CHAR_BASE_WIDTH = 1.5
 
@@ -139,7 +138,7 @@ class VisualArborist(Arborist):
         Arborist.__init__(self)
         self.visualizer = visualizer
         self.canvas = visualizer.canvas
-        self.max_width = 1000
+        self.max_width = TREE_MAX_WIDTH
         self.selected_node = None
 
 
