@@ -13,14 +13,16 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-NODE_BASE_WIDTH = 40
+# Width of node as counted for tree spacing usually the same as BASE_BUFFER
+NODE_BASE_WIDTH = 50
 NODE_BASE_HEIGHT = 10
 # Minimum space required inside the box
-NODE_BASE_BUFFER = 40
+NODE_BASE_BUFFER = 50
 TREE_VERTICAL_SPACE = 20
 TREE_MAX_WIDTH = 1000
 # How many TKinter units to account for each character
-CHAR_BASE_WIDTH = 1.5
+CHAR_BASE_WIDTH = 1.6
+CHAR_BASE_HEIGHT = 10
 
 class Arborist(object):
     """ Arborist that can create trees """
@@ -263,9 +265,9 @@ class VisualNode(Node):
         """ Set the height of the node relative to definitions """
 
         if len(self.definitions) > 1:
-            self.height = len(self.definitions) * 9
+            self.height = len(self.definitions) * CHAR_BASE_HEIGHT
         else:
-            self.height = 15
+            self.height = 20
 
     def set_width(self):
         """ Set the width relative to maximum definition name """
@@ -358,7 +360,7 @@ class VisualNode(Node):
         """ Fill in description text in node """
 
         self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width + 2, \
-                self.y_pos - self.height - 15, anchor="nw")
+                self.y_pos - self.height - 15, anchor="nw", width=self.r_width * 2)
         text_string = self.name.split('/')[-1] + '\n'
         text_string += "\n".join([n.name.split('/')[-1] for n in self.definitions])
         self.canvas.itemconfig(self.canvas_text, text=text_string)
