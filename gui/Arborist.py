@@ -13,6 +13,16 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+
+
+NODE_BASE_WIDTH = 40
+NODE_BASE_HEIGHT = 10
+# Minimum space required inside the box
+NODE_BASE_BUFFER = 40
+TREE_VERTICAL_SPACE = 20
+# How many TKinter units to account for each character
+CHAR_BASE_WIDTH = 1.5
+
 class Arborist(object):
     """ Arborist that can create trees """
 
@@ -86,6 +96,7 @@ class Arborist(object):
                 LOG.debug('Already removed definition ' + name)
 
     def traverse(self, rootnode):
+        """ Traverse over the tree marking nodes as reachable """
         visited = [rootnode]
         thislevel = [rootnode]
         while thislevel:
@@ -150,7 +161,7 @@ class VisualArborist(Arborist):
             node.set_width()
 
             if len(node.visual_children) == 0:
-                node.width = 40
+                node.width = NODE_BASE_WIDTH
             elif len(node.visual_children) == 1:
                 node.width = node.visual_children[0].width
             else:
@@ -170,7 +181,7 @@ class VisualArborist(Arborist):
         """ Layout the tree by setting the coordinates for each node """
 
         self.tree.x_pos = 0.5 * self.max_width
-        self.tree.y_pos = 20
+        self.tree.y_pos = TREE_VERTICAL_SPACE
 
         levels = {}
         for node in sorted(self.nodes.values(), key=lambda n: n.depth):
@@ -190,7 +201,7 @@ class VisualArborist(Arborist):
                     else:
                         if (len(node.visual_parent.visual_children) % 2 == 0):
                             node.x_pos = node.visual_parent.x_pos - \
-                                    (0.5 * (node.visual_parent.width - 40)) + \
+                                    (0.5 * (node.visual_parent.width - NODE_BASE_WIDTH)) + \
                                     node.visual_parent.offset
                         else:
                             node.x_pos = node.visual_parent.x_pos - \
@@ -199,7 +210,7 @@ class VisualArborist(Arborist):
 
                     node.visual_parent.offset += node.width + 0.5 * node.r_width
                     node.y_pos = node.visual_parent.y_pos + \
-                                node.visual_parent.height + node.height + 40
+                                node.visual_parent.height + node.height + NODE_BASE_WIDTH
 
     def draw_tree(self):
         """ Use Tkinter to draw the nodes on canvas """
@@ -237,8 +248,8 @@ class VisualNode(Node):
         self.box = None
         self.x_pos = 0
         self.y_pos = 0
-        self.height = 10
-        self.r_width = 10
+        self.height = NODE_BASE_HEIGHT
+        self.r_width = NODE_BASE_BUFFER
         self.visual_parent = None
         self.visual_children = []
         self.width = 0
@@ -258,12 +269,10 @@ class VisualNode(Node):
             self.height = 15
 
     def set_width(self):
-        """ Set the width relative to maximun definition name """
+        """ Set the width relative to maximum definition name """
 
         if len(self.definitions) > 1:
-            self.r_width = len(max([c.name for c in self.definitions], key=len)) * 1.5
-        else:
-            self.r_width = 50
+            self.r_width = len(max([c.name for c in self.definitions], key=len)) * CHAR_BASE_WIDTH
 
     def show_popup(self, event):
         """ Display the context menu for the node """
