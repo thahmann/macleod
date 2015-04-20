@@ -142,6 +142,7 @@ class VisualArborist(Arborist):
         self.canvas = visualizer.canvas
         self.max_width = TREE_MAX_WIDTH
         self.selected_node = None
+        self.get_sizes()
 
 
     def gather_nodes(self, clif_set):
@@ -219,6 +220,18 @@ class VisualArborist(Arborist):
         [node.draw() for node in self.nodes.values()]
         [node.draw_links() for node in self.nodes.values()]
 
+    def get_sizes(self):
+        """ Get the pixel width/height of text on screen """
+
+        global CHAR_BASE_HEIGHT, CHAR_BASE_WIDTH
+
+        temp = Canvas()
+        text = temp.create_text((0, 0), text='12345678910')
+        size = temp.bbox(text)
+        print size
+        CHAR_BASE_WIDTH = size[2] / 10 / 2.
+        CHAR_BASE_HEIGHT = size[3]
+
 
 class Node(object):
     """ Generic node object for the tree """
@@ -266,6 +279,7 @@ class VisualNode(Node):
 
         if len(self.definitions) > 1:
             self.height = len(self.definitions) * CHAR_BASE_HEIGHT
+            print CHAR_BASE_HEIGHT
         else:
             self.height = 20
 
@@ -274,6 +288,7 @@ class VisualNode(Node):
 
         if len(self.definitions) > 1:
             self.r_width = len(max([c.name for c in self.definitions], key=len)) * CHAR_BASE_WIDTH
+            print CHAR_BASE_WIDTH
 
     def show_popup(self, event):
         """ Display the context menu for the node """
@@ -360,7 +375,7 @@ class VisualNode(Node):
         """ Fill in description text in node """
 
         self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width + 2, \
-                self.y_pos - self.height - 15, anchor="nw", width=self.r_width * 2)
+                self.y_pos - self.height - 15, anchor="nw")
         text_string = self.name.split('/')[-1] + '\n'
         text_string += "\n".join([n.name.split('/')[-1] for n in self.definitions])
         self.canvas.itemconfig(self.canvas_text, text=text_string)
