@@ -7,6 +7,7 @@ more generic tree structure
 """
 
 from Tkinter import *
+import tkFont
 import ttk
 from summary import *
 import logging
@@ -101,11 +102,10 @@ class Arborist(object):
         visited = [rootnode]
         thislevel = [rootnode]
         while thislevel:
-            nextlevel = list()
+            nextlevel = []
             for n in thislevel:
                 visited.append(n)
                 if n.children: nextlevel += n.children
-            print
             thislevel = nextlevel
 
         return visited
@@ -228,9 +228,19 @@ class VisualArborist(Arborist):
         temp = Canvas()
         text = temp.create_text((0, 0), text='12345678910')
         size = temp.bbox(text)
-        print size
         CHAR_BASE_WIDTH = size[2] / 10 / 2.
         CHAR_BASE_HEIGHT = size[3]
+
+    def adjust_text(self, size):
+        """ Either increase or decrease font size for all nodes """
+
+        for node in self.nodes.values():
+            if size:
+                node.font_size += 1
+            else:
+                node.font_size -= 1
+
+            self.canvas.itemconfig(node.canvas_text, font=('Purisa', node.font_size))
 
 
 class Node(object):
@@ -259,6 +269,7 @@ class VisualNode(Node):
         self.visualizer = visualizer
         self.menu = Menu(self.canvas, tearoff=0)
         self.canvas_text = None
+        self.font_size = 13
         self.box = None
         self.x_pos = 0
         self.y_pos = 0
@@ -279,7 +290,6 @@ class VisualNode(Node):
 
         if len(self.definitions) > 1:
             self.height = len(self.definitions) * CHAR_BASE_HEIGHT
-            print CHAR_BASE_HEIGHT
         else:
             self.height = 20
 
@@ -288,7 +298,6 @@ class VisualNode(Node):
 
         if len(self.definitions) > 1:
             self.r_width = len(max([c.name for c in self.definitions], key=len)) * CHAR_BASE_WIDTH
-            print CHAR_BASE_WIDTH
 
     def show_popup(self, event):
         """ Display the context menu for the node """
@@ -313,7 +322,6 @@ class VisualNode(Node):
         else:
             parent = self.visual_parent.name
 
-        # TODO Flesh this out
         self.visualizer.create_tab(self)
 
         print '-----------------------------'
@@ -378,11 +386,10 @@ class VisualNode(Node):
                 self.y_pos - self.height - 15, anchor="nw")
         text_string = self.name.split('/')[-1] + '\n'
         text_string += "\n".join([n.name.split('/')[-1] for n in self.definitions])
-        self.canvas.itemconfig(self.canvas_text, text=text_string)
+        self.canvas.itemconfig(self.canvas_text, font=('Purisa', self.font_size), text=text_string)
 
     def draw_links(self):
         """ Draw the links linking children to parents """
-
 
         for node in self.visual_children:
             if 'definitions' in node.name:

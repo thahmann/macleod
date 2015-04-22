@@ -64,21 +64,22 @@ def btn_release(event):
     widget.pressed_index = None
 
 
-class StdoutRedirector(object):
+class IORedirector(object):
     """ Stub class to catch stdout """
 
-    def __init__(self, console_text, window):
+    def __init__(self, console_text):
         """ Make the magic """
 
         self.console_text = console_text
-        self.window = window
+
+class StdoutRedirector(IORedirector):
+    """ """
 
     def write(self, str):
         """ Write the contents of stdout to text widget """
 
         self.console_text.insert(END, str, 'justified')
         self.console_text.see(END)
-        self.window.update()
 
     def flush(self):
         """ Clear stdout? """
@@ -123,8 +124,10 @@ class GUI(Frame):
         """ Zoom into and out of the tree """
         if io:
             self.canvas.scale("all", 0, 0, 1.1, 1.1)
+            self.arborist.adjust_text(io)
         else:
             self.canvas.scale("all", 0, 0, 0.9, 0.9)
+            self.arborist.adjust_text(io)
 
     def load_window(self):
         """ Setup the with placeholders for stuff """
@@ -199,7 +202,7 @@ class GUI(Frame):
         paned_window.add(self.notebook)
         paned_window.pack(fill=BOTH, expand=1)
 
-        sys.stdout = StdoutRedirector(self.console_text, self.parent)
+        sys.stdout = StdoutRedirector(self.console_text)
 
         # Proto some mouse pan support on the canvas
         self.canvas.bind("<ButtonPress-1>", self.scrollStart)
