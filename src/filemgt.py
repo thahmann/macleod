@@ -11,7 +11,8 @@ from ConfigParser import SafeConfigParser
 LOGGER = None
 CONFIG_PARSER = None
 log_config_file = '../conf/logging.conf'
-config_file = '../conf/macleod_mac.conf'
+#config_file = '../conf/macleod_mac.conf'
+config_file = 'macleod.conf'
 config_dir = '../conf/'
 
 subprocess_log_file = None
@@ -26,8 +27,8 @@ def find_config (filename):
             loc = os.path.join(loc,filename)
             if LOGGER:
                 LOGGER.debug("Looking for " + filename + " at: " + loc)
-            #else:
-            # print("Looking for configuration file at: " + loc)
+            else:
+             print("Looking for configuration file at: " + loc)
             if os.path.isfile(loc):
                 filename = loc
                 if LOGGER:
@@ -46,7 +47,7 @@ def find_macleod_config():
     """tries to find the MacLeod configuration file."""
     global config_file
     filename = config_file
-    config_file = find_config(filename)
+    config_file = filename
 
     if not os.path.exists(config_file) or not os.path.isfile(config_file):
         # backup solution: with _win or _linux in the name
@@ -89,7 +90,6 @@ def read_config(section, key):
     # read from config
     return CONFIG_PARSER.get(section,key)
      
-
 def start_logging():
     """create a MacLeod logger and start logging."""
     global LOGGER
