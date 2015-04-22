@@ -4,6 +4,7 @@
 
 Anything that the tree needs to know about the GUI should happen here
 """
+
 from Tkinter import *
 from ttk import *
 import os
@@ -54,8 +55,11 @@ class Visualizer(object):
         node_info.insert(INSERT, 'Name: ')
         node_info.insert(INSERT, node.name + '\n', \
                 hyperlink.add(lambda: edit_external_file(node.name)))
+
         node_info.insert(INSERT, 'Depth: ' + str(node.depth) + '\n')
-        node_info.insert(INSERT, 'Parent: ' + node.visual_parent.name + '\n')
+        if node.visual_parent:
+            node_info.insert(INSERT, 'Parent: ' + node.visual_parent.name + '\n')
+
         node_info.insert(INSERT, '\n\n')
 
         node_info.insert(INSERT, 'All Parents: ')
@@ -63,7 +67,6 @@ class Visualizer(object):
             node_info.insert(INSERT, parent.name.split('/')[-1], \
                              hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
-
         node_info.insert(INSERT, '\n')
 
         node_info.insert(INSERT, 'All Children: ')
