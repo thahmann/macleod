@@ -5,20 +5,28 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 @author: Torsten Hahmann
 '''
 
-import os, logging.config
+import os, platform, logging.config
 from ConfigParser import SafeConfigParser
 
 LOGGER = None
 CONFIG_PARSER = None
-log_config_file = 'logging.conf'
-config_file = 'macleod.conf'
-config_dir = 'C:\Reasoning\macleod\conf'
+macleod_dir = 'C:' + os.sep + 'Reasoning' + os.sep + 'macleod'
+
+log_config_file_name = os.sep + 'conf' + os.sep + 'logging.conf'
+log_config_file = ''
+
+WIN_config_file = 'conf' + os.sep + 'macleod_win.conf'
+MAC_config_file = 'conf' + os.sep + 'macleod_mac.conf'
+LINUX_config_file = 'conf' + os.sep + 'macleod_linux.conf'
+config_dir = '..' + os.sep + 'conf' + os.sep
+config_file = ''
 
 subprocess_log_file = None
 
 
 def find_config (filename):
     """tries to find some configuration file."""
+    print "Trying to find config file " + filename
     for loc in os.path.curdir, os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,'..',config_dir), os.path.expanduser("~"), os.environ.get("MACLEOD_CONF"):
         try:
             if not loc:
@@ -45,28 +53,35 @@ def find_config (filename):
 def find_macleod_config():
     """tries to find the MacLeod configuration file."""
     global config_file
-    filename = config_file
-    config_file = find_config(filename)
+    config_file = macleod_dir
+    if str(platform.system()) == 'Windows':
+        config_file = os.path.join(config_file, WIN_config_file)
+    elif str(platform.system()) == 'Darwin':
+        config_file = os.path.join(config_file, MAC_config_file)
+    else:
+        config_file = os.path.join(config_file, LINUX_config_file)
 
-    if not os.path.exists(config_file) or not os.path.isfile(config_file):
-        # backup solution: with _win or _linux in the name
-        basename = os.path.basename(filename).rsplit(".",1)
-        if len(basename)==2:
-            new_basename = basename[0]
-            if os.name == 'nt':
-                new_basename += "_win"
-            else:
-                new_basename += "_linux"
-            new_basename += "." + basename[1]
-            filename = os.path.join(os.path.dirname(filename), new_basename)
-            config_file = find_config(filename)
+    config_file = find_config(os.path.abspath(config_file))
 
 
 def find_log_config():
-    global log_config_file
     """tries to find the MacLeod logging configuration file."""
-    log_config_file = find_config(log_config_file)
-    #print("Log config file found: " + log_config_file)
+    global log_config_file
+#     if str(platform.system()) == 'Windows':
+#         log_config_file = WIN_config_file
+#     elif str(platform.system()) == 'Darwin':
+#         log_config_file = MAC_config_file
+#     else:
+#         log_config_file = LINUX_config_file
+
+    #print macleod_dir
+    #print log_config_file_name
+    log_config_file = macleod_dir + log_config_file_name
+    #print log_config_file
+    #print os.path.abspath(log_config_file)
+
+    log_config_file = find_config(os.path.abspath(log_config_file))
+    print("Log config file found: " + log_config_file)
          
 
 def read_config(section, key):
