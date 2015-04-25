@@ -255,7 +255,7 @@ def module_is_theorem_set (module_name):
         return True
     else:
         return False
-    
+
 
 def get_tptp_symbols ():
     global CONFIG_PARSER
