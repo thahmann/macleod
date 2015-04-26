@@ -89,16 +89,17 @@ Again, use the command ``echo \%PYTHONPATH\%'' in the command line to ensure you
 
 Having the \texttt{PYTHONPATH} variable point to the folder of the Macleod installation will allow you to call scripts by their name, omitting the full path. For example, we can use (in Windows)
 \begin{verbatim}
-check\_consistency.py input\_file
+check_consistency.py input_file -simple
 \end{verbatim}
 or (in Linux)
 \begin{verbatim}
-python -m check\_consistency input\_file
+python -m check_consistency input_file -simple
 \end{verbatim}
 instead of
 \begin{verbatim}
-python C:\Reasoning\macleod\scripts\check\_consistency. input\_file
+python C:\Reasoning\macleod\scripts\check_consistency input_file -simple
 \end{verbatim}
+Here ``-simple'' is an option that can be added to the execution. This option should be used by default.
 
 \paragraph{Editing your environment variables in Linux}
 If you are using the TC shell (\texttt{tcsh}) as your default shell in Linux, you can change the environment variables by the following to your configuration file \texttt{.tcshrc} located in your home directory.  Make sure that you keep all other directories that were previously in the \texttt{PATH} variable.

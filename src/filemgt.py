@@ -5,21 +5,29 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 @author: Torsten Hahmann
 '''
 
-import os, logging.config
+import os, platform, logging.config
 from ConfigParser import SafeConfigParser
 
 LOGGER = None
 CONFIG_PARSER = None
-log_config_file = '../conf/logging.conf'
-#config_file = '../conf/macleod_mac.conf'
-config_file = 'macleod.conf'
-config_dir = '../conf/'
+macleod_dir = '..' + os.sep
+#macleod_dir = 'C:' + os.sep + 'Reasoning' + os.sep + 'macleod'
+
+log_config_file_name = os.sep + 'conf' + os.sep + 'logging.conf'
+log_config_file = ''
+
+WIN_config_file = 'conf' + os.sep + 'macleod_win.conf'
+MAC_config_file = 'conf' + os.sep + 'macleod_mac.conf'
+LINUX_config_file = 'conf' + os.sep + 'macleod_linux.conf'
+config_dir = '..' + os.sep + 'conf' + os.sep
+config_file = ''
 
 subprocess_log_file = None
 
 
 def find_config (filename):
     """tries to find some configuration file."""
+    print "Trying to find config file " + filename
     for loc in os.path.curdir, os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,config_dir), os.path.join(os.path.curdir,'..',config_dir), os.path.expanduser("~"), os.environ.get("MACLEOD_CONF"):
         try:
             if not loc:
@@ -46,35 +54,25 @@ def find_config (filename):
 def find_macleod_config():
     """tries to find the MacLeod configuration file."""
     global config_file
-    filename = config_file
-    config_file = filename
+    config_file = macleod_dir
+    if str(platform.system()) == 'Windows':
+        config_file = os.path.join(config_file, WIN_config_file)
+    elif str(platform.system()) == 'Darwin':
+        config_file = os.path.join(config_file, MAC_config_file)
+    else:
+        config_file = os.path.join(config_file, LINUX_config_file)
 
-    if not os.path.exists(config_file) or not os.path.isfile(config_file):
-        # backup solution: with _win or _linux in the name
-        basename = os.path.basename(filename).rsplit(".",1)
-        if len(basename)==2:
-            new_basename = basename[0]
-            if os.name == 'nt':
-                new_basename += "_win"
-	    elif (os.name == 'posix'):
-		new_basename += "_mac"
-            else:
-                new_basename += "_linux"
-            new_basename += "." + basename[1]
-            filename = os.path.join(os.path.dirname(filename), new_basename)
-            config_file = find_config(filename)
-
+    config_file = find_config(os.path.abspath(config_file))
 
 def find_log_config():
-    global log_config_file
     """tries to find the MacLeod logging configuration file."""
-    #log_config_file = find_config(log_config_file)
-    #print("Log config file found: " + log_config_file)
-         
+    global log_config_file
+    log_config_file = macleod_dir + log_config_file_name
+    log_config_file = find_config(os.path.abspath(log_config_file))
+    print("Log config file found: " + log_config_file)
 
 def read_config(section, key):
     """read a value from the MacLeod configuration file."""
-    # load
     global CONFIG_PARSER
     global LOGGER
     if not CONFIG_PARSER:
@@ -105,14 +103,12 @@ def start_logging():
             LOGGER.debug('Logging started')
             LOGGER.debug('Logging configuration read from ' + log_config_file)
 
-
 def find_subprocess_log_file():
     global subprocess_log_file
     if not subprocess_log_file:
         find_log_config()
         SafeConfigParser().read(log_config_file)
         subprocess_log_file = read_config("system","subprocess_log")
-
     
 def add_to_subprocess_log(entries):
     global LOGGER
@@ -122,19 +118,16 @@ def add_to_subprocess_log(entries):
         sp_log_file = open(subprocess_log_file, 'a')
     else:
         sp_log_file = open(subprocess_log_file, 'w')
-    #for e in entries:
-    # LOGGER.info("____WRITING " + e)
+
     sp_log_file.writelines([e + "\n" for e in entries])
     sp_log_file.close()
     return True
     
 
-   
 def format(record):
     formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
     return formatter.format(record)
 
-  
 def get_full_path (module_name, folder=None, ending=''):
     """determines the suitable subfolder for a given file_name."""
     module_name = os.path.normpath(module_name)
@@ -165,7 +158,6 @@ def get_full_path (module_name, folder=None, ending=''):
             path = os.path.abspath(read_config('system','path'))
         
         return os.path.abspath(os.path.join(path, module_name + ending))
-
 
 def get_canonical_relative_path (path):
     """determines the path of a module relative to the path specified in the configuration"""
@@ -198,8 +190,7 @@ def get_path_with_ending_for_nontrivial_consistency_checks (module_name):
     #print return_value 
     return return_value
 
-    
-def	get_hierarchy_name (module_name):
+def     get_hierarchy_name (module_name):
     """determines the part of the module_name that denotes the hierarchy."""
     module_name = os.path.normcase(module_name)
     if os.sep in module_name:
@@ -212,7 +203,6 @@ def	get_hierarchy_name (module_name):
     else:
         return ""
     
-
 def get_type (module_name):
     """determines whether this is a axiom, definition, mapping, theorem, etc. file"""
     module_name = os.path.normcase(module_name)
@@ -234,13 +224,11 @@ def get_type (module_name):
             # TODO: complete folders as necessary
     return ""
             
-    
 def module_is_axiom_set (module_name):
     if get_type(module_name)=="":
         return True
     else:
         return False
-
 
 def module_is_definition_set (module_name):
     if get_type(module_name)==read_config('cl','definitions_subfolder'):
