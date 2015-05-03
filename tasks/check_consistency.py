@@ -70,7 +70,8 @@ if __name__ == '__main__':
     options.reverse()
     options.pop()
     filename = options.pop()
-    derp, clif = consistent(filename, options)
+    m = ClifModuleSet(filename)
+    derp, clif = consistent(filename, m, options)
 
     arborist = VisualArborist(canvas)
     arborist.gather_nodes(clif)
