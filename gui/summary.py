@@ -19,7 +19,6 @@ EDITOR = None
 def find_system_editor():
     """ Configure to open system preferred editor """
 
-
     if platform.sys == 'DARWIN':
         EDITOR = os.environ['EDITOR']
     else:
@@ -89,25 +88,55 @@ class Visualizer(object):
 
         node_info.insert(INSERT, '\n\n')
 
-        node_info.insert(INSERT, 'All Parents: ')
+        node_info.insert(INSERT, 'All Parents:\n')
+        node_info.insert(INSERT, '------------\n')
         for parent in node.parents:
             node_info.insert(INSERT, parent.name, \
                     hyperlink.add(lambda: edit_external_file(parent.name)))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
 
-        node_info.insert(INSERT, 'All Children: ')
+        node_info.insert(INSERT, 'All Children:\n')
+        node_info.insert(INSERT, '-------------\n')
         for child in node.children:
             node_info.insert(INSERT, child.name, \
                     hyperlink.add(lambda: edit_external_file(child.name)))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
 
-        node_info.insert(INSERT, 'Definitions: ')
-        for node in node.definitions:
-            node_info.insert(INSERT, node.name, \
+        node_info.insert(INSERT, 'Definitions:\n')
+        node_info.insert(INSERT, '------------\n')
+        for definition in node.definitions:
+            node_info.insert(INSERT, definition.name, \
                     hyperlink.add(lambda: edit_external_file(node.name)))
             node_info.insert(INSERT, ' ')
+        node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'Defined Symbols:\n')
+        node_info.insert(INSERT, '----------------\n')
+        for definition in node.definitions:
+            # node_info.insert(INSERT, definition.name + '\n')
+            for (symbol, arity) in definition.module.get_defined_symbols():
+                node_info.insert(INSERT, str(symbol))
+            node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'Used Symbols:\n')
+        node_info.insert(INSERT, '-------------\n')
+        for (symbol, arity) in node.module.get_nonlogical_symbols():
+            node_info.insert(INSERT, str(symbol) + ' ')
+
+        defs = []
+        for definition in node.definitions:
+            for (symbol, arity) in definition.module.get_nonlogical_symbols():
+                if symbol not in defs:
+                    node_info.insert(INSERT, str(symbol) + ' ')
+                    defs.append(symbol)
+
+
 
 class HyperLink(object):
     """ Hyperlinks in TKinter! """
