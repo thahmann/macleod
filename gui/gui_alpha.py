@@ -175,7 +175,7 @@ class GUI(Frame):
         paned_window = PanedWindow(paned_windows_frame, orient=VERTICAL, sashrelief=SUNKEN, sashwidth=6)
 
         # Created canvas and notebook (tab stuff) inside of paned_window  """
-        self.canvas = Canvas(paned_window, width=950, height=275)
+        self.canvas = Canvas(paned_window, width=1200, height=275)
         paned_window.add(self.canvas)
         self.notebook = ttk.Notebook(paned_window, name='tabs!', width=950, height=275)
         print ttk.Style().theme_names
