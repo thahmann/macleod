@@ -79,11 +79,12 @@ def read_config(section, key):
         CONFIG_PARSER = SafeConfigParser()
         find_macleod_config()
         if len(config_file)==0:
-            LOGGER.error("Problem reading config file from " + config_file)
+            #LOGGER.error("Problem reading config file from " + config_file)
+            pass
         else:
             #print("Read config file from " + config_file)
             CONFIG_PARSER.read(config_file)
-            LOGGER.info('Macleod configuration read from ' + config_file)
+            #LOGGER.info('Macleod configuration read from ' + config_file)
         
     # read from config
     return CONFIG_PARSER.get(section,key)

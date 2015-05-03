@@ -64,21 +64,21 @@ class Visualizer(object):
 
         node_info.insert(INSERT, 'All Parents: ')
         for parent in node.parents:
-            node_info.insert(INSERT, parent.name.split('/')[-1], \
+            node_info.insert(INSERT, parent.name.split, \
                              hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
 
         node_info.insert(INSERT, 'All Children: ')
         for child in node.children:
-            node_info.insert(INSERT, child.name.split('/')[-1], \
+            node_info.insert(INSERT, child.name.split, \
                             hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
 
         node_info.insert(INSERT, 'Definitions: ')
         for node in node.definitions:
-            node_info.insert(INSERT, node.name.split('/')[-1], \
+            node_info.insert(INSERT, node.name, \
                             hyperlink.add(edit_external_file))
             node_info.insert(INSERT, ' ')
 

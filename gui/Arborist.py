@@ -6,11 +6,15 @@ more generic tree structure
 @author Robert Powell
 """
 
+import sys
+sys.path.append("../src")
+
 from Tkinter import *
+from summary import *
+from filemgt import module_is_definition_set
+import logging
 import tkFont
 import ttk
-from summary import *
-import logging
 
 LOG = logging.getLogger(__name__)
 
@@ -67,16 +71,17 @@ class Arborist(object):
 
         removes = []
         for name in self.nodes:
-            if 'definitions' in name:
+            if module_is_definition_set(name):
+                print name
                 removes.append(name)
 
         for name, node in self.nodes.iteritems():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
-                node.definitions += [c for c in node.children if 'definition' in c.name]
-                node.children = [c for c in node.children if 'definitions' not in c.name]
-                node.definitions += [p for p in node.parents if 'definitions' in p.name]
-                node.parents = [p for p in node.parents if 'definitions' not in p.name]
+                #node.definitions += [c for c in node.children if 'definition' in c.name]
+                node.children = [c for c in node.children if not module_is_definition_set(c.name)]#'definitions' not in c.name]
+                node.definitions += [p for p in node.parents if module_is_definition_set(p.name)]#'definitions' in p.name]
+                node.parents = [p for p in node.parents if not module_is_definition_set(p.name)]#'definitions' not in p.name]
 
                 for c in node.children:
                     if 'definitions' in c.name:
