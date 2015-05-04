@@ -10,7 +10,7 @@ import sys
 import tkFileDialog
 import time
 sys.path.append("../tasks")
-
+import texttable as tt
 from Arborist import *
 from summary import *
 from check_consistency import *
@@ -268,6 +268,13 @@ class GUI(Frame):
         """ Create an arborist object with selected file """
 
         self.module = ClifModuleSet(filename)
+        print "I'm about to print stuff"
+        print self.module.get_axioms
+
+        print "Done Printing this thing"
+        sys.exit(0)
+
+
         visualizer = Visualizer(self.canvas, self.notebook)
         self.arborist = VisualArborist(visualizer)
         self.arborist.gather_nodes(self.module)
