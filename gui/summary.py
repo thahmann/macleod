@@ -5,16 +5,42 @@
 Anything that the tree needs to know about the GUI should happen here
 """
 
+import sys
+sys.path.append("../src")
+
 from Tkinter import *
 from ttk import *
+from filemgt import get_full_path
 import os
+import platform
+
+EDITOR = None
+
+def find_system_editor():
+    """ Configure to open system preferred editor """
+
+    if platform.sys == 'DARWIN':
+        EDITOR = os.environ['EDITOR']
+    else:
+        editor = 'open'
+
+    def edit_file(path):
+        """ Launch the system editor on provided file """
+
+        full_path = get_full_path(path)
+        os.system(editor + ' ' + full_path)
+
+    return edit_file
 
 def edit_external_file(module_name):
     """ Open system editor on file """
 
-    # TODO Consider relative paths + windows version
-    #os.system("open "+module_name+'.clif')
-    print 'Will eventually open', module_name
+    global EDITOR
+    
+    if not EDITOR:
+        EDITOR = find_system_editor()
+
+    EDITOR(module_name + '.clif')
 
 class Visualizer(object):
     """ Create the link between the VisualAborist and GUI """
@@ -62,25 +88,55 @@ class Visualizer(object):
 
         node_info.insert(INSERT, '\n\n')
 
-        node_info.insert(INSERT, 'All Parents: ')
+        node_info.insert(INSERT, 'All Parents:\n')
+        node_info.insert(INSERT, '------------\n')
         for parent in node.parents:
-            node_info.insert(INSERT, parent.name.split, \
-                             hyperlink.add(edit_external_file))
+            node_info.insert(INSERT, parent.name, \
+                    hyperlink.add(lambda: edit_external_file(parent.name)))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
 
-        node_info.insert(INSERT, 'All Children: ')
+        node_info.insert(INSERT, 'All Children:\n')
+        node_info.insert(INSERT, '-------------\n')
         for child in node.children:
-            node_info.insert(INSERT, child.name.split, \
-                            hyperlink.add(edit_external_file))
+            node_info.insert(INSERT, child.name, \
+                    hyperlink.add(lambda: edit_external_file(child.name)))
             node_info.insert(INSERT, ' ')
         node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
 
-        node_info.insert(INSERT, 'Definitions: ')
-        for node in node.definitions:
-            node_info.insert(INSERT, node.name, \
-                            hyperlink.add(edit_external_file))
+        node_info.insert(INSERT, 'Definitions:\n')
+        node_info.insert(INSERT, '------------\n')
+        for definition in node.definitions:
+            node_info.insert(INSERT, definition.name, \
+                    hyperlink.add(lambda: edit_external_file(node.name)))
             node_info.insert(INSERT, ' ')
+        node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'Defined Symbols:\n')
+        node_info.insert(INSERT, '----------------\n')
+        for definition in node.definitions:
+            # node_info.insert(INSERT, definition.name + '\n')
+            for (symbol, arity) in definition.module.get_defined_symbols():
+                node_info.insert(INSERT, str(symbol))
+            node_info.insert(INSERT, '\n')
+        node_info.insert(INSERT, '\n')
+
+        node_info.insert(INSERT, 'Used Symbols:\n')
+        node_info.insert(INSERT, '-------------\n')
+        for (symbol, arity) in node.module.get_nonlogical_symbols():
+            node_info.insert(INSERT, str(symbol) + ' ')
+
+        defs = []
+        for definition in node.definitions:
+            for (symbol, arity) in definition.module.get_nonlogical_symbols():
+                if symbol not in defs:
+                    node_info.insert(INSERT, str(symbol) + ' ')
+                    defs.append(symbol)
+
+
 
 class HyperLink(object):
     """ Hyperlinks in TKinter! """
