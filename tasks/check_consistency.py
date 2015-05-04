@@ -59,5 +59,3 @@ if __name__ == '__main__':
     m = ClifModuleSet(filename)
     derp, clif = consistent(filename, m, options)
 
-    canvas.addtag_all("all")
-    root.mainloop()
