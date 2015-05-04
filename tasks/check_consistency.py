@@ -52,34 +52,12 @@ if __name__ == '__main__':
     licence.print_terms()
     # global variables
 
-    root = Tk()
-    s = ttk.Style()
-    s.theme_use('default')
-    frame = Frame(root, width=500, height = 500)
-    canvas = Canvas(frame, width = 600, height = 600)
-
-    men = Menu(root, tearoff=0)
-    men.add_command(label="See as root")
-    men.add_command(label="See as derp")
-    men.add_command(label="Work plz")
-
-    canvas.pack(fill=BOTH, expand=1)
-    frame.pack(fill=BOTH, expand=1)
-
     options = sys.argv
     options.reverse()
     options.pop()
     filename = options.pop()
     m = ClifModuleSet(filename)
     derp, clif = consistent(filename, m, options)
-
-    arborist = VisualArborist(canvas)
-    arborist.gather_nodes(clif)
-    arborist.grow_tree()
-    arborist.prune_tree(arborist.tree, None, 0)
-    arborist.weight_tree()
-    arborist.layout_tree()
-    arborist.draw_tree()
 
     canvas.addtag_all("all")
     root.mainloop()
