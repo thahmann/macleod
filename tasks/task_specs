@@ -1,0 +1,31 @@
+Prove Lemma:
+    Methods:
+        def run_simple_check(m)
+        def prove(lemmas_filesname, summary_file, axioms_filename=None, options=[])
+        def print_options() 
+    
+    Possible Flags:
+        -find
+        -simple
+        -module
+        -depth
+    
+    Notes:
+        Uses 'log/lemma_summary.log' to store output
+
+Clif to LADR:
+    Methods:
+        def ladr(filename, m, options=[])
+    
+    Possible Flags:
+        -cumulate
+        -module
+            
+Clif to TPTP:
+    Methods:
+        def tptp(filename, m, options=[])
+    
+    Possible Options:
+        -cumulate
+        -module
+            

@@ -23,6 +23,7 @@ from clif_to_tptp_all import *
 from prove_lemma_all import *
 from Tkinter import *
 from delete_output import *
+from report import *
 from src.ClifModuleSet import ClifModuleSet
 import ttk
 import tkMessageBox
@@ -97,7 +98,7 @@ class GUI(Frame):
         self.parent = parent
         self.arborist = False
         self.module = False
-
+        self.report = False
         # defining options for opening a directory
         self.selected_file = False
         self.selected_folder = False
@@ -267,6 +268,8 @@ class GUI(Frame):
         """ Create an arborist object with selected file """
 
         self.module = ClifModuleSet(filename)
+        self.report = Report(self.module, self.report_tab)
+        
         #print "I'm about to print stuff"
         #print self.module.get_axioms
 
