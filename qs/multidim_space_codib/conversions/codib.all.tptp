@@ -1,3 +1,50 @@
+<<<<<<< HEAD
+% cl-imports multidim_space_cont/cont_basic.clif
+% cl-imports multidim_space_dim/dim_prime_linear.clif
+fof(sos10,axiom,( ! [X12] : ! [X11] : ( (cont(X12, X11)) => ((lt(X12, X11) | eqdim(X12, X11))) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_codi/definitions/epp.clif
+fof(sos20,axiom,( ! [X22] : ( (max(X22)) <=> ((s(X22) & ~ (zex(X22)) & ( ! [X21] : ~ (pp(X22, X21))) )) )) ).
+fof(sos30,axiom,( ! [X32] : ( (min(X32)) <=> ((s(X32) & ~ (zex(X32)) & ( ! [X31] : ~ (pp(X31, X32))) )) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_cont/definitions/c.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+% cl-imports multidim_space_codi/definitions/sc.clif
+fof(sos40,axiom,( ! [X42] : ! [X41] : ( (sc(X42, X41)) => (c(X42, X41)) )) ).
+fof(sos50,axiom,( ! [X52] : ! [X51] : ( (sc(X52, X51)) => (~ (( ? [X53] : (cont(X53, X52) & p(X53, X51))) )) )) ).
+fof(sos60,axiom,( ! [X62] : ! [X61] : ( (sc(X62, X61)) => (~ (( ? [X63] : (p(X63, X62) & cont(X63, X61))) )) )) ).
+fof(sos70,axiom,( ! [X72] : ! [X71] : ( ((c(X72, X71) & ( ! [X73] : (~ (cont(X73, X72)) | ~ (cont(X73, X71)) | (~ (p(X73, X72)) & ~ (p(X73, X71))))) )) => (sc(X72, X71)) )) ).
+fof(sos80,axiom,( ! [X81] : ~ (sc(X81, X81))) ).
+fof(sos90,axiom,( ! [X92] : ! [X91] : ( (sc(X92, X91)) => (sc(X91, X92)) )) ).
+fof(sos100,axiom,( ! [X102] : ! [X101] : ( (sc(X102, X101)) => (( ? [X103] : (lt(X103, X102) & lt(X103, X101) & cont(X103, X102) & cont(X103, X101))) ) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+% cl-imports multidim_space_codi/definitions/inc.clif
+fof(sos110,axiom,( ! [X111] : ~ (inc(X111, X111))) ).
+fof(sos120,axiom,( ! [X122] : ! [X121] : ( (inc(X122, X121)) => (inc(X121, X122)) )) ).
+fof(sos130,axiom,( ! [X132] : ! [X131] : ( (eqdim(X132, X131)) => (~ (inc(X132, X131))) )) ).
+fof(sos140,axiom,( ! [X142] : ! [X141] : ( (inc(X142, X141)) => ((lt(X142, X141) | lt(X141, X142))) )) ).
+fof(sos150,axiom,( ! [X152] : ! [X151] : ( ((cont(X152, X151) & lt(X152, X151))) => (inc(X152, X151)) )) ).
+fof(sos160,axiom,( ! [X162] : ! [X161] : ! [X163] : ( ((inc(X162, X161) & p(X161, X163))) => (inc(X162, X163)) )) ).
+% cl-imports multidim_space_codib/codi_bcont.clif
+fof(sos170,axiom,( ! [X172] : ( (closed(X172)) <=> (( ! [X171] : ~ (bcont(X171, X172))) ) )) ).
+fof(sos180,axiom,( ! [X182] : ! [X181] : ( (leq(X182, X181)) => (s(X182)) )) ).
+fof(sos190,axiom,( ! [X192] : ! [X191] : ( (leq(X192, X191)) => (s(X191)) )) ).
+fof(sos200,axiom,( ! [X201] : ( (zex(X201)) => (s(X201)) )) ).
+fof(sos210,axiom,( ! [X211] : ( (s(X211)) => (leq(X211, X211)) )) ).
+fof(sos220,axiom,( ! [X222] : ! [X221] : ! [X223] : ( ((leq(X222, X221) & leq(X221, X223))) => (leq(X222, X223)) )) ).
+fof(sos230,axiom,( ! [X232] : ! [X231] : ( ((zex(X232) & zex(X231))) => ((X232=X231)) )) ).
+fof(sos240,axiom,( ! [X242] : ! [X241] : ( ((zex(X242) & s(X241))) => (leq(X242, X241)) )) ).
+% cl-imports multidim_space_cont/cont_basic.clif
+fof(sos250,axiom,( ! [X252] : ! [X251] : ( (c(X252, X251)) <=> (( ? [X253] : (cont(X253, X252) & cont(X253, X251))) ) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_cont/definitions/c.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+% cl-imports multidim_space_codi/definitions/po.clif
+fof(sos260,axiom,( ! [X261] : ( ((s(X261) & ~ (zex(X261)))) => (po(X261, X261)) )) ).
+fof(sos270,axiom,( ! [X272] : ! [X271] : ( (po(X272, X271)) => (po(X271, X272)) )) ).
+fof(sos280,axiom,( ! [X282] : ! [X281] : ( (po(X282, X281)) => (eqdim(X282, X281)) )) ).
+=======
 % cl-imports multidim_space_codi/codi_basic.clif
 % cl-imports multidim_space_codi/definitions/epp.clif
 fof(sos10,axiom,( ! [X12] : ( (max(X12)) <=> ((s(X12) & ~ (zex(X12)) & ( ! [X11] : ~ (pp(X12, X11))) )) )) ).
@@ -21,6 +68,7 @@ fof(sos130,axiom,( ! [X132] : ! [X131] : ( ((zex(X132) & zex(X131))) => ((X132=X
 fof(sos140,axiom,( ! [X142] : ! [X141] : ( (covers(X142, X141)) <=> ((lt(X141, X142) & ( ! [X143] : ( (s(X143)) => (~ ((lt(X141, X143) & lt(X143, X142)))) )) )) )) ).
 % cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
 fof(sos150,axiom,( ! [X152] : ! [X151] : ( (eqdim(X152, X151)) <=> ((leq(X152, X151) & leq(X151, X152))) )) ).
+>>>>>>> 60c1831d2a7c756e205b3296211265d82ab30231
 % cl-imports multidim_space_codi/codi.clif
 % cl-imports multidim_space_dim/definitions/covers.clif
 % cl-imports multidim_space_codi/definitions/min_max_in_dim.clif
@@ -30,6 +78,30 @@ fof(sos150,axiom,( ! [X152] : ! [X151] : ( (eqdim(X152, X151)) <=> ((leq(X152, X
 % cl-imports multidim_space_codi/theorems/po_theorems.clif
 % cl-imports multidim_space_codi/theorems/inc_theorems.clif
 % cl-imports multidim_space_codi/theorems/sc_theorems.clif
+<<<<<<< HEAD
+fof(sos290,axiom,( ! [X292] : ! [X291] : ( (bcont(X292, X291)) => ((cont(X292, X291) & inc(X292, X291))) )) ).
+fof(sos300,axiom,( ! [X302] : ! [X301] : ! [X304] : ! [X303] : ( ((sc(X302, X301) & min(X302) & p(X302, X304) & cont(X301, X304) & cont(X303, X302) & cont(X303, X301))) => (bcont(X303, X302)) )) ).
+fof(sos310,axiom,( ! [X312] : ! [X311] : ! [X313] : ! [X314] : ( ((sc(X312, X311) & p(X312, X314) & p(X311, X314) & cont(X313, X312) & cont(X313, X311) & covers(X314, X313))) => (~ (bcont(X313, X314))) )) ).
+fof(sos320,axiom,( ! [X322] : ! [X321] : ! [X323] : ( ((bcont(X322, X321) & p(X321, X323) & ( ! [X325] : ! [X324] : ( ((p(X325, X323) & ~ (po(X325, X321)) & p(X324, X322))) => (~ (cont(X324, X325))) )) )) => (bcont(X322, X323)) )) ).
+fof(sos330,axiom,( ! [X332] : ! [X331] : ! [X333] : ( ((bcont(X332, X331) & cont(X333, X332))) => (bcont(X333, X331)) )) ).
+% cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
+% cl-imports multidim_space_dim/definitions/min_max_dim.clif
+fof(sos340,axiom,( ? [X341] : mindim(X341)) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+fof(sos350,axiom,( ! [X352] : ! [X351] : ( (pp(X352, X351)) <=> ((p(X352, X351) & ~ ((X352=X351)))) )) ).
+% cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
+fof(sos360,axiom,( ! [X362] : ! [X361] : ( (eqdim(X362, X361)) <=> ((leq(X362, X361) & leq(X361, X362))) )) ).
+fof(sos370,axiom,( ! [X371] : ( ((s(X371) & ~ (zex(X371)))) <=> (cont(X371, X371)) )) ).
+fof(sos380,axiom,( ! [X382] : ! [X381] : ( ((cont(X382, X381) & cont(X381, X382))) => ((X382=X381)) )) ).
+fof(sos390,axiom,( ! [X392] : ! [X391] : ! [X393] : ( ((cont(X392, X391) & cont(X391, X393))) => (cont(X392, X393)) )) ).
+fof(sos400,axiom,( ! [X402] : ! [X401] : ( (zex(X402)) => ((s(X402) & ~ (cont(X401, X402)) & ~ (cont(X402, X401)))) )) ).
+fof(sos410,axiom,( ! [X412] : ! [X411] : ( ((zex(X412) & zex(X411))) => ((X412=X411)) )) ).
+% cl-imports multidim_space_dim/definitions/eq_dim.clif
+fof(sos420,axiom,( ! [X422] : ! [X421] : ( (gt(X422, X421)) <=> (lt(X421, X422)) )) ).
+fof(sos430,axiom,( ! [X432] : ! [X431] : ( (geq(X432, X431)) <=> (leq(X431, X432)) )) ).
+fof(sos440,axiom,( ! [X442] : ! [X441] : ( (lt(X442, X441)) <=> ((leq(X442, X441) & ~ (eqdim(X442, X441)))) )) ).
+=======
 fof(sos160,axiom,( ! [X162] : ! [X161] : ( (bcont(X162, X161)) => ((cont(X162, X161) & inc(X162, X161))) )) ).
 fof(sos170,axiom,( ! [X172] : ! [X171] : ! [X174] : ! [X173] : ( ((sc(X172, X171) & min(X172) & p(X172, X174) & cont(X171, X174) & cont(X173, X172) & cont(X173, X171))) => (bcont(X173, X172)) )) ).
 fof(sos180,axiom,( ! [X182] : ! [X181] : ! [X183] : ! [X184] : ( ((sc(X182, X181) & p(X182, X184) & p(X181, X184) & cont(X183, X182) & cont(X183, X181) & covers(X184, X183))) => (~ (bcont(X183, X184))) )) ).
@@ -47,6 +119,7 @@ fof(sos240,axiom,( ! [X242] : ! [X241] : ( (po(X242, X241)) <=> (( ? [X243] : (p
 % cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
 % cl-imports multidim_space_dim/definitions/min_max_dim.clif
 fof(sos250,axiom,( ? [X251] : mindim(X251)) ).
+>>>>>>> 60c1831d2a7c756e205b3296211265d82ab30231
 % cl-imports multidim_space_cont/definitions/c.clif
 % cl-imports multidim_space_codi/codi_basic.clif
 % cl-imports multidim_space_codi/definitions/ep.clif
@@ -55,6 +128,27 @@ fof(sos250,axiom,( ? [X251] : mindim(X251)) ).
 % cl-imports multidim_space_codi/definitions/inc.clif
 % cl-imports multidim_space_codi/definitions/sc.clif
 % cl-imports multidim_space_codi/definitions/min_max_in_dim.clif
+<<<<<<< HEAD
+% cl-imports multidim_space_codib/definitions/closed.clif
+% cl-imports multidim_space_codib/codi_bcont.clif
+% cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
+% cl-imports multidim_space_dim/definitions/dim_basic_defs.clif
+fof(sos450,axiom,( ! [X452] : ! [X451] : ( (covers(X452, X451)) <=> ((lt(X451, X452) & ( ! [X453] : ( (s(X453)) => (~ ((lt(X451, X453) & lt(X453, X452)))) )) )) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+fof(sos460,axiom,( ! [X462] : ! [X461] : ( (sc(X462, X461)) <=> ((( ? [X463] : (cont(X463, X462) & cont(X463, X461)))  & ( ! [X463] : ( ((cont(X463, X462) & cont(X463, X461))) => ((lt(X463, X462) & lt(X463, X461))) )) )) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+fof(sos470,axiom,( ! [X472] : ! [X471] : ( (po(X472, X471)) <=> (( ? [X473] : (p(X473, X472) & p(X473, X471))) ) )) ).
+% cl-imports multidim_space_dim/dim_prime_linear_unbounded.clif
+% cl-imports multidim_space_dim/definitions/dim_basic_defs.clif
+fof(sos480,axiom,( ! [X482] : ( (maxdim(X482)) <=> ((s(X482) & ~ (( ? [X481] : (s(X481) & lt(X482, X481))) ))) )) ).
+fof(sos490,axiom,( ! [X492] : ( (mindim(X492)) <=> ((s(X492) & ~ (zex(X492)) & ( ! [X491] : ( ((s(X491) & lt(X491, X492))) => (zex(X491)) )) )) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+fof(sos500,axiom,( ! [X502] : ! [X501] : ( (p(X502, X501)) <=> ((cont(X502, X501) & eqdim(X502, X501))) )) ).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+fof(sos510,axiom,( ! [X512] : ! [X511] : ( (inc(X512, X511)) <=> ((( ? [X513] : (lt(X513, X512) & cont(X513, X512) & p(X513, X511)))  | ( ? [X513] : (lt(X513, X511) & cont(X513, X511) & p(X513, X512))) )) )) ).
+=======
 % cl-imports multidim_space_codi/codi_basic.clif
 % cl-imports multidim_space_cont/definitions/c.clif
 % cl-imports multidim_space_codi/definitions/ep.clif
@@ -101,3 +195,4 @@ fof(sos500,axiom,( ! [X502] : ! [X501] : ( (inc(X502, X501)) <=> ((( ? [X503] : 
 % cl-imports multidim_space_codi/codi_basic.clif
 % cl-imports multidim_space_codi/definitions/ep.clif
 fof(sos510,axiom,( ! [X512] : ! [X511] : ( (pp(X512, X511)) <=> ((p(X512, X511) & ~ ((X512=X511)))) )) ).
+>>>>>>> 60c1831d2a7c756e205b3296211265d82ab30231
