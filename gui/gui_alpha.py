@@ -3,7 +3,6 @@
 @Author Robert Powell && Nate Swan
 
 High-level overview of graphical element to be added to Macleod
-
 """
 
 import sys
