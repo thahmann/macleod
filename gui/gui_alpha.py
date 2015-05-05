@@ -269,7 +269,7 @@ class GUI(Frame):
         """ Create an arborist object with selected file """
 
         self.module = ClifModuleSet(filename)
-        self.report = Report(self.module, self.report_tab)
+       # self.report = Report(self.module, self.report_tab)
         
         #print "I'm about to print stuff"
         #print self.module.get_axioms
