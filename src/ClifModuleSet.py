@@ -5,11 +5,11 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 @author: Torsten Hahmann
 '''
 
-from src import filemgt, commands, process, ladr, clif
-from src.ClifModule import ClifModule
-from src.ReasonerSet import ReasonerSet
-import os
+import os, sys
 import logging
+from src import filemgt, commands, process, ladr, clif
+from ClifModule import ClifModule
+from ReasonerSet import ReasonerSet
 #import atexit
 
 
