@@ -1,11 +1,28 @@
 Macleod
 ======================================================
 
-Start here:
-----------
+Installation:
+-------------
 
-If you're on Mac or Linux, you are going to have a good time. If you are on Windows, come back tomorrow.
+## Dependencies
 
+For the linux and apple platform only the following dependency is required.
+
+* texttable
+
+This is most easily obtained with <code>sudo pip install texttable</code>
+
+### Windows:
+
+To install on Windows machines the following dependencies are required.
+* PyWin32 <http://sourceforge.net/projects/pywin32/files/>
+* WMI module <http://timgolden.me.uk/python/wmi/index.html>
+
+
+
+Quick Start
+-----------
+* Install required dependencies
 * Navigate to the gui subfolder
 * Execute the gui_alpha.py file with python
 
@@ -20,4 +37,3 @@ While the program primarily targets first-order ontologies specified in the Comm
 Moreover, the tool exploits the modularity of ontologies, which manifests itself in its file CL imports structure. 
 
 In the near future it will be integrated with COLORE to provide design, verification, and other reasoning support for all ontologies in the repository.
-
