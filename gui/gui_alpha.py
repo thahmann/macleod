@@ -195,9 +195,9 @@ class GUI(Frame):
                 orient=VERTICAL, sashrelief=SUNKEN, sashwidth=6)
 
         # Created canvas and notebook (tab stuff) inside of paned_window  """
-        self.canvas = Canvas(self.paned_window, width=1200, height=275)
+        self.canvas = Canvas(self.paned_window) #, width=900, height=275)
         self.paned_window.add(self.canvas)
-        self.notebook = ttk.Notebook(self.paned_window, name='tabs!', width=950, height=275)
+        self.notebook = ttk.Notebook(self.paned_window, name='tabs!')# width=950, height=275)
         #print ttk.Style().theme_names
         #print self.notebook.winfo_class()
         self.notebook.configure(style="ButtonNotebook")
@@ -355,7 +355,7 @@ def main():
     root.bind_class("TNotebook", "<ButtonRelease-1>", btn_release)
 
     root.geometry()
-    root.resizable(0, 0)
+    #root.resizable(0, 0)
     app = GUI(root)
     app.load_window()
     root.mainloop()

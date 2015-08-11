@@ -26,8 +26,8 @@ NODE_BASE_BUFFER = 50
 TREE_VERTICAL_SPACE = 20
 TREE_MAX_WIDTH = 1000
 # How many TKinter units to account for each character
-CHAR_BASE_WIDTH = 1.6
-CHAR_BASE_HEIGHT = 10
+CHAR_BASE_WIDTH = False
+CHAR_BASE_HEIGHT = False
 
 class Arborist(object):
     """ Arborist that can create trees """
@@ -78,10 +78,9 @@ class Arborist(object):
         for name, node in self.nodes.iteritems():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
-                #node.definitions += [c for c in node.children if 'definition' in c.name]
-                node.children = [c for c in node.children if not module_is_definition_set(c.name)]#'definitions' not in c.name]
-                node.definitions += [p for p in node.parents if module_is_definition_set(p.name)]#'definitions' in p.name]
-                node.parents = [p for p in node.parents if not module_is_definition_set(p.name)]#'definitions' not in p.name]
+                node.children = [c for c in node.children if not module_is_definition_set(c.name)]
+                node.definitions += [p for p in node.parents if module_is_definition_set(p.name)]
+                node.parents = [p for p in node.parents if not module_is_definition_set(p.name)]
 
                 for c in node.children:
                     if 'definitions' in c.name:
@@ -160,23 +159,25 @@ class VisualArborist(Arborist):
     def weight_tree(self):
         """ Climb the tree and weight each level based on its children """
 
+        # Arrange nodes from deepest to root
         nodes = sorted(self.nodes.values(), key=lambda n: n.depth, reverse=True)
+
+        # First make sure all nodes width is that of their definition 
         for node in nodes:
             node.set_visual_parent()
             node.set_visual_children()
             node.set_height()
             node.set_width()
 
+        for node in nodes:
             if len(node.visual_children) == 0:
-                node.width = NODE_BASE_WIDTH
-            elif len(node.visual_children) == 1:
-                node.width = node.visual_children[0].width
+                # Edge case for many no-children siblings
+                node.width += 15
+            if len(node.visual_children) == 1:
+                node.width = max(node.visual_children[0].width, node.width)
             else:
-                # Don't count nodes own width
-                for child in node.visual_children:
-                    node.width += child.width
+                node.width = max(sum(c.width for c in node.visual_children), node.width)
 
-            node.width += node.r_width
 
     # TODO Don't know if this belongs here
     def remove_tree(self):
@@ -206,18 +207,14 @@ class VisualArborist(Arborist):
                     if len(node.visual_parent.visual_children) == 1:
                         node.x_pos = node.visual_parent.x_pos
                     else:
-                        if (len(node.visual_parent.visual_children) % 2 == 0):
-                            node.x_pos = node.visual_parent.x_pos - \
-                                    (0.5 * (node.visual_parent.width - NODE_BASE_WIDTH)) + \
-                                    node.visual_parent.offset
-                        else:
-                            node.x_pos = node.visual_parent.x_pos - \
-                                    (0.5 * node.visual_parent.width) + \
-                                    node.visual_parent.offset
+                        node.x_pos = node.visual_parent.x_pos \
+                                - (0.5 * node.visual_parent.width) \
+                                + node.visual_parent.offset \
+                                + 0.5 * node.width
 
-                    node.visual_parent.offset += node.width + 0.5 * node.r_width
+                    node.visual_parent.offset += node.width
                     node.y_pos = node.visual_parent.y_pos + \
-                                node.visual_parent.height + node.height + NODE_BASE_WIDTH
+                                node.visual_parent.height + node.height + 20
 
     def draw_tree(self):
         """ Use Tkinter to draw the nodes on canvas """
@@ -231,10 +228,10 @@ class VisualArborist(Arborist):
         global CHAR_BASE_HEIGHT, CHAR_BASE_WIDTH
 
         temp = Canvas()
-        text = temp.create_text((0, 0), text='12345678910')
+        text = temp.create_text((0, 0), text='abcdefghijklmnopqrstuvwxyz_')
         size = temp.bbox(text)
-        CHAR_BASE_WIDTH = size[2] / 10 / 2.
-        CHAR_BASE_HEIGHT = size[3]
+        CHAR_BASE_WIDTH = size[2] / 10 / 2
+        CHAR_BASE_HEIGHT = size[3] * 2
 
     def adjust_text(self, size):
         """ Either increase or decrease font size for all nodes """
@@ -279,7 +276,7 @@ class VisualNode(Node):
         self.x_pos = 0
         self.y_pos = 0
         self.height = NODE_BASE_HEIGHT
-        self.r_width = NODE_BASE_BUFFER
+        self.r_width = 0 #NODE_BASE_BUFFER
         self.visual_parent = None
         self.visual_children = []
         self.width = 0
@@ -293,16 +290,21 @@ class VisualNode(Node):
     def set_height(self):
         """ Set the height of the node relative to definitions """
 
-        if len(self.definitions) > 1:
+        if len(self.definitions) > 0:
             self.height = len(self.definitions) * CHAR_BASE_HEIGHT
         else:
-            self.height = 20
+            self.height = 15
 
     def set_width(self):
         """ Set the width relative to maximum definition name """
 
-        if len(self.definitions) > 1:
-            self.r_width = len(max([c.name for c in self.definitions], key=len)) * CHAR_BASE_WIDTH
+        def_width = 0
+        name_width = len(self.name) * CHAR_BASE_WIDTH
+        if len(self.definitions) != 0:
+            def_width = len(max([c.name for c in self.definitions], key=len)) * CHAR_BASE_WIDTH
+
+        self.width = max(def_width, name_width)
+        self.r_width = self.width 
 
     def show_popup(self, event):
         """ Display the context menu for the node """
@@ -375,9 +377,9 @@ class VisualNode(Node):
     def draw(self):
         """ Call to Tkinter to draw the node on a canvas """
 
-        self.box = self.canvas.create_rectangle(self.x_pos - self.r_width, \
-                self.y_pos - self.height, self.x_pos + self.r_width, \
-                self.y_pos + self.height, activefill='grey', tags=("all"))
+        self.box = self.canvas.create_rectangle(self.x_pos - self.r_width / 2, \
+                self.y_pos - self.height, self.x_pos + self.r_width / 2, \
+                self.y_pos + self.height / 2., activefill='grey', tags=("all"))
         self.canvas.tag_bind(self.box, '<ButtonPress-1>', self.on_click)
         self.canvas.tag_bind(self.box, "<Enter>", self.on_enter)
         self.canvas.tag_bind(self.box, "<Leave>", self.on_leave)
@@ -387,8 +389,9 @@ class VisualNode(Node):
     def fill_box(self):
         """ Fill in description text in node """
 
-        self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width + 2, \
-                self.y_pos - self.height - 15, anchor="nw")
+        # The minus CHAR_BASE_HEIGHT is to get the first line (name) outside the box
+        self.canvas_text = self.canvas.create_text(self.x_pos - self.r_width / 2, \
+                self.y_pos - self.height - CHAR_BASE_HEIGHT, anchor="nw")
         text_string = self.name.split('/')[-1] + '\n'
         text_string += "\n".join([n.name.split('/')[-1] for n in self.definitions])
         self.canvas.itemconfig(self.canvas_text, font=('Purisa', self.font_size), text=text_string)
@@ -402,8 +405,8 @@ class VisualNode(Node):
             else:
                 fill = 'black'
 
-            self.canvas.create_line(self.x_pos, self.y_pos + self.height, \
-                    node.x_pos, node.y_pos - node.height - 15, arrow='last', \
+            self.canvas.create_line(self.x_pos, self.y_pos + self.height / 2, \
+                    node.x_pos, node.y_pos - node.height - 5, arrow='last', \
                     fill=fill, tags=("all"))
         self.draw_hidden_links()
 
@@ -430,8 +433,8 @@ class VisualNode(Node):
 
             if child not in self.visual_children:
                 self.child_links.append(self.canvas.create_line(self.x_pos, \
-                        self.y_pos + self.height, child.x_pos, child.y_pos - \
-                        child.height - 15, arrow='last', fill=fill, tags=("all")))
+                        self.y_pos + self.height / 2, child.x_pos, child.y_pos - \
+                        child.height - 5, arrow='last', fill=fill, tags=("all")))
         self.drawn_hidden = True
 
     def hide_links(self):
