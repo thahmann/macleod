@@ -4,6 +4,9 @@ Created on 2013-07-22
 @author: Torsten Hahmann
 '''
 
+import sys
+sys.path.append("../")
+
 from src import filemgt, clif
 from src.ClifModuleSet import ClifModuleSet
 from tasks import licence, check_consistency
@@ -172,4 +175,6 @@ if __name__ == '__main__':
 		print_options()
 		sys.exit()
 	filename = options.pop()
-	nontrivially_consistent(filename, options)
+	
+	m = ClifModuleSet(filename)
+	nontrivially_consistent(filename, m, options)
