@@ -8,7 +8,6 @@ import sys
 sys.path.append("../")
 
 from tasks import *
-from gui.Arborist import *
 from src.ClifModuleSet import ClifModuleSet
 
 import logging
