@@ -7,6 +7,7 @@ paradox3.exe
 
 bin/
 log/
+thoughts/
 
 *~
 *.log
