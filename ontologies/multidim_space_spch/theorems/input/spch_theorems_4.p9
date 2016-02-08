@@ -1,3 +1,0 @@
-formulas(goals).
-all x all y ((-(ICon(x)) & ICon(y) -> -((x = y)))).
-end_of_list.

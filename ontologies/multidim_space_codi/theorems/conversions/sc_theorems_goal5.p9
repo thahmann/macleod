@@ -1,3 +1,0 @@
-formulas(goals).
-all x (-(SC(x, x))).
-end_of_list.

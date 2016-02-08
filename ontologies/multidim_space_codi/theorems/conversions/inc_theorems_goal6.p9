@@ -1,3 +1,0 @@
-formulas(goals).
-all x all y all z (((Inc(x, y) & P(y, z)) -> Inc(x, z))).
-end_of_list.

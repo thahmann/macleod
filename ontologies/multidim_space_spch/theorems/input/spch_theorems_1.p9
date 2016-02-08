@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((MaxDim(x) -> (ch(x) = ch(ch(x))))).
-end_of_list.

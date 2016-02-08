@@ -1,3 +1,0 @@
-formulas(goals).
-all x (((S(x) & -(ZEX(x))) -> PO(x, x))).
-end_of_list.
