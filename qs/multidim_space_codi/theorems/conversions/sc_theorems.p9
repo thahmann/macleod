@@ -1,0 +1,13 @@
+formulas(sos).
+% cl-imports multidim_space_codi/codi_basic.clif
+% cl-imports multidim_space_cont/definitions/c.clif
+% cl-imports multidim_space_codi/definitions/ep.clif
+% cl-imports multidim_space_codi/definitions/sc.clif
+( all x12 all x11 ( (sc(x12, x11)) -> (c(x12, x11)) )) .
+( all x22 all x21 ( (sc(x22, x21)) -> (- (( exists x23 (cont(x23, x22) & p(x23, x21))) )) )) .
+( all x32 all x31 ( (sc(x32, x31)) -> (- (( exists x33 (p(x33, x32) & cont(x33, x31))) )) )) .
+( all x42 all x41 ( ((c(x42, x41) & ( all x43 (- (cont(x43, x42)) | - (cont(x43, x41)) | (- (p(x43, x42)) & - (p(x43, x41))))) )) -> (sc(x42, x41)) )) .
+( all x51 - (sc(x51, x51))) .
+( all x62 all x61 ( (sc(x62, x61)) -> (sc(x61, x62)) )) .
+( all x72 all x71 ( (sc(x72, x71)) -> (( exists x73 (lt(x73, x72) & lt(x73, x71) & cont(x73, x72) & cont(x73, x71))) ) )) .
+end_of_list.

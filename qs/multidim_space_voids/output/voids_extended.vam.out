@@ -1,0 +1,82 @@
+Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!
+% remaining time: 5999 next slice time: 33
+dis+1_6_bd=off:bs=off:lcm=predicate:n=on:nicw=on:nwc=1.5:sac=on:sp=occurrence:ss=included:sswsr=on:st=1.5_33 on E:\COLORE\multidim_space_voids\conversions\voids_extended.select
+Refutation not found with incomplete strategy!
+------------------------------
+Version: Vampire 0.6 (revision 903)
+Termination reason: Refutation not found, incomplete strategy
+
+Active clauses: 55
+Passive clauses: 55
+Generated clauses: 55
+Final active clauses: 55
+Input formulas: 21
+Initial clauses: 55
+
+Pure predicates: 1
+Unused predicate definitions: 3
+Selected by SInE selection: 21
+SInE iterations: 1
+
+Unique components: 55
+
+Memory used: 127KB
+Time elapsed: 0.007 s
+------------------------------
+% remaining time: 5999 next slice time: 29
+lrs+11_40_bd=off:bs=unit_only:bsr=unit_only:drc=off:flr=on:lcm=predicate:n=on:ptb=off:sac=on:sfv=off:spl=backtracking:ssec=off:stl=81:updr=off_29 on E:\COLORE\multidim_space_voids\conversions\voids_extended.select
+Refutation not found with incomplete strategy!
+------------------------------
+Version: Vampire 0.6 (revision 903)
+Termination reason: Refutation not found, incomplete strategy
+
+Active clauses: 99
+Passive clauses: 99
+Generated clauses: 126
+Final active clauses: 99
+Input formulas: 21
+Initial clauses: 70
+
+Duplicate literals: 3
+Fw subsumption resolutions: 2
+
+Simple tautologies: 11
+Forward subsumptions: 11
+
+Binary resolution: 51
+
+Memory used: 255KB
+Time elapsed: 0.016 s
+------------------------------
+% remaining time: 5999 next slice time: 229
+lrs+10_7_bd=off:bs=unit_only:bsr=unit_only:drc=off:ep=on:fde=none:flr=on:lcm=predicate:n=on:nwc=1.7:ptb=off:sagn=off:sgo=on:sp=reverse_arity:spl=backtracking:spo=on:ssec=off:stl=81:updr=off_229 on E:\COLORE\multidim_space_voids\conversions\voids_extended.select
+Refutation not found with incomplete strategy!
+------------------------------
+Version: Vampire 0.6 (revision 903)
+Termination reason: Refutation not found, incomplete strategy
+
+Active clauses: 90
+Passive clauses: 90
+Generated clauses: 112
+Final active clauses: 90
+Input formulas: 21
+Initial clauses: 70
+
+Duplicate literals: 14
+Fw subsumption resolutions: 5
+
+Simple tautologies: 9
+
+Binary resolution: 29
+
+Memory used: 255KB
+Time elapsed: 0.017 s
+------------------------------
+% remaining time: 5998 next slice time: 134
+dis+1003_2_bms=on:bsr=unit_only:cond=fast:fde=none:flr=on:gsp=input_only:n=on:nwc=1.5:sac=on:sfv=off:sp=reverse_arity:ssec=off:updr=off_134 on E:\COLORE\multidim_space_voids\conversions\voids_extended.select
+============================= C:\Reasoning\vampire_win ================================
+execution finished: Thu Apr 30 19:40:33 2015
+total CPU time used: 0
+The command was "C:\Reasoning\vampire_win --mode casc --proof tptp -t 600 --input_file E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp"
+Input read from 
+============================ end of footer ===========================
