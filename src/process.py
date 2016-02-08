@@ -169,7 +169,11 @@ def get_cputime(pid):
 			seconds = 0
 			for entry in stdout_list:
 				time_chunks = entry.split(":")
-				seconds += int(time_chunks[0])*3600 + int(time_chunks[1])*60 + int(time_chunks[2]) 
+				print time_chunks
+                                minute = time_chunks[0]
+                                second = time_chunks[1][0:1]
+                                print "Used time is %{0}m: %{1}".format(minute, second)
+				seconds +=  int(minute)*60 + int(second) 
 			return seconds
 		except OSError as e:
 			print e

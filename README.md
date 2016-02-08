@@ -1,8 +1,36 @@
-macleod
-=======
+Macleod
+======================================================
 
-Ontology development environment for Common Logic (CL)
+Installation:
+-------------
 
+## Dependencies
+
+For the linux and apple platform only the following dependency is required.
+
+* texttable
+
+This is most easily obtained with <code>sudo pip install texttable</code>
+
+### Windows:
+
+To install on Windows machines the following dependencies are required.
+* PyWin32 <http://sourceforge.net/projects/pywin32/files/>
+* WMI module <http://timgolden.me.uk/python/wmi/index.html>
+
+
+
+Quick Start
+-----------
+* Install required dependencies
+* Navigate to the gui subfolder
+* Execute the gui_alpha.py file with python
+* Add the src/ and task/ folders to your python path
+
+To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
+
+About the project:
+------------------
 
 This program consists of a set of scripts designed for key reasoning tasks frequently encountered in ontology design and verification. At the moment it focuses on automating tasks that can be accomplished independent of the semantic of concepts and relations. These tasks are consistency checking of ontologies and their modules as well as checking whether competency questions, providing as ''lemmas'', are entailed.
 

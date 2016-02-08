@@ -1,0 +1,22 @@
+(A) Include the defs in drawn nodes
+(A) Clicking on a node gives ability to open translation files + src with default
+(A) Add functionality to close ttk notebook tabs
+(A) Upon file selection, draw the tree on canvas prior to running task
+(A) Generate Report
+(A) Build a "Tasks" right panel that will store all task buttons
+	Drawer will display certain tasks (_all) if folder; else every (!_all) task
+	Drawer will display upon selecting said file or folder
+(A) Make it so selecting a folder actually does that
+(A) Create new tabs with reports if a folder containing multiple ontologies. 
+(B) Redirect standard error to text area as well
+(B) Add redraw tree on file change
+(C) Zoom to fit button (Resize the tree view top part thing to fit in the area canvas ya)
+(C) Remove relief of the drag to resize bar in the center - make it (raised)
+(C) Update all with widgets with the new ttk gui framework
+(C) Barbar bar
+(N) Clear specific Canvases? Individually? 
+(N) Reset Application
+(N) In terms of styling a nice report, use add_tag() and tag_config() with tkinter text widgets
+(x) Sep the symbols in the files between those introduced in that module vs. the inherited.
+(x) Remove mouse hover coloring to avoid race conditions
+(x) Using latex, allow exporting report(s) to pdf

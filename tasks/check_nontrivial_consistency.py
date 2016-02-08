@@ -4,6 +4,9 @@ Created on 2013-07-22
 @author: Torsten Hahmann
 '''
 
+import sys
+sys.path.append("../")
+
 from src import filemgt, clif
 from src.ClifModuleSet import ClifModuleSet
 from tasks import licence, check_consistency
@@ -11,10 +14,10 @@ import datetime
 import sys
 
 	
-def nontrivially_consistent(filename, options=[]):
-	(consistent, m) = check_consistency.consistent(filename, options)
+def nontrivially_consistent(filename, m, options=[]):
+	(consistent, m) = check_consistency.consistent(filename, m, options)
 	
-	if consistent==None or consistent==True:  # no need to check nontrivial consistency of it is not consistent at all      
+	if consistent==None or consistent==True:  # no need to check nontrivial consistency if it is not consistent at all      
 		#m = ClifModuleSet(filename)
 		definitional_modules = []
 		if "-simple" in options:
@@ -172,4 +175,6 @@ if __name__ == '__main__':
 		print_options()
 		sys.exit()
 	filename = options.pop()
-	nontrivially_consistent(filename, options)
+	
+	m = ClifModuleSet(filename)
+	nontrivially_consistent(filename, m, options)

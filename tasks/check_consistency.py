@@ -4,13 +4,15 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
+import sys
+sys.path.append("../")
+
 from tasks import *
 from src.ClifModuleSet import ClifModuleSet
-import sys, logging
 
-    
-def consistent(filename, options=[]):  
-    m = ClifModuleSet(filename)
+import logging
+
+def consistent(filename, m, options=[]):  
      
     if '-module' in options:
         results = m.run_consistency_check_by_subset(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
@@ -20,7 +22,7 @@ def consistent(filename, options=[]):
         results = m.run_simple_consistency_check()
     else:
         results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
-        
+       
     if len(results)==0:
         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")
     else:
@@ -30,9 +32,9 @@ def consistent(filename, options=[]):
                 return (False, m)
         result_sets = [r[0] for r in results]
         result_sets.sort(lambda x,y: cmp(len(x), len(y)))
-#        print result_sets[0]
-#        print results
-#        print "+++++" + str(value)
+        print result_sets[0]
+        print results
+        print "+++++" + str(value)
         if results[0][1]==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
             return (True, m)
@@ -42,13 +44,17 @@ def consistent(filename, options=[]):
                 for (r, value, _) in results:
                     if value==1:
                         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
-            return (None, m)
+    return (None, m)
+
 
 if __name__ == '__main__':
     licence.print_terms()
     # global variables
+
     options = sys.argv
     options.reverse()
     options.pop()
     filename = options.pop()
-    consistent(filename, options)
+    m = ClifModuleSet(filename)
+    derp, clif = consistent(filename, m, options)
+

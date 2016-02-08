@@ -12,6 +12,13 @@ class ClifModule(object):
     classdocs
     '''
     def __init__(self,name,depth=None):
+
+        """ Quick tree test ROB """
+        self.width = 10 
+        self.x = 50 
+        self.y = 0
+        """ End of ROB's stuff """
+
         '''
         Constructor
         '''
@@ -57,7 +64,28 @@ class ClifModule(object):
             
         self.preprocess_clif_file()
 
+    """ MORE OF ROB'S QUICK TEST STUFF """
+    def get_coordinates(self, offset, modifier=50):
+        """ Establish a nodes correct coordinates """
 
+        print "Been here a few times!"
+        print self.module_name
+
+        self.parents = self.get_parents_as_modules()
+
+        self.y = self.depth * modifier
+        if self.parents:
+            self.x = list(self.parents)[0].x + offset + 400
+
+
+    def draw(self, canvas, size=10):
+        """ Call to Tkinter to draw the node on a canvas """
+
+        print "DRAWING SOMETHING"
+
+        canvas.create_rectangle(self.x - size, self.y - size, \
+                self.x + size, self.y + size)
+    """ END OF THE QUICK TEST STUFF """
 
     def preprocess_clif_file (self):
         # add the standard ending for CLIF files to the module name
@@ -71,7 +99,7 @@ class ClifModule(object):
         logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
         logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
         
-        clif.remove_all_comments(self.clif_file_name,self.clif_processed_file_name)
+        clif.remove_all_comments(self.clif_file_name, self.clif_processed_file_name)
         
         
         self.imports = clif.get_imports(self.clif_processed_file_name)
@@ -132,7 +160,12 @@ class ClifModule(object):
 #                         self.depth=module.depth+1
 #                         print "new depth = " + str(self.depth)
         return self.parents
-            
+
+    def get_parents_as_modules (self):
+        """ Return a set of parents as modules """
+        parent_names = self.get_parents()
+        return [self.module_set.get_import_by_name(i) for i in parent_names]
+        
     """returns the set of immediate imports."""
     def get_imports (self):
         return self.imports

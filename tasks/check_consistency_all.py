@@ -1,6 +1,11 @@
 
 if __name__ == '__main__':
-    import os, sys
+    import os
+
+    # Mac-a-Hack again
+    import sys
+    sys.path.append("../")
+
     from tasks import check_consistency
 
     #ignores = ["theorems", "generated", "output","consistency"]

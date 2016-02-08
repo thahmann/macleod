@@ -9,9 +9,8 @@ import sys
 from src.ClifModuleSet import ClifModuleSet
 
 
-def ladr(filename, options=[]):
+def ladr(filename, m, options=[]):
 
-    m = ClifModuleSet(filename)
     if '-cumulate' in options:
         # translate into a single ladr single_file
         single_file = m.get_single_ladr_file()

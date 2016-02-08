@@ -1,29 +1,26 @@
-# Ignore eclipse project files
 .project
 .pydevproject
-# Ignore cltools directory
+
 cltools
 LADR-2009-11A
 paradox3.exe
-# Ignore all bin directories
-bin
-# Ignore all log directories
-log
-# Ignore all files ending with ~
+
+bin/
+log/
+thoughts/
+
 *~
-# Ignore generated latex files
 *.log
 *.aux
 *.synctex.gz
-# Ignore compiled python code
 *.pyc
-# Ignore generated files and folders
 *.out
 *.p9
+
 generated/
 p9/
 output/
+provers/
+qs/
 tptp/
-# Ignore the target directory
-# Matches "target" in any subfolder
 target/ 
