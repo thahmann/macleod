@@ -1,0 +1,4 @@
+formulas(sos).
+% cl-imports multidim_space_codi/codi_basic.clif
+( all x12 all x11 ( (p(x12, x11)) <-> ((cont(x12, x11) & eqdim(x12, x11))) )) .
+end_of_list.

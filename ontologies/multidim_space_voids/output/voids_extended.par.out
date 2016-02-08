@@ -1,0 +1,191 @@
+Paradox, version 3.0, 2008-07-29.
++++ PROBLEM: E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp
+Reading 'E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp' ... OK
++++ SOLVING: E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp
+domain size 1
++++ BEGIN MODEL
+SZS output start FiniteModel for E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp
+% domain size is 1
+fof(domain, fi_domain,
+  (![X] : (X = "1"))
+).
+
+fof(cavity, fi_predicates,
+  ( cavity("1") <=> $true
+  )
+).
+
+fof(conporespace, fi_functors,
+  ( conporespace("1") = "1"
+  )
+).
+
+fof(cont, fi_predicates,
+  ( cont("1","1") <=> $false
+  )
+).
+
+fof(convoidspace, fi_functors,
+  ( convoidspace("1") = "1"
+  )
+).
+
+fof(covers, fi_predicates,
+  ( covers("1","1") <=> $false
+  )
+).
+
+fof(cuni, fi_functors,
+  ( cuni = "1"
+  )
+).
+
+fof(difference, fi_functors,
+  ( difference("1","1") = "1"
+  )
+).
+
+fof(dk1, fi_predicates,
+  ( dk1("1","1") <=> $true
+  )
+).
+
+fof(eqdim, fi_predicates,
+  ( eqdim("1","1") <=> $true
+  )
+).
+
+fof(gap, fi_predicates,
+  ( gap("1") <=> $true
+  )
+).
+
+fof(hol, fi_predicates,
+  ( hol("1") <=> $false
+  )
+).
+
+fof(hole, fi_predicates,
+  ( hole("1") <=> $false
+  )
+).
+
+fof(hostscavity, fi_predicates,
+  ( hostscavity("1","1") <=> $true
+  )
+).
+
+fof(hostscavityi, fi_predicates,
+  ( hostscavityi("1","1") <=> $false
+  )
+).
+
+fof(hostscavityt, fi_predicates,
+  ( hostscavityt("1","1") <=> $true
+  )
+).
+
+fof(hostsg, fi_predicates,
+  ( hostsg("1","1") <=> $true
+  )
+).
+
+fof(hostsh, fi_predicates,
+  ( hostsh("1","1") <=> $false
+  )
+).
+
+fof(hostshollow, fi_predicates,
+  ( hostshollow("1","1") <=> $false
+  )
+).
+
+fof(hoststunnel, fi_predicates,
+  ( hoststunnel("1","1") <=> $false
+  )
+).
+
+fof(hostsv, fi_predicates,
+  ( hostsv("1","1") <=> $true
+  )
+).
+
+fof(hostsve, fi_predicates,
+  ( hostsve("1","1") <=> $false
+  )
+).
+
+fof(hostsvi, fi_predicates,
+  ( hostsvi("1","1") <=> $true
+  )
+).
+
+fof(icon, fi_predicates,
+  ( icon("1") <=> $false
+  )
+).
+
+fof(intersection, fi_functors,
+  ( intersection("1","1") = "1"
+  )
+).
+
+fof(op, fi_functors,
+  ( op("1","1") = "1"
+  )
+).
+
+fof(p, fi_predicates,
+  ( p("1","1") <=> $false
+  )
+).
+
+fof(po, fi_predicates,
+  ( po("1","1") <=> $false
+  )
+).
+
+fof(porespace, fi_functors,
+  ( porespace("1") = "1"
+  )
+).
+
+fof(r, fi_functors,
+  ( r("1") = "1"
+  )
+).
+
+fof(strongc, fi_predicates,
+  ( strongc("1","1") <=> $false
+  )
+).
+
+fof(sum, fi_functors,
+  ( sum("1","1") = "1"
+  )
+).
+
+fof(tun, fi_predicates,
+  ( tun("1") <=> $false
+  )
+).
+
+fof(voidspace, fi_functors,
+  ( voidspace("1") = "1"
+  )
+).
+
+fof(zex, fi_predicates,
+  ( zex("1") <=> $false
+  )
+).
+SZS output end FiniteModel for E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp
++++ END MODEL
++++ RESULT: Satisfiable
+SZS status Satisfiable for E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp
+============================= C:\Reasoning\paradox3 ================================
+execution finished: Thu Apr 30 19:40:32 2015
+total CPU time used: 0
+The command was "C:\Reasoning\paradox3 --time 600 --verbose 2 --model --tstp E:\COLORE\multidim_space_voids\conversions\voids_extended.select.tptp"
+Input read from 
+============================ end of footer ===========================
