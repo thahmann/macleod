@@ -10,7 +10,7 @@ from ConfigParser import SafeConfigParser
 
 LOGGER = None
 CONFIG_PARSER = None
-macleod_dir = '..' + os.sep
+macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..' 
 #macleod_dir = 'C:' + os.sep + 'Reasoning' + os.sep + 'macleod'
 
 log_config_file_name = os.sep + 'conf' + os.sep + 'logging.conf'
@@ -19,7 +19,7 @@ log_config_file = ''
 WIN_config_file = 'conf' + os.sep + 'macleod_win.conf'
 MAC_config_file = 'conf' + os.sep + 'macleod_mac.conf'
 LINUX_config_file = 'conf' + os.sep + 'macleod_linux.conf'
-config_dir = '..' + os.sep + 'conf' + os.sep
+config_dir = macleod_dir + os.sep + 'conf' + os.sep
 config_file = ''
 
 subprocess_log_file = None
