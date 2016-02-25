@@ -13,12 +13,6 @@ class ClifModule(object):
     '''
     def __init__(self,name,depth=None):
 
-        """ Quick tree test ROB """
-        self.width = 10 
-        self.x = 50 
-        self.y = 0
-        """ End of ROB's stuff """
-
         '''
         Constructor
         '''
@@ -63,29 +57,6 @@ class ClifModule(object):
         self.hierarchy_name = filemgt.get_hierarchy_name(self.module_name)
             
         self.preprocess_clif_file()
-
-    """ MORE OF ROB'S QUICK TEST STUFF """
-    def get_coordinates(self, offset, modifier=50):
-        """ Establish a nodes correct coordinates """
-
-        print "Been here a few times!"
-        print self.module_name
-
-        self.parents = self.get_parents_as_modules()
-
-        self.y = self.depth * modifier
-        if self.parents:
-            self.x = list(self.parents)[0].x + offset + 400
-
-
-    def draw(self, canvas, size=10):
-        """ Call to Tkinter to draw the node on a canvas """
-
-        print "DRAWING SOMETHING"
-
-        canvas.create_rectangle(self.x - size, self.y - size, \
-                self.x + size, self.y + size)
-    """ END OF THE QUICK TEST STUFF """
 
     def preprocess_clif_file (self):
         # add the standard ending for CLIF files to the module name
