@@ -175,7 +175,7 @@ class ClifModule(object):
         
     """ return a set of a (symbol, arity) tuples for all nonlogical symbols found in this particular clif module (not considering imports."""
     def get_nonlogical_symbols (self):
-        return [(symbol, clif.get_nonlogical_symbol_arity(self.clif_processed_file_name,symbol)) for symbol in self.nonlogical_symbols]
+        return [(symbol, clif.get_nonlogical_symbol_arity_from_file(self.clif_processed_file_name,symbol)) for symbol in self.nonlogical_symbols]
     
 #     def get_ancestors (self):
 #         if not self.ancestors:
@@ -409,7 +409,7 @@ class ClifModule(object):
                 #logging.getLogger(__name__).info("Determining arity for symbols in " + self.module_name)
                 for symbol in self.properly_defined_symbols:
                     #logging.getLogger(__name__).info("Determining arity for symbol: " + symbol)
-                    arity = clif.get_nonlogical_symbol_arity(self.clif_processed_file_name, symbol)
+                    arity = clif.get_nonlogical_symbol_arity_from_file(self.clif_processed_file_name, symbol)
                     defined_symbols.append((symbol, arity))
         return defined_symbols 
         

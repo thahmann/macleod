@@ -387,44 +387,60 @@ def get_variables(sentence):
     # print "VARIABLES = " + str(variables)
     return variables
 
+def get_nonlogical_symbol_arity_from_file(input_file_name, symbol):
+    """
+    Evaluate and return the arity of a symbol as defined in a specific file.
+    Interface to maintain backwards compatibility with rest of Macleod code
+    base.
 
-def get_nonlogical_symbol_arity(input_file_name, symbol):
-    """Recursively find sentence fragments that start with the sought-after symbol and return its arity if found."""
-    def find_symbol_arity(pieces, symbol, arity):
-        if isinstance(pieces, str):
-            return arity
-        elif isinstance(pieces[0], str):
-            found_symbol = pieces[0]
-            del pieces[0]
-            if found_symbol == symbol:
-                if not arity:
-                    if len(pieces) > 0:
-                        arity = len(pieces)  # set the arity
-                    else:
-                        arity = 0
-                    #logging.getLogger(__name__).info("Nonlogical symbol: " + symbol + " has arity " + str(arity))
-                elif arity != len(pieces):
-                    raise ClifParsingError(
-                        "the symbol " + symbol + " is used with two different arities: " + str(arity) + " and " + str(len(pieces)))
-                    return False
-        # recursion
-        for i in range(len(pieces)):
-            arity = find_symbol_arity(pieces[i], symbol, arity)
-
-        return arity
-
-    # main part of get_nonlogical_symbol_arity
+    :param str input_file_name
+    :param str symbol
+    :return The arity of a passed symbol
+    :rtype int
+    """
 
     from pyparsing import nestedExpr, ParseException
 
     sentences = get_logical_sentences_from_file(input_file_name)
+    arity = get_nonlogical_symbol_arity(sentences, symbol, None)
+    logging.getLogger(__name__).debug("Nonlogical symbol: " + symbol + " has arity " + str(arity))
 
-    #logging.getLogger(__name__).info("Determining arity for symbol: " + symbol)
-
-    arity = find_symbol_arity(sentences, symbol, None)
-    logging.getLogger(__name__).debug(
-        "Nonlogical symbol: " + symbol + " has arity " + str(arity))
     return arity
+
+def get_nonlogical_symbol_arity(pieces, symbol, arity):
+    """
+    Recursively find sentence fragments that start with the sought-after
+    symbol and return its arity if found.
+
+    :param list() pieces
+    :return Arity of passed symbol
+    :rtype int()
+    """
+
+    if isinstance(pieces, str):
+        return arity
+    elif isinstance(pieces[0], str):
+        found_symbol = pieces[0]
+        del pieces[0]
+        if found_symbol == symbol:
+            if not arity:
+                if len(pieces) > 0:
+                    arity = len(pieces)  # set the arity
+                else:
+                    arity = 0
+                #logging.getLogger(__name__).info("Nonlogical symbol: " + symbol + " has arity " + str(arity))
+            elif arity != len(pieces):
+                raise ClifParsingError(
+                    "the symbol " + symbol + " is used with two different arities: " + str(arity) + " and " + str(len(pieces)))
+                return False
+    # recursion
+    for i in range(len(pieces)):
+        arity = get_nonlogical_symbol_arity(pieces[i], symbol, arity)
+
+    return arity
+
+    # main part of get_nonlogical_symbol_arity
+
 
 #         while s.find('( '): # remove whitespaces after open parenthesis to simplify subsequent parsing
 #             s.replace('( ','(')
