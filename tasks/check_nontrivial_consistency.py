@@ -108,8 +108,9 @@ def nontrivially_consistent(filename, m, options=[]):
 				clif_file.write(')\n') # closing "cl-module"
 					
 				clif_file.close()
-	
-				check_consistency.consistent(path,options)            
+				
+				m2 = ClifModuleSet(path)
+				check_consistency.consistent(path, m2, options=options)            
 
 
 def construct_existential_sentence (symbol, arity, negation=False, all_distinct=True, position=0):
