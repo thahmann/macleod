@@ -412,6 +412,8 @@ def get_nonlogical_symbol_arity(pieces, symbol, arity):
     Recursively find sentence fragments that start with the sought-after
     symbol and return its arity if found.
 
+    IMPORTANT TO NOTE THIS MODIFIES STUFF IN PLACE
+
     :param list() pieces
     :return Arity of passed symbol
     :rtype int()
