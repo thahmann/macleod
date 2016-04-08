@@ -97,7 +97,7 @@ def conjuntive_implication(sentence):
     return collection
 
 
-def definition(sentence):
+def from_biconditional(sentence):
     """
     Attempt to simplify a sentence in the form:
 
@@ -129,6 +129,36 @@ def definition(sentence):
 
     return collection
 
+def from_implication(sentence):
+    """
+    Attempt to simplify a sentence in the form:
+
+    forall(...)[E(...) --> B(...)]
+
+    into the form
+
+    ~(E(...)) --> B(...)
+    """
+
+    collection = []
+
+    quantified = is_quantified(sentence)
+
+    if not quantified:
+        return False
+
+    implication = is_implication(quantified)
+
+    if not implication:
+        return False
+
+    precond = implication[0]
+    conclusion = implication[1]
+
+    negated_precond = to_negation(precond)
+
+    return to_quantified(sentence[1], to_disjunction([negated_precond, conclusion]))
+
 """
 End
 """
@@ -136,6 +166,8 @@ End
 """
 This section contains functions to create new sentences
 """
+
+
 def to_quantified(variables, expression):
     """
     Accept a set of variables and an expression they range over and return
@@ -163,6 +195,15 @@ def to_definition(pre, post):
 
     return double_implication
 
+def to_negation(expression):
+    """
+    Accept a list of elements and return them in a negated form
+    """
+
+    negation = ['not', expression]
+
+    return negation
+
 def to_conjunction(expressions):
     """
     Accept a number of expressions and return those in the form of
@@ -175,6 +216,19 @@ def to_conjunction(expressions):
         conjunction.append(item)
 
     return conjunction
+
+def to_disjunction(expressions):
+    """
+    Accept a number of expressions and return those in the form of
+    a disjunction.
+    """
+
+    disjunction = ['or']
+
+    for item in expressions:
+        disjunction.append(item)
+
+    return disjunction
 
 """
 END
@@ -381,6 +435,26 @@ class CommonLogic(object):
             symbols, _ = clif.get_nonlogical_symbols_and_variables(sentence)
             self.nonlogical_symbols |= symbols
 
+def remove_biconditionals(sentences, simplified):
+    """
+    Recursive function to remove biconditional statements.
+    """
+
+    if len(sentences) == 0:
+        return simplified
+
+    else:
+
+        sentence = sentences.pop()
+        result = from_biconditional(sentence)
+
+        if result:
+            # Remember from_biconditional returns a list of lists
+            sentences += result
+        else:
+            simplified.append(sentence)
+
+    return remove_biconditionals(sentences, simplified)
 
 if __name__ == '__main__':
 
@@ -394,16 +468,9 @@ if __name__ == '__main__':
     then finally the conjuntive results
     """
 
-    funcs = [definition, disjunctive_precondition, conjuntive_implication]
-
-    sen = sentences[:]
-
-    def simplify(sentences, simplifiers, acc):
-
-        if len(simplifiers) == 0:
-            return []
-
-        if len(sentences) == 0:
-            return acc
 
 
+    derps = remove_biconditionals(sentences[:], [])
+
+    for d in derps:
+        print d
