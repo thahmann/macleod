@@ -456,6 +456,28 @@ def remove_biconditionals(sentences, simplified):
 
     return remove_biconditionals(sentences, simplified)
 
+def remove_implications(sentences, simplified):
+    """
+    Recursive function to remove sentences containing implications
+    """
+
+    if len(sentences) == 0:
+        return simplified
+
+    else:
+
+        sentence = sentences.pop()
+        result = from_implication(sentence)
+
+        if result:
+            # Remember from_biconditional returns a list of lists
+            sentences.append(result)
+        else:
+            simplified.append(sentence)
+
+    return remove_implications(sentences, simplified)
+
+
 if __name__ == '__main__':
 
     sentences = clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
@@ -471,6 +493,7 @@ if __name__ == '__main__':
 
 
     derps = remove_biconditionals(sentences[:], [])
+    merps = remove_implications(derps[:], [])
 
-    for d in derps:
+    for d in merps:
         print d
