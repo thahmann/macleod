@@ -185,7 +185,17 @@ def negate_conjunction(expression):
 
 
 def negate_disjunction(expression):
-    pass
+    """
+    Simplify a negated conjunction:
+
+    not( or( a_one, a_two, a__) ) into
+    not(a_one) & not(a_one) & not(a__)
+
+    Assumes received expressions has already been stripped of leading 'not'
+    """
+
+    negated_terms = [to_negation(term) for term in is_disjunction(expression)]
+    return to_disjunction(negated_terms)
 
 def from_negation(expression):
     """
