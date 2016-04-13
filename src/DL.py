@@ -158,7 +158,17 @@ def from_implication(sentence):
     return to_quantified(sentence[1], to_disjunction([negated_precond, conclusion]))
 
 def negate_negation(expression):
-    pass
+    """
+    Simplify a double negated exression:
+
+    not( not(something(...) ) ) into
+
+    something(...)
+    """
+
+    return expression[1][1]
+
+
 
 def negate_conjunction(expression):
     pass
