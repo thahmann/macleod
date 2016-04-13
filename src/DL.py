@@ -159,19 +159,30 @@ def from_implication(sentence):
 
 def negate_negation(expression):
     """
-    Simplify a double negated exression:
+    Simplify a double negated expression:
 
     not( not(something(...) ) ) into
-
     something(...)
+
+    Assumes received expressions has already been stripped of leading 'not'
     """
 
-    return expression[1][1]
-
-
+    return expression[1]
 
 def negate_conjunction(expression):
-    pass
+    """
+    Simplify a negated conjunction:
+
+    not( and( a_one, a_two, a__) ) into
+    not(a_one) | not(a_one) | not(a__)
+
+    Assumes received expressions has already been stripped of leading 'not'
+    """
+
+    negated_terms = [to_negation(term) for term in is_conjunction(expression)]
+    return to_disjunction(negated_terms)
+
+
 
 def negate_disjunction(expression):
     pass
