@@ -137,7 +137,7 @@ def from_implication(sentence):
 
     into the form
 
-    ~(E(...)) --> B(...)
+    ~(E(...)) | B(...)
     """
 
     quantified = is_universal(sentence)
@@ -211,9 +211,7 @@ def negate_existential(expression):
 def from_negation(expression):
     """
     Attempt to push negation inwards within an expression
-    """
 
-    """
     #TODO What to do about negated quantifiers?
 
     I think in general anything that gets rid of a existential is good.
@@ -257,6 +255,12 @@ def from_negation(expression):
     else:
 
         return False
+
+def from_existential(expression):
+    """
+    Attempt to skolemize an existentially quantified expression.
+
+    
 
 
 
@@ -593,9 +597,9 @@ def remove_implications(sentences, simplified):
 def distribute_negation(sentence):
     """
     Recurse over a sentence pushing all negation inwards
-    """
 
     #TODO Go back and understand how I came up with this!
+    """
 
     if not isinstance(sentence, list):
         return sentence
@@ -611,6 +615,13 @@ def distribute_negation(sentence):
             return [distribute_negation(term) for term in simplified]
 
     return [distribute_negation(term) for term in sentence]
+
+def remove_existentials(sentence):
+    """
+    Recurse over a sentence skolemizing all existentially scoped variables
+    """
+
+    pass
 
 if __name__ == '__main__':
 
