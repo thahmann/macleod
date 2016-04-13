@@ -28,7 +28,7 @@ def disjunctive_precondition(sentence):
 
     collection = []
 
-    quantified = is_quantified(sentence)
+    quantified = is_universal(sentence)
 
     if not quantified:
         return False
@@ -49,7 +49,7 @@ def disjunctive_precondition(sentence):
     for thing in disjunction:
 
         statement = to_implication(thing, result)
-        statement = to_quantified(sentence[1], statement)
+        statement = to_universal(sentence[1], statement)
 
         collection.append(statement)
 
@@ -69,7 +69,7 @@ def conjuntive_conclusion(sentence):
 
     collection = []
 
-    quantified = is_quantified(sentence)
+    quantified = is_universal(sentence)
 
     if not quantified:
         return False
@@ -90,7 +90,7 @@ def conjuntive_conclusion(sentence):
     for thing in conjunction:
 
         statement = to_implication(precond, thing)
-        statement = to_quantified(sentence[1], statement)
+        statement = to_universal(sentence[1], statement)
 
         collection.append(statement)
 
@@ -111,7 +111,7 @@ def from_biconditional(sentence):
 
     collection = []
 
-    quantified = is_quantified(sentence)
+    quantified = is_universal(sentence)
 
     if not quantified:
         return False
@@ -124,8 +124,8 @@ def from_biconditional(sentence):
     precond = implication[0]
     result = implication[1]
 
-    collection.append(to_quantified(sentence[1], to_implication(precond, result)))
-    collection.append(to_quantified(sentence[1], to_implication(result, precond)))
+    collection.append(to_universal(sentence[1], to_implication(precond, result)))
+    collection.append(to_universal(sentence[1], to_implication(result, precond)))
 
     return collection
 
@@ -140,7 +140,7 @@ def from_implication(sentence):
     ~(E(...)) --> B(...)
     """
 
-    quantified = is_quantified(sentence)
+    quantified = is_universal(sentence)
 
     if not quantified:
         return False
@@ -155,7 +155,7 @@ def from_implication(sentence):
 
     negated_precond = to_negation(precond)
 
-    return to_quantified(sentence[1], to_disjunction([negated_precond, conclusion]))
+    return to_universal(sentence[1], to_disjunction([negated_precond, conclusion]))
 
 def negate_negation(expression):
     """
@@ -182,8 +182,6 @@ def negate_conjunction(expression):
     negated_terms = [to_negation(term) for term in is_conjunction(expression)]
     return to_disjunction(negated_terms)
 
-
-
 def negate_disjunction(expression):
     """
     Simplify a negated conjunction:
@@ -195,22 +193,69 @@ def negate_disjunction(expression):
     """
 
     negated_terms = [to_negation(term) for term in is_disjunction(expression)]
-    return to_disjunction(negated_terms)
+    return to_conjunction(negated_terms)
+
+def negate_existential(expression):
+    """
+    Simplify a negated existentially quantified scope:
+
+    exists [y] [something(y)] into
+    forall [y] not [something(y)]
+
+    Assumes received expressions has already been stripped of leading 'not'
+    """
+
+    universal = to_universal(expression[1], to_negation(expression[2]))
+    return universal
 
 def from_negation(expression):
     """
     Attempt to push negation inwards within an expression
     """
 
+    """
+    #TODO What to do about negated quantifiers?
+
+    I think in general anything that gets rid of a existential is good.
+    However, my guess is that it's going to remove some of the OWL
+    some-value-from interpretations. Then again, probably not because if it's
+    equivalent then we should be able to spot that pattern in CNF and extract
+    it. 
+
+    PUNT FOR NOW -- I'm forgetting something important about forall vs. exist
+    """
+
     negated = is_negated(expression)
 
+    # Just gonna be a little verbose for the time being
+
+    conjunction = is_conjunction(negated)
+    disjunction = is_disjunction(negated)
+    existential = is_existential(negated)
+    negation = is_negated(negated)
+
     if not negated:
+
         return False
 
-    if is_unary(negated[1]):
-        return False
+    elif conjunction != False:
 
-    if is_binary(negated[1]):
+        return negate_conjunction(negated)
+
+    elif disjunction != False:
+
+        return negate_disjunction(negated)
+
+    elif negation != False:
+
+        return negate_negation(negated)
+
+    elif existential != False:
+
+        return negate_existential(negated)
+
+    else:
+
         return False
 
 
@@ -224,7 +269,7 @@ This section contains functions to create new sentences
 """
 
 
-def to_quantified(variables, expression):
+def to_universal(variables, expression):
     """
     Accept a set of variables and an expression they range over and return
     the result in the form of a universally quantified statement.
@@ -385,7 +430,7 @@ def is_binary(expression):
     return True
 
 
-def is_quantified(sentence):
+def is_universal(sentence):
     """
     Determines whether or not a sentence is universally quantified or not.
 
@@ -393,6 +438,17 @@ def is_quantified(sentence):
     """
 
     if sentence[0] != 'forall':
+        return False
+
+    return sentence[2]
+
+def is_existential(sentence):
+    """
+    Determines whether or not a sentence is universally quantified or not.
+
+    TODO: Figure out how this should handle differently placed quantifiers.
+    """
+    if sentence[0] != 'exists':
         return False
 
     return sentence[2]
@@ -534,6 +590,28 @@ def remove_implications(sentences, simplified):
 
     return remove_implications(sentences, simplified)
 
+def distribute_negation(sentence):
+    """
+    Recurse over a sentence pushing all negation inwards
+    """
+
+    #TODO Go back and understand how I came up with this!
+
+    if not isinstance(sentence, list):
+        return sentence
+
+    negated = is_negated(sentence)
+
+    if negated:
+
+        simplified = from_negation(sentence)
+
+        if simplified:
+
+            sentence = simplified
+            return [distribute_negation(term) for term in sentence]
+
+    return [distribute_negation(term) for term in sentence]
 
 if __name__ == '__main__':
 
@@ -550,6 +628,12 @@ if __name__ == '__main__':
     derps = remove_biconditionals(sentences[:], [])
     merps = remove_implications(derps[:], [])
 
-    for s in sentences:
+    for s in merps:
+        print '----------------------------'
         print s
+        sample = distribute_negation(is_universal(s))
+        print '++++++++++++++++++++++++++++'
+        print sample
+        print '+++++++++++++++++++++++++++'
+
 
