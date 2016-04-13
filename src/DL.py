@@ -608,8 +608,7 @@ def distribute_negation(sentence):
 
         if simplified:
 
-            sentence = simplified
-            return [distribute_negation(term) for term in sentence]
+            return [distribute_negation(term) for term in simplified]
 
     return [distribute_negation(term) for term in sentence]
 
@@ -631,7 +630,7 @@ if __name__ == '__main__':
     for s in merps:
         print '----------------------------'
         print s
-        sample = distribute_negation(is_universal(s))
+        sample = to_universal(s[1], distribute_negation(is_universal(s)))
         print '++++++++++++++++++++++++++++'
         print sample
         print '+++++++++++++++++++++++++++'
