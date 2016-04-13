@@ -259,6 +259,8 @@ def from_negation(expression):
 def from_existential(expression):
     """
     Attempt to skolemize an existentially quantified expression.
+    """
+    pass
 
     
 
