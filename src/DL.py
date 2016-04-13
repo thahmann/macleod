@@ -55,7 +55,7 @@ def disjunctive_precondition(sentence):
 
     return collection
 
-def conjuntive_implication(sentence):
+def conjuntive_conclusion(sentence):
     """
     Attempt to simplify a sentence in the form:
 
@@ -140,8 +140,6 @@ def from_implication(sentence):
     ~(E(...)) --> B(...)
     """
 
-    collection = []
-
     quantified = is_quantified(sentence)
 
     if not quantified:
@@ -158,6 +156,33 @@ def from_implication(sentence):
     negated_precond = to_negation(precond)
 
     return to_quantified(sentence[1], to_disjunction([negated_precond, conclusion]))
+
+def negate_negation(expression):
+    pass
+
+def negate_conjunction(expression):
+    pass
+
+def negate_disjunction(expression):
+    pass
+
+def from_negation(expression):
+    """
+    Attempt to push negation inwards within an expression
+    """
+
+    negated = is_negated(expression)
+
+    if not negated:
+        return False
+
+    if is_unary(negated[1]):
+        return False
+
+    if is_binary(negated[1]):
+        return False
+
+
 
 """
 End
@@ -197,7 +222,8 @@ def to_definition(pre, post):
 
 def to_negation(expression):
     """
-    Accept a list of elements and return them in a negated form
+    Accept a list of elements and return them in a negated form. Does not
+    automatically push the negation inwards.
     """
 
     negation = ['not', expression]
@@ -490,10 +516,9 @@ if __name__ == '__main__':
     then finally the conjuntive results
     """
 
-
-
     derps = remove_biconditionals(sentences[:], [])
     merps = remove_implications(derps[:], [])
 
-    for d in merps:
-        print d
+    for s in sentences:
+        print s
+
