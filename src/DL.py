@@ -216,7 +216,7 @@ def from_negation(expression):
 
     I think in general anything that gets rid of a existential is good.
     However, my guess is that it's going to remove some of the OWL
-    some-value-from interpretations. Then again, probably not because if it's
+    some-value-from interpretations. Then again, probably not because if it's 
     equivalent then we should be able to spot that pattern in CNF and extract
     it. 
 
@@ -256,15 +256,53 @@ def from_negation(expression):
 
         return False
 
+def skolem_helper(x, variable, constant, expression):
+    """
+    Recursive helper
+    """
+
+    if isinstance(x, list):
+
+        return skolemize_variable(variable, constant, x)
+
+    elif x == variable:
+
+        return constant
+
+    else:
+
+        return x
+
+def skolemize_variable(variable, constant, expr):
+    """
+    Recursive helper function to dig through a sentence and replace all
+    occurrences of a variable with a skolem constant.
+    """
+
+    return [skolem_helper(x, variable, constant, expr) for x in expr]
+
+
 def from_existential(expression):
     """
     Attempt to skolemize an existentially quantified expression.
     """
-    pass
 
-    
+    existential = is_existential(expression)
+
+    if not existential:
+
+        return False
+
+    variables = expression[1]
+
+    skolem = existential
 
 
+    for index, var in enumerate(variables):
+
+        skolem = skolemize_variable(var, var.upper() + str(index), skolem)
+
+    return skolem
 
 """
 End
@@ -623,11 +661,27 @@ def remove_existentials(sentence):
     Recurse over a sentence skolemizing all existentially scoped variables
     """
 
-    pass
+    if not isinstance(sentence, list):
+
+        return sentence
+
+    existential = is_existential(sentence)
+
+    if existential:
+
+        skolemized = from_existential(sentence)
+
+        if skolemized:
+
+            return remove_existentials(skolemized)
+
+    return [remove_existentials(term) for term in sentence]
+
 
 if __name__ == '__main__':
 
     sentences = clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
+    sentences = clif.get_sentences_from_file('qs/multidim_space_space/space_backup.clif')
     Common = CommonLogic(sentences)
 
     """
@@ -644,8 +698,8 @@ if __name__ == '__main__':
         print '----------------------------'
         print s
         sample = to_universal(s[1], distribute_negation(is_universal(s)))
+        new_sample = to_universal(s[1],
+                remove_existentials(is_universal(sample)))
         print '++++++++++++++++++++++++++++'
-        print sample
-        print '+++++++++++++++++++++++++++'
-
-
+        print new_sample
+        print '++++++++++++++++++++++++++++'
