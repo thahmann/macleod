@@ -11,7 +11,7 @@ sys.path.append("../src")
 
 from Tkinter import *
 from summary import *
-from filemgt import module_is_definition_set
+import src.filemgt
 import logging
 import tkFont
 import ttk
@@ -71,16 +71,16 @@ class Arborist(object):
 
         removes = []
         for name in self.nodes:
-            if module_is_definition_set(name):
+            if src.filemgt.module_is_definition_set(name):
                 print name
                 removes.append(name)
 
         for name, node in self.nodes.iteritems():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
-                node.children = [c for c in node.children if not module_is_definition_set(c.name)]
-                node.definitions += [p for p in node.parents if module_is_definition_set(p.name)]
-                node.parents = [p for p in node.parents if not module_is_definition_set(p.name)]
+                node.children = [c for c in node.children if not src.filemgt.module_is_definition_set(c.name)]
+                node.definitions += [p for p in node.parents if src.filemgt.module_is_definition_set(p.name)]
+                node.parents = [p for p in node.parents if not src.filemgt.module_is_definition_set(p.name)]
 
                 for c in node.children:
                     if 'definitions' in c.name:

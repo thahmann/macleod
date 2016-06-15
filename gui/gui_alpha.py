@@ -6,26 +6,33 @@ High-level overview of graphical element to be added to Macleod
 """
 
 import sys
-sys.path.append("../tasks")
+sys.path.append("../")
+
+from tasks import *
+from src import *
+
+# source
+#from src.ClifModuleSet import *
+#from src.filemgt import *
 
 # visual components
-from Arborist import *
-from summary import *
-from table import *
+from gui.Arborist import *
+from gui.summary import *
+from gui.table import *
 
 # task scripts
 import logging
-from check_consistency import *
-from clif_to_ladr import *
-from clif_to_tptp import *
-from prove_lemma import *
-from check_nontrivial_consistency import *
-from check_consistency_all import *
-from clif_to_ladr_all import *
-from clif_to_tptp_all import *
-from prove_lemma_all import *
-from delete_output import *
-from ClifModuleSet import *
+
+from tasks.check_consistency import *
+from tasks.clif_to_ladr import *
+from tasks.clif_to_tptp import *
+from tasks.prove_lemma import *
+from tasks.check_nontrivial_consistency import *
+from tasks.check_consistency_all import *
+from tasks.clif_to_ladr_all import *
+from tasks.clif_to_tptp_all import *
+from tasks.prove_lemma_all import *
+from tasks.delete_output import *
 from Tkinter import *
 import ttk
 import tkMessageBox

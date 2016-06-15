@@ -10,9 +10,9 @@ sys.path.append("../src")
 
 from Tkinter import *
 from ttk import *
-from filemgt import get_full_path
 import os
 import platform
+import src.filemgt
 
 EDITOR = None
 
@@ -27,7 +27,7 @@ def find_system_editor():
     def edit_file(path):
         """ Launch the system editor on provided file """
 
-        full_path = get_full_path(path)
+        full_path = src.filemgt.get_full_path(path)
         os.system(editor + ' ' + full_path)
 
     return edit_file
