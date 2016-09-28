@@ -101,33 +101,31 @@ def from_biconditional(sentence):
     """
     Attempt to simplify a sentence in the form:
 
-    forall(...)[expr_a(...) <--> expr_b(...)]
+    [expr_a(...) <--> expr_b(...)]
 
     into the form
 
-    forall(...)[expr_a --> expr_b(...)]
-    forall(...)[expr_b --> expr_a(...)]
+    [expr_a --> expr_b(...) & expr_b --> expr_a(...)]
     """
 
-    collection = []
 
-    quantified = is_universal(sentence)
+    result = []
 
-    if not quantified:
+    biconditional = is_definition(sentence)
+
+
+    if not biconditional:
         return False
 
-    implication = is_definition(quantified)
+    precond = biconditional[0]
+    result = biconditional[1]
 
-    if not implication:
-        return False
+    left = to_implication(precond, result)
+    right = to_implication(result, precond)
 
-    precond = implication[0]
-    result = implication[1]
+    conjunction = to_conjunction([left, right])
 
-    collection.append(to_universal(sentence[1], to_implication(precond, result)))
-    collection.append(to_universal(sentence[1], to_implication(result, precond)))
-
-    return collection
+    return conjunction
 
 def from_implication(sentence):
     """
@@ -140,12 +138,7 @@ def from_implication(sentence):
     ~(E(...)) | B(...)
     """
 
-    quantified = is_universal(sentence)
-
-    if not quantified:
-        return False
-
-    implication = is_implication(quantified)
+    implication = is_implication(sentence)
 
     if not implication:
         return False
@@ -155,7 +148,7 @@ def from_implication(sentence):
 
     negated_precond = to_negation(precond)
 
-    return to_universal(sentence[1], to_disjunction([negated_precond, conclusion]))
+    return to_disjunction([negated_precond, conclusion])
 
 def negate_negation(expression):
     """
@@ -164,7 +157,7 @@ def negate_negation(expression):
     not( not(something(...) ) ) into
     something(...)
 
-    Assumes received expressions has already been stripped of leading 'not'
+    Assumes received expressions has already been stripped of leading 'not'    
     """
 
     return expression[1]
@@ -300,6 +293,7 @@ def from_existential(expression):
 
     for index, var in enumerate(variables):
 
+        #TODO Turn into function call with universal variables
         skolem = skolemize_variable(var, var.upper() + str(index), skolem)
 
     return skolem
@@ -440,7 +434,6 @@ def is_negated(symbol_expression):
 
     return symbol_expression[1]
 
-
 def is_unary(symbol_expression):
     """
     Helper function to determine if a given predicate is unary or not. The
@@ -472,7 +465,6 @@ def is_binary(expression):
             return False
 
     return True
-
 
 def is_universal(sentence):
     """
@@ -592,47 +584,39 @@ class CommonLogic(object):
             symbols, _ = clif.get_nonlogical_symbols_and_variables(sentence)
             self.nonlogical_symbols |= symbols
 
-def remove_biconditionals(sentences, simplified):
+def remove_biconditionals(sentence):
     """
     Recursive function to remove biconditional statements.
     """
 
-    if len(sentences) == 0:
-        return simplified
+    if not isinstance(sentence, list):
 
-    else:
+        return sentence
 
-        sentence = sentences.pop()
-        result = from_biconditional(sentence)
+    definition = from_biconditional(sentence)
 
-        if result:
-            # Remember from_biconditional returns a list of lists
-            sentences += result
-        else:
-            simplified.append(sentence)
+    if definition:
 
-    return remove_biconditionals(sentences, simplified)
+        return [remove_biconditionals(term) for term in definition]
 
-def remove_implications(sentences, simplified):
+    return [remove_biconditionals(term) for term in sentence]
+
+def remove_implications(sentence):
     """
     Recursive function to remove sentences containing implications
     """
 
-    if len(sentences) == 0:
-        return simplified
+    if not isinstance(sentence, list):
 
-    else:
+        return sentence
 
-        sentence = sentences.pop()
-        result = from_implication(sentence)
+    implication = from_implication(sentence)
 
-        if result:
-            # Remember from_biconditional returns a list of lists
-            sentences.append(result)
-        else:
-            simplified.append(sentence)
+    if implication:
 
-    return remove_implications(sentences, simplified)
+        return [remove_implications(term) for term in implication]
+
+    return [remove_implications(term) for term in sentence]
 
 def distribute_negation(sentence):
     """
@@ -677,29 +661,80 @@ def remove_existentials(sentence):
 
     return [remove_existentials(term) for term in sentence]
 
+def distribute_terms(disjunction_term, conjunction):
+    """
+    Perform simple distribution of terms.
+
+    A OR (B AND C) ==> (A OR B) AND (A OR C)
+    """
+
+    expr = []
+
+    conjunction_terms = is_conjunction(conjunction)
+
+    if not conjunction_terms:
+
+        return False
+
+    for term in conjunction_terms:
+
+        expr.append(to_disjunction([disjunction_term, term]))
+
+    return to_conjunction(expr)
+
+def to_cnf(sentence):
+    """
+    Recurse over a sentence and translate it into an equivalent CNF statement.
+
+    Look for the pattern ['or', ... ,['and', ... ]]
+    """
+
+    if not isinstance(sentence, list):
+
+        return sentence
+
+    # If this is a disjunction it should only have conjunctive elements
+    if is_disjunction(sentence):
+
+        disjunction = is_disjunction(sentence)
+
+        for sub_element in disjunction:
+
+            if is_conjunction(sub_element):
+
+                # Find a different element in sentence
+                disjunctive_term = disjunction[0]
+
+                if disjunctive_term == sub_element:
+
+                    disjunctive_term = disjunction[1]
+
+                conjunction = distribute_terms(disjunctive_term, sub_element)
+
+                return [to_cnf(elm) for elm in conjunction]
+
+    return [to_cnf(sub) for sub in sentence]
+
 
 if __name__ == '__main__':
 
     sentences = clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
-    sentences = clif.get_sentences_from_file('qs/multidim_space_space/space_backup.clif')
+    #sentences = clif.get_sentences_from_file('qs/multidim_space_space/space_backup.clif')
     Common = CommonLogic(sentences)
 
-    """
-    Does the order of simplification have any side effects?
+    import pprint
 
-    Gonna just go with breaking down double implications first, then disjuntive preconditions,
-    then finally the conjuntive results
-    """
+    for s in sentences:
+        a = remove_biconditionals(s)
+        b = remove_implications(a)
+        c = distribute_negation(b)
+        #d = remove_existentials(c)
 
-    derps = remove_biconditionals(sentences[:], [])
-    merps = remove_implications(derps[:], [])
+        q = to_cnf(c)
+        pprint.pprint(q)
 
-    for s in merps:
-        print '----------------------------'
-        print s
-        sample = to_universal(s[1], distribute_negation(is_universal(s)))
-        new_sample = to_universal(s[1],
-                remove_existentials(is_universal(sample)))
-        print '++++++++++++++++++++++++++++'
-        print new_sample
-        print '++++++++++++++++++++++++++++'
+
+
+
+
+
