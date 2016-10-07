@@ -1,8 +1,4 @@
-"""
-POTATO
-"""
-
-from macleod import filemgt
+import macleod.Filemgt as filemgt
 import logging
 import multiprocessing
 from multiprocessing import Queue
@@ -345,7 +341,7 @@ def raceProcesses (reasoners):
 	Parameters:
 	reasoners -- list of Reasoners to execute.
 	"""
-	from src.ClifModuleSet import ClifModuleSet
+	from macleod.ClifModuleSet import ClifModuleSet
 	
 	results = Queue()
 

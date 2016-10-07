@@ -4,7 +4,9 @@ New module created on 2013-03-16
 
 @author: Torsten Hahmann
 '''
-from macleod import filemgt
+
+from pyparsing import nestedExpr, ParseException
+import macleod.Filemgt as filemgt
 import os
 import logging
 import math
@@ -302,7 +304,6 @@ def get_sentences(text):
         # print "flattening " + str(pieces)
         return [flatten_sentence(piece) for piece in pieces]
 
-    from pyparsing import nestedExpr, ParseException
     try:
         pieces = nestedExpr('(', ')').parseString(text)
     except ParseException as e:
@@ -399,7 +400,6 @@ def get_nonlogical_symbol_arity_from_file(input_file_name, symbol):
     :rtype int
     """
 
-    from pyparsing import nestedExpr, ParseException
 
     sentences = get_logical_sentences_from_file(input_file_name)
     arity = get_nonlogical_symbol_arity(sentences, symbol, None)

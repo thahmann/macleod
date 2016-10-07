@@ -2,9 +2,8 @@
 POTATO
 """
 
-from macleod import filemgt
+import macleod.Filemgt as filemgt
 import logging
-
 
 def cumulate_ladr_files (input_files, output_file):    
     """write all axioms from a set of p9 files to a single file without any change in the content itself except for the replacement of certain symbols"""

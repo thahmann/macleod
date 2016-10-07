@@ -3,7 +3,8 @@ Created on 2010-11-26
 
 @author: Torsten Hahmann
 '''
-from macleod import filemgt, ladr
+import macleod.Filemgt as filemgt
+import macleod.Ladr as ladr
 import os, logging
 
 options_files = []
