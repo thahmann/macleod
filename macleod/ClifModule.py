@@ -5,11 +5,11 @@ Refactored on 2013-03-16
 @author: Torsten Hahmann
 '''
 
-from macleod import filemgt
-from macleod import process
-from macleod import clif
-from macleod import commands
-from macleod import ladr
+import macleod.Filemgt as filemgt
+import macleod.Process as process
+import macleod.Clif as clif
+import macleod.Commands as commands
+import macleod.Ladr as ladr
 
 import os, logging
 
@@ -89,7 +89,7 @@ class ClifModule(object):
 
     def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
-        from src.ClifLemmaSet import LemmaModule
+        from macleod.ClifLemmaSet import LemmaModule
         #print "IMPORTS = " + str(imports)
         
         if self.module_set is not None:

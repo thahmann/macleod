@@ -1,3 +1,0 @@
-formulas(goals).
-all x all y ((Inc(x, y) -> Inc(y, x))).
-end_of_list.

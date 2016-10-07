@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((Gap(x) -> V(x))).
-end_of_list.

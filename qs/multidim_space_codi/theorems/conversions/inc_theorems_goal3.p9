@@ -1,3 +1,0 @@
-formulas(goals).
-all x all y ((EqDim(x, y) -> -(Inc(x, y)))).
-end_of_list.

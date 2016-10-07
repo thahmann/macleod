@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((V(x) -> DPF(x))).
-end_of_list.

@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((Hole(x) -> V(x))).
-end_of_list.

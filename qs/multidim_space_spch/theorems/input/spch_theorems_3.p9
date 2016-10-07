@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((-(ZEX(x)) -> ICon(ch(x)))).
-end_of_list.

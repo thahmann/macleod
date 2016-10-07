@@ -1,3 +1,0 @@
-formulas(goals).
-all x all y (-(hostscavity(x, y)) | -(hoststunnel(x, y))).
-end_of_list.

@@ -1,3 +1,0 @@
-formulas(goals).
-all x (-(DK1(x, x))).
-end_of_list.

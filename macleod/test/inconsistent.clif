@@ -1,0 +1,24 @@
+(forall (x)
+	(exists (y)
+		(supervises y x)
+	)
+)
+
+(forall (x y)
+	(if
+		(ceo x)
+		(not (supervises y x))
+	)
+)
+
+
+(forall (x)
+	(if
+		(ceo x)
+		(employee x)
+	)
+)
+
+(exists (x)
+	(ceo x)
+)

@@ -1,3 +1,0 @@
-formulas(goals).
-all x ((M(x) -> ZEX(porespace(x)))).
-end_of_list.
