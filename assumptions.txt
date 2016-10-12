@@ -1,2 +1,0 @@
-macleod assumptions:
-- each definitions imports exactly one file
