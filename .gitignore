@@ -5,9 +5,7 @@ cltools
 LADR-2009-11A
 paradox3.exe
 
-bin/
 log/
-thoughts/
 
 *~
 *.log
