@@ -17,6 +17,8 @@ log/
 *.bak
 *.swp
 
+*egg-info/
+dist/
 build/
 venv/
 generated/
