@@ -8,8 +8,8 @@ Anything that the tree needs to know about the GUI should happen here
 import sys
 sys.path.append("../src")
 
-from Tkinter import *
-from ttk import *
+from tkinter import *
+from tkinter.ttk import *
 import os
 import platform
 import src.filemgt
@@ -36,7 +36,7 @@ def edit_external_file(module_name):
     """ Open system editor on file """
 
     global EDITOR
-    
+
     if not EDITOR:
         EDITOR = find_system_editor()
 

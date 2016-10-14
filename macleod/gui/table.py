@@ -8,8 +8,8 @@ be controlled/implemented here
 import sys
 sys.path.append("../src")
 
-from Tkinter import *
-from ttk import *
+from tkinter import *
+from tkinter.ttk import *
 import texttable as tt
 
 class Report(object):
@@ -96,7 +96,7 @@ class Report(object):
         temp = self.cms.get_undefined_nonlogical_symbols()
         if temp != False:
             self.undefined_symbols = temp
-    
+
     def set_defined_symbols(self):
         """ set the undefined symbols from the cms """
         temp = self.cms.get_defined_nonlogical_symbols()

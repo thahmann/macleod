@@ -39,6 +39,6 @@ def ladr_all(folder, options=[]):
             for single_file in files:
                 if single_file.endswith(ending):
                     filename = os.path.join(directory, single_file)
-                    print filename
+                    print(filename)
                     m = ClifModuleSet(filename)
                     clif_to_tptp.tptp(filename, m, options)

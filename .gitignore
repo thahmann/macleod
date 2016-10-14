@@ -14,7 +14,11 @@ log/
 *.pyc
 *.out
 *.p9
+*.bak
+*.swp
 
+build/
+venv/
 generated/
 p9/
 output/

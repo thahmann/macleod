@@ -14,7 +14,7 @@ import macleod.Ladr as ladr
 import os, logging
 
 class ClifModule(object):
-   
+
     '''
     classdocs
     '''
@@ -24,45 +24,45 @@ class ClifModule(object):
         Constructor
         '''
         self.module_set = None
-        
+
         self.module_name = ''
-        
+
         self.hierarchy_name = ''
-        
+
         """set of all imported module names """
         self.imports = set([])
-        
+
         """ set of all parent module names"""
         self.parents = None
         self.ancestors = None
-        
+
         self.clif_file_name = ''
-        
+
         """Location of the clif input file that has undergone preprocessing"""
         self.clif_processed_file_name = ''
-        
+
         self.p9_file_name = None
-        
+
         self.tptp_file_name = None
-        
+
         # the distinction between nonlogical_symbols and nonlogical_variables assumes that a single symbol is not used as both in different sentences
         self.nonlogical_symbols = set([])
         self.import_closure_nonlogical_symbols = None
-        
+
         self.properly_defined_symbols = None
         #self.parents_nonlogical_symbols = set([])
-        
+
         # stores the depth of the import hierarchy
         self.depth = depth
-        
+
         self.set_module_name(name)
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL ending as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
             self.module_name = os.path.normpath(self.module_name.replace(filemgt.read_config('cl','ending'),''))
-            
+
         self.hierarchy_name = filemgt.get_hierarchy_name(self.module_name)
-            
+
         self.preprocess_clif_file()
 
     def preprocess_clif_file (self):
@@ -76,22 +76,22 @@ class ClifModule(object):
 
         logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
         logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
-        
+
         clif.remove_all_comments(self.clif_file_name, self.clif_processed_file_name)
-        
-        
+
+
         self.imports = clif.get_imports(self.clif_processed_file_name)
-        
+
         logging.getLogger(__name__).debug("imports detected in " + self.module_name + ": " + str(self.imports))
-        
+
         self.nonlogical_symbols = clif.get_all_nonlogical_symbols(self.clif_processed_file_name)
-        
+
 
     def get_module_set (self, imports = None):
         """ return the set of modules (ClifModuleSet) to which this module belongs."""
         from macleod.ClifLemmaSet import LemmaModule
         #print "IMPORTS = " + str(imports)
-        
+
         if self.module_set is not None:
             return self.module_set
         elif not isinstance(self, LemmaModule):
@@ -105,7 +105,7 @@ class ClifModule(object):
 
     def set_module_name (self,name):
         self.module_name = filemgt.get_canonical_relative_path(name)
-    
+
 #     def get_full_module_name (self,module=None):
 #         if not module:
 #             module= self.module_name
@@ -113,10 +113,10 @@ class ClifModule(object):
 #         prefix = re.compile(re.escape(filemgt.read_config('cl','prefix')), re.IGNORECASE)
 #         prefix.sub('', module)
 #         return os.path.abspath(module)
-                
+
     def get_hierarchy (self):
         return filemgt.get_hierarchy_name(self.module_name)
-                
+
 #     """ Called by ClifModuleSet so that each module knows all its direct parent modules.
 #     """
 #     def add_parents (self,name,depth):
@@ -127,7 +127,7 @@ class ClifModule(object):
 #         if depth>=self.depth:
 #             self.depth=depth+1
 #             #print "new depth = " + str(self.depth)
-        
+
     def get_parents (self):
         if not self.parents:
             self.parents = set([])
@@ -143,25 +143,25 @@ class ClifModule(object):
         """ Return a set of parents as modules """
         parent_names = self.get_parents()
         return [self.module_set.get_import_by_name(i) for i in parent_names]
-        
+
     """returns the set of immediate imports."""
     def get_imports (self):
         return self.imports
-        
+
     def get_imports_as_modules (self):
         return [self.module_set.get_import_by_name(i) for i in self.imports]
-        
+
     """ return a set of a (symbol, arity) tuples for all nonlogical symbols found in this particular clif module (not considering imports."""
     def get_nonlogical_symbols (self):
         return [(symbol, clif.get_nonlogical_symbol_arity_from_file(self.clif_processed_file_name,symbol)) for symbol in self.nonlogical_symbols]
-    
+
 #     def get_ancestors (self):
 #         if not self.ancestors:
 #             self.ancestors = set([])
 #             for parent in self.get_parents():
 #                 self.ancestors.update(self.get_module_set().get_import_closure(self.get_module_set().get_import_by_name(parent)))
 #         return self.ancestors
-        
+
     """ gets a set of (symbol, arity) tuples for all nonlogical symbols that are used in this module or any of the directly or indirectly imported modules.  This module can only be called once all imports have been processed."""
     def get_import_closure_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
@@ -169,7 +169,7 @@ class ClifModule(object):
             return False
         if not self.import_closure_nonlogical_symbols:
             self.import_closure_nonlogical_symbols = set([])
-            
+
             import_closure = self.get_module_set().get_import_closure(self)
             #print "IMPORT CLOSURE: " + str(import_closure)
             for i in import_closure:
@@ -187,17 +187,17 @@ class ClifModule(object):
             import_closure_nonlogical_symbols.update(i.get_import_closure_nonlogical_symbols())
         import_closure_nonlogical_symbols = set([symbol for (symbol, _) in import_closure_nonlogical_symbols])
         return import_closure_nonlogical_symbols
-    
+
     """ gets all nonlogical symbols that are used in this module but not in any of the directly or indirectly imported modules."""
     def get_new_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
             logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
             return False
-        print "Import closure nonlogical symbols: " + str(self.get_import_closure_nonlogical_symbols())
-        print "Import closure nonlogical symbols: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
+        print("Import closure nonlogical symbols: " + str(self.get_import_closure_nonlogical_symbols()))
+        print("Import closure nonlogical symbols: " + str(self.get_irreflexive_import_closure_nonlogical_symbols()))
         return self.get_import_closure_nonlogical_symbols() - self.get_irreflexive_import_closure_nonlogical_symbols()
 
-        
+
     def get_depth (self):
         """determines and returns the shortest depth, i.e. the shortest distance between this module and the root module that (indirectly) imports this module."""
         if not self.depth:
@@ -209,7 +209,7 @@ class ClifModule(object):
                 new_ancestors = [a.get_parents() for a in ancestor_set]
                 ancestor_set.update([self.get_module_set().get_import_by_name(a) for ancestors in new_ancestors for a in ancestors])
         return self.depth
-                
+
     def __repr__ (self):
         return self.module_name
 
@@ -220,7 +220,7 @@ class ClifModule(object):
 
         long_repr +=  ')'
         long_repr += '\n'
-        
+
         if self.module_set.completely_processed:
             if filemgt.module_is_definition_set(self.module_name) and not self.detect_faulty_definitions():
                 long_repr += '| '
@@ -284,6 +284,11 @@ class ClifModule(object):
         # if we made it here, name, depth, imports, and parents are identical
         return True
 
+    def __hash__(self):
+        """Hashable implementation"""
+
+        return id(self)
+
 
     def __ne__ (self, other):
         return not self.eq(other)
@@ -303,12 +308,12 @@ class ClifModule(object):
     def get_tptp_file_name (self):
         """get the filename of the TPTP translation of the module and translate the ClifModule if not yet done so.
         This version does not rely on the clif to ladr translation, but does a direct translation."""
-        
+
         if not self.tptp_file_name:
             self.tptp_file_name = filemgt.get_full_path(self.module_name,
                                                        folder=filemgt.read_config('tptp','folder'),
                                                        ending=filemgt.read_config('tptp','ending'))
-                         
+
             self.get_translated_file(self.tptp_file_name, "TPTP")
             logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + self.tptp_file_name)
         return self.tptp_file_name
@@ -323,7 +328,7 @@ class ClifModule(object):
 #        except:
 #            logging.getLogger(__name__).error("PROBLEM CREATING TRANSLATION: " + str(output_file_name))
 
-        
+
     """
     Find sentences in a definitional module (in the current module only) that are obviously faulty, e.g. that introduce no new symbols or that introduce more than one new symbol. 
     It does not check whether a specific definition is an explicit definition (of the form P(x,...) <=> ...) or whether the newly defined symbols are completely defined.
@@ -332,7 +337,7 @@ class ClifModule(object):
     def detect_faulty_definitions (self):
         if self.properly_defined_symbols:
             return False
-        
+
         faulty = False
         if  filemgt.module_is_definition_set(self.module_name):
             self.properly_defined_symbols = set([])
@@ -354,11 +359,11 @@ class ClifModule(object):
                     if len(new_symbols[i])==0:
                         logging.getLogger(__name__).error("No new symbol seen in definition " + str(i+1) + " in: " + self.module_name)
                         faulty = True
-                
+
                 while True:
                     # filter the definitions that have exactly one defined symbol
                     #print "NEW SYMBOLS = " + str(new_symbols)
-                    new_symbols = map(lambda x: x - self.properly_defined_symbols, new_symbols)
+                    new_symbols = [x - self.properly_defined_symbols for x in new_symbols]
                     new_single_symbols = [sym.pop() for sym in new_symbols if len(sym)==1]
 #                    new_single_symbols = [sym.pop() for sym in filter(lambda x:len(x)==1, new_symbols)]
                     if len(new_single_symbols)==0: # stable set of single symbols
@@ -371,9 +376,9 @@ class ClifModule(object):
                         logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)
                         faulty = True
                 #print "PROPERLY DEFINED SYMBOLS = " + str(self.properly_defined_symbols)
-        
+
         return faulty				
-        
+
     """
     Returns a list of the defined symbols if this module is a definition (based on its path) and contains no obviously faulty definitions.
     Each entry in the list is a tuple of the form (symbol, arity).
@@ -390,7 +395,7 @@ class ClifModule(object):
                     arity = clif.get_nonlogical_symbol_arity_from_file(self.clif_processed_file_name, symbol)
                     defined_symbols.append((symbol, arity))
         return defined_symbols 
-        
+
     """
     Checks whether this module is a definition.  
     The check is based only on its path and on the fact that each sentence has exactly one undefined symbol.
@@ -400,7 +405,7 @@ class ClifModule(object):
             return True
         else:
             return False
-        
+
 #     """check whether an ontology that is in the same hierarchy as one of the imported modules does not introduce new nonlogical symbols."""
 #     def verify_hierarchy_symbols(self):
 #         for p in self.get_parents():
@@ -417,4 +422,4 @@ class ClifModule(object):
 #                 return False
 #             else:
 #                 return True
-        
+

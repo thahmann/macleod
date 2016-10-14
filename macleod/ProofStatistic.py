@@ -13,11 +13,11 @@ class ProofStatistic(object):
     date = ''
     time = ''
     elapsed = ''
-    
+
     MACE4    = 'Mace4'
     PROVER9  = 'Prover9'
     PARADOX3 = 'Paradox3' 
     VAMPIRE  = 'Vampire'
-    
+
     def __init__(self, name=''):
         self.prover = name

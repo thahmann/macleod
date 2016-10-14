@@ -214,7 +214,6 @@ def remove_all_comments(input_file, output_file):
         except IOError:
             single_file.close()
         except ClifParsingError as e:
-            print "COWSSS"
             logging.getLogger(__name__).error(e)
             single_file.close()
             lines = []
@@ -511,7 +510,7 @@ def translate_sentences(input_file_names, language, axiom=True):
     all_nonlogical_symbols = set(
         [s for sublist in nonlogical_list for s in sublist])
     for s in all_nonlogical_symbols:
-        if not s[0].isalpha() and s[0] not in SYMBOL_TRANSLATIONS.keys():
+        if not s[0].isalpha() and s[0] not in list(SYMBOL_TRANSLATIONS.keys()):
             global SYMBOL_AUTO_NUM
             SYMBOL_TRANSLATIONS[s] = SYMBOL_AUTO_NAME + str(SYMBOL_AUTO_NUM)
             SYMBOL_AUTO_NUM += 1
@@ -537,7 +536,7 @@ def translate_sentences(input_file_names, language, axiom=True):
                 translation = sentence_to_tptp(sentences[i], variables_list[i], nonlogical_list[
                                                i], int((i + 1) * math.pow(10, digits)), axiom=axiom)
             # replace non-standard symbols
-            for s in SYMBOL_TRANSLATIONS.keys():
+            for s in list(SYMBOL_TRANSLATIONS.keys()):
                 translation = translation.replace(
                     '"' + s.lower() + '"', '"' + SYMBOL_TRANSLATIONS.get(s) + '"')
                 # print translation
@@ -577,7 +576,7 @@ def replace_logical_connectives(pieces, nonlogical_symbols, language):
         pieces.remove('')
 
     # special case: quantifiers; need to treat the second argument separate
-    for quantifier in QUANTIFIER_SUBSTITUTIONS.keys():
+    for quantifier in list(QUANTIFIER_SUBSTITUTIONS.keys()):
         if quantifier == pieces[0]:
             if len(pieces) > 3:
                 # ensure it is really used in a binary way
@@ -618,7 +617,7 @@ def replace_logical_connectives(pieces, nonlogical_symbols, language):
     if len(pieces) == 2:
         #sentence = pieces[0].strip('(').strip(')')
         # substitute unary connectives
-        for connective in UNARY_SUBSTITUTIONS.keys():
+        for connective in list(UNARY_SUBSTITUTIONS.keys()):
             if connective == pieces[0]:
                 pieces[0] = pieces[0].replace(
                     connective, UNARY_SUBSTITUTIONS[connective] + " ")
@@ -626,7 +625,7 @@ def replace_logical_connectives(pieces, nonlogical_symbols, language):
                 # print "UNARY: " + sentence
                 return sentence
 
-    for connective in BINARY_SUBSTITUTIONS.keys():
+    for connective in list(BINARY_SUBSTITUTIONS.keys()):
         if connective == pieces[0]:
             if len(pieces) > 3:
                 # ensure it is really used in a binary way
@@ -647,7 +646,7 @@ def replace_logical_connectives(pieces, nonlogical_symbols, language):
         # print "BINARY: " + sentence
         return sentence
 
-    for connective in NARY_SUBSTITUTIONS.keys():
+    for connective in list(NARY_SUBSTITUTIONS.keys()):
         if connective == pieces[0]:
             sentence = "(" + pieces[1]
             for i in range(2, len(pieces)):

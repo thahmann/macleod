@@ -2,33 +2,33 @@ from macleod import filemgt, commands
 import logging
 
 class Reasoner (object):
-    
+
     MODEL_FINDER = 'MODEL_FINDER'
-    
+
     PROVER = 'PROVER'
-        
+
     # initialize
     def __init__(self, name, reasoner_type=None, reasoner_id=None):
         self.identifier = ''
-        
+
         self.type = Reasoner.PROVER
-        
+
         self.args = []
-        
+
         self.positive_returncodes = []
-        
+
         self.unknown_returncodes = []
-        
+
         self.modules = []
-        
+
         self.input_files = ''
-        
+
         self.output_file = ''
-        
+
         self.time = -1
-        
+
         self.return_code = None
-        
+
         self.output = None
 
         self.name = name
@@ -50,7 +50,7 @@ class Reasoner (object):
             return True
         else:
             return False
-        
+
     def __ne__ (self, other):
         return not self.eq(other)
 
@@ -60,7 +60,7 @@ class Reasoner (object):
         self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
         (self.args, self.input_files) = commands.get_system_command(self.name, modules, self.output_file)
         return self.args
-    
+
     def getCommand (self, modules=None, outfile_stem=None):
         """Return the command (includes constructing it if necessary) to invoke the reasoner."""
         if not modules:
@@ -68,7 +68,7 @@ class Reasoner (object):
         else:
             self.construct_command(modules, outfile_stem)
             return self.args
-    
+
     def getOutfile(self):
         return self.output_file        
 
@@ -78,7 +78,7 @@ class Reasoner (object):
     def isProver (self):
         if self.type==Reasoner.PROVER: return True
         else: return False
-        
+
     def terminatedSuccessfully (self):
         from macleod.ClifModuleSet import ClifModuleSet
         mapping = {
@@ -87,7 +87,7 @@ class Reasoner (object):
             ClifModuleSet.UNKNOWN : False,
             None: False
         }
-        
+
         def szs_status(line):
             if 'Theorem' in line:
                 #print "VAMPIRE SZS status found: THEOREM"
@@ -100,7 +100,7 @@ class Reasoner (object):
                 return ClifModuleSet.CONSISTENT
             else: # Timeout, GaveUp, Error
                 return ClifModuleSet.UNKNOWN
-    
+
         def success_default (self):
             if not self.return_code==None:
                 if self.return_code in self.positive_returncodes:
@@ -115,7 +115,7 @@ class Reasoner (object):
             out_file = open(self.output_file, 'r')
             lines = out_file.readlines()
             out_file.close()
-            output_lines = filter(lambda x: x.startswith('% SZS status'), lines)
+            output_lines = [x for x in lines if x.startswith('% SZS status')]
             if len(output_lines)!=1:
                 if not self.return_code:
                     self.output = None
@@ -123,7 +123,7 @@ class Reasoner (object):
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
                 self.output = szs_status(output_lines[0])
-            
+
             return mapping[self.output]
 
 
@@ -131,7 +131,7 @@ class Reasoner (object):
             out_file = open(self.output_file, 'r')
             lines = out_file.readlines()
             out_file.close()
-            output_lines = filter(lambda x: x.startswith('+++ RESULT:'), lines)
+            output_lines = [x for x in lines if x.startswith('+++ RESULT:')]
             if len(output_lines)!=1:
                 if not self.return_code:
                     self.output = None
@@ -140,19 +140,19 @@ class Reasoner (object):
             else:
                 self.output = szs_status(output_lines[0])
                 logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
-                
-                        
+
+
             return mapping[self.output]
-        
-    
+
+
         handlers = {
             "paradox": success_paradox, 
             "vampire": success_vampire, 
         }
-    
+
         return handlers.get(self.name, success_default)(self)
-     
-     
+
+
     def terminatedUnknowingly (self):
         from macleod.ClifModuleSet import ClifModuleSet
 
@@ -162,7 +162,7 @@ class Reasoner (object):
                     self.output = ClifModuleSet.UNKNOWN
                     return True
             return False
-        
+
         def unknown_paradox (self):
             success = self.terminatedSuccessfully()
             if success:
@@ -172,17 +172,17 @@ class Reasoner (object):
             else: 
                 return True
 
-        
+
         handlers = {
             "paradox": unknown_paradox, 
         }
-            
+
         return handlers.get(self.name, unknown_default)(self)
-        
-        
+
+
     def setReturnCode(self, rc):
         self.return_code = rc
-                
+
     def isDone (self):
         if self.output is None:
             return False

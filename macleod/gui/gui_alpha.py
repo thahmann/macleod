@@ -5,11 +5,8 @@
 High-level overview of graphical element to be added to Macleod
 """
 
-import sys
-sys.path.append("../")
-
-from tasks import *
-from src import *
+from macleod.bin import *
+from macleod import *
 
 # source
 #from src.ClifModuleSet import *
@@ -33,10 +30,10 @@ from tasks.clif_to_ladr_all import *
 from tasks.clif_to_tptp_all import *
 from tasks.prove_lemma_all import *
 from tasks.delete_output import *
-from Tkinter import *
-import ttk
-import tkMessageBox
-import tkFileDialog
+from tkinter import *
+import tkinter.ttk
+import tkinter.messagebox
+import tkinter.filedialog
 
 LOG = logging.getLogger(__name__)
 img_dir = os.path.join(os.path.dirname(__file__), 'img')
@@ -49,7 +46,7 @@ def btn_press(event):
     index = widget.index("@%d,%d" % (x_pos, y_pos))
     if "close" in elem:
         if index != 0 and index != 1:
-            print index, elem
+            print(index, elem)
             widget.state(['pressed'])
             widget.pressed_index = index
 
@@ -155,7 +152,7 @@ class GUI(Frame):
     def load_window(self):
         """ Setup the with placeholders for stuff """
 
-        style = ttk.Style()
+        style = tkinter.ttk.Style()
         style.theme_use('default')
         style.element_create("close", "image", "img_close", \
         ("active", "pressed", "!disabled", "img_closepressed"), \
@@ -204,7 +201,7 @@ class GUI(Frame):
         # Created canvas and notebook (tab stuff) inside of paned_window  """
         self.canvas = Canvas(self.paned_window) #, width=900, height=275)
         self.paned_window.add(self.canvas)
-        self.notebook = ttk.Notebook(self.paned_window, name='tabs!')# width=950, height=275)
+        self.notebook = tkinter.ttk.Notebook(self.paned_window, name='tabs!')# width=950, height=275)
         #print ttk.Style().theme_names
         #print self.notebook.winfo_class()
         self.notebook.configure(style="ButtonNotebook")
@@ -237,7 +234,7 @@ class GUI(Frame):
     def create_task_pane(self, identifier):
         """  set up the two resizable paned window frames """
         self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
-        print self.selected_folder
+        print(self.selected_folder)
         if identifier == "file":
             consist = Button(self.task_pane, text="Check Consistency", \
                 command=lambda: consistent(self.selected_file,self.module))
@@ -320,7 +317,7 @@ class GUI(Frame):
     def askopenfilename(self):
         """ Returns a selected directory name """
 
-        self.selected_file = tkFileDialog.askopenfilename()
+        self.selected_file = tkinter.filedialog.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose Ontology...")
         self.deforestation()
@@ -331,7 +328,7 @@ class GUI(Frame):
     def askdirectory(self):
         """ Returns a selected directory name """
 
-        self.selected_folder = tkFileDialog.askdirectory()
+        self.selected_folder = tkinter.filedialog.askdirectory()
         self.selected_path.set("  Path:\t"+self.selected_folder)
         self.default_dropdown_text.set("Choose Folder...")
         self.deforestation()

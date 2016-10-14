@@ -7,16 +7,16 @@ if __name__ == '__main__':
     ignores = ["generated", "output", "consistency"]
     necessary = "_theorems"
     #necessary = false
-    
+
     proofs = 0
     counterexamples = 0
     unknown = 0
     files_no = 0
     for directory, subdirs, files in os.walk(sys.argv[1]):
-        
+
         subdirs.sort()
         files.sort()
-        
+
         if any(ignore in directory for ignore in ignores):
             pass
         else:
@@ -37,11 +37,11 @@ if __name__ == '__main__':
                     counterexamples += counterexamples_add
                     unknown += unknown_add
 
-                    print "---------------------"
-                    print str(files_no) + " lemma files"
-                    print str(proofs+counterexamples+unknown) + " lemmas in total"
-                    print str(proofs) + " proofs"
-                    print str(unknown) + " unknown"
-                    print str(counterexamples) + " counterexamples"
-                    print "---------------------"
+                    print("---------------------")
+                    print(str(files_no) + " lemma files")
+                    print(str(proofs+counterexamples+unknown) + " lemmas in total")
+                    print(str(proofs) + " proofs")
+                    print(str(unknown) + " unknown")
+                    print(str(counterexamples) + " counterexamples")
+                    print("---------------------")
 

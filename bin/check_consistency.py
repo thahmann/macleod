@@ -11,7 +11,7 @@ from macleod.ClifModuleSet import ClifModuleSet
 import logging
 
 def consistent(filename, m, options=[]):  
-     
+
     if '-module' in options:
         results = m.run_consistency_check_by_subset(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
     elif '-depth' in options:
@@ -20,7 +20,7 @@ def consistent(filename, m, options=[]):
         results = m.run_simple_consistency_check()
     else:
         results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
-       
+
     if len(results)==0:
         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")
     else:
@@ -29,10 +29,10 @@ def consistent(filename, m, options=[]):
                 logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
                 return (False, m)
         result_sets = [r[0] for r in results]
-        result_sets.sort(lambda x,y: cmp(len(x), len(y)))
-        print result_sets[0]
-        print results
-        print "+++++" + str(value)
+        result_sets.sort(key=lambda x: len(x))
+        #print result_sets[0]
+        #print results
+        #print "+++++" + str(value)
         if results[0][1]==1:
             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
             return (True, m)
@@ -46,7 +46,7 @@ def consistent(filename, m, options=[]):
 
 
 if __name__ == '__main__':
-    licence.print_terms()
+    #licence.print_terms()
     # global variables
 
     options = sys.argv

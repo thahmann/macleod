@@ -12,7 +12,7 @@ if __name__ == '__main__':
     ignores = ["theorems", "generated", "output"]
     #necessary = "_nontrivial"
     necessary = False
-    
+
     good = 0
     bad = 0
     neutral = 0
@@ -20,12 +20,12 @@ if __name__ == '__main__':
 
         subdirs.sort()
         files.sort()
-        
+
         if any(ignore in directory for ignore in ignores):
             pass
         else:
             for single_file in files:
-                print single_file
+                print(single_file)
                 if single_file.endswith('.clif'):
                     if necessary and necessary not in single_file:
                         pass
@@ -38,7 +38,7 @@ if __name__ == '__main__':
                         bad += 1
                     else:
                         neutral += 1
-    print str(good+bad+neutral) + " files in total"
-    print str(good) + " consistent"
-    print str(neutral) + " unknown"
-    print str(bad) + " inconsistent"
+    print(str(good+bad+neutral) + " files in total")
+    print(str(good) + " consistent")
+    print(str(neutral) + " unknown")
+    print(str(bad) + " inconsistent")

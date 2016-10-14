@@ -5,7 +5,7 @@
 This is going to get worse before it gets better...
 """
 
-import macleod.clif
+import macleod.Clif as clif
 
 def disjunctive_precondition(sentence):
     """
@@ -545,7 +545,7 @@ class CommonLogic(object):
 
         for sentence in self.sentences[:]:
 
-            symbols, _ = macleod.clif.get_nonlogical_symbols_and_variables(sentence)
+            symbols, _ = clif.get_nonlogical_symbols_and_variables(sentence)
             self.nonlogical_symbols |= symbols
 
 def remove_biconditionals(sentence):
@@ -682,10 +682,15 @@ def to_cnf(sentence):
 
 if __name__ == '__main__':
 
-    sentences = macleod.clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
+    import pprint
+
+    sentences = clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
+    pprint.pprint(sentences)
+
+    print('Done')
+
     Common = CommonLogic(sentences)
 
-    import pprint
 
     for s in sentences:
         a = remove_biconditionals(s)

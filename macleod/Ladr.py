@@ -8,9 +8,9 @@ import logging
 def cumulate_ladr_files (input_files, output_file):    
     """write all axioms from a set of p9 files to a single file without any change in the content itself except for the replacement of certain symbols"""
     special_symbols = filemgt.get_tptp_symbols()
-    
+
     logging.getLogger(__name__).debug("Special symbols: " + str(special_symbols))
-    
+
     text = []
     for f in input_files:
         in_file = open(f, 'r')
@@ -23,11 +23,11 @@ def cumulate_ladr_files (input_files, output_file):
             text.append(line)
             line = in_file.readline()
         in_file.close()
-    
+
     text = strip_inner_commands(text)
-    
+
     # store the location of all "<-" to be able to replace them back later on:
-   
+
     out_file = open(output_file, 'w+')
     out_file.write('%axioms from module ' + f + ' and all its imports \n')
     out_file.write('%----------------------------------\n')
@@ -36,8 +36,8 @@ def cumulate_ladr_files (input_files, output_file):
     out_file.close()
     return output_file
 
-    
-    
+
+
 def strip_inner_commands(text):
     text = "".join(text)    # convert list of lines into a single string
     """remove all "formulas(sos)." and "end_of_list." from a p9 file assembled from multiple axiom files; leaving a single block of axioms"""
@@ -62,7 +62,7 @@ def strip_inner_commands(text):
         elif len(aparts)==2:
             axioms.extend([a.strip() + "\n" for a in aparts[1].split("\n")])
             parts[i] = parts[i].replace(parts[i],"").strip("\n").strip()
-        
+
     # comment remainder
     for p in parts:
         text = ["% "+s.strip() +"\n" for s in p.split("\n")]
@@ -83,8 +83,8 @@ def strip_inner_commands(text):
 
     #print text
     return text
-        
-        
+
+
 def get_ladr_goal_files (lemmas_file,  lemmas_name):
     """break a single lemma file into individual lemma files (with lemmas_name in its file name), each containing a single lemma."""
     sentences = split_lemma_into_sentences(lemmas_file)
@@ -96,7 +96,7 @@ def split_lemma_into_sentences(lemmas_file):
     input_file = open(lemmas_file, 'r')
     lines = input_file.readlines()
     input_file.close()
-    
+
     sentences = []
 
     started = False
@@ -114,7 +114,7 @@ def split_lemma_into_sentences(lemmas_file):
                         break
                     else:
                         sentences.append(lineparts[0])
-    
+
     logging.getLogger(__name__).info("Split " + lemmas_file + " into " + str(len(sentences)) + " individual lemma files")
     return sentences
 
@@ -128,12 +128,12 @@ def get_lemma_files_from_sentences (lemmas_name, sentences):
     import math
     # determine maximal number of digits
     digits = int(math.ceil(math.log10(len(sentences))))
-    
+
     i = 1
 
     for lemma in sentences:
         name = lemmas_name + '_goal' + ('{0:0'+ str(digits) +  'd}').format(i)
-        
+
         filename = filemgt.get_full_path(name, 
                               folder=filemgt.read_config('ladr','folder'), 
                               ending=filemgt.read_config('ladr','ending'))        
@@ -145,14 +145,14 @@ def get_lemma_files_from_sentences (lemmas_name, sentences):
         sentences_files.append(filename)
         sentences_names.append(name)
         i += 1
-    
+
     return (sentences_names, sentences_files)
 
 
 class LadrParsingError(Exception):
-    
+
     output = []
-    
+
     def __init__(self, value, output=[]):
         self.value = value
         self.output = output

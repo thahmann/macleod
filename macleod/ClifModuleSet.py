@@ -22,31 +22,31 @@ class ClifModuleSet(object):
     COUNTEREXAMPLE = 1
     UNKNOWN = 0
     CONTRADICTION = -100
-    
-    
+
+
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
-        
+
         filemgt.start_logging()
 
         name = filemgt.get_canonical_relative_path(name)
-        
+
         # keep track of when all imports have been processed; necessary for detecting nonlogical symbols in the import structure
         self.completely_processed = False
-                
+
         logging.getLogger(__name__).info("Creating ClifModuleSet " + name)
 
         self.module_name = ''
-    
+
         # list of ClifModules that are imported and have been processed already   
         self.imports = set([])
-        
+
         # keeps track of the lemma that needs to be proved; this is None if no lemma needs to be proved 
         self.lemma_module = None
-        
+
         # list of imports that still require processing
         self.unprocessed_imports = set([])
-    
+
         # list of nonlogical symbols that occur in any imported files
         # it is a tuple [symbol, count, d_min, d_max] where
         # symbol: name of the symbol
@@ -54,18 +54,18 @@ class ClifModuleSet(object):
         # d_min: minimal depth in the CL-import tree where it occurs
         # d_max: maximal depth in the CL-import tree where it occurs
         self.nonlogical_symbols = set([])
-        
+
         self.defined_nonlogical_symbols = set([])
-        
+
         # the primitive and potentially some defined predicates occurring in any imported files
         self.primitive_predicates = set([])
-    
+
         # a list of predicates that are definitively defined predicates occurring in any imported files
         self.defined_predicates = set([])
-        
+
         # the functions occurring in any imported files
         self.nonskolem_functions = set([])
-        
+
         self.p9_file_name = ''
         self.tptp_file_name = ''
 
@@ -91,34 +91,34 @@ class ClifModuleSet(object):
             new_imports = set(m.get_imports()) - set([i.module_name for i in self.imports]) - set(self.unprocessed_imports)
             for i in new_imports:
                 logging.getLogger(__name__).info('|-- imports: ' + i + ' (depth ' + str(m.get_depth()+1) + ')')
-                            
+
             self.unprocessed_imports = self.unprocessed_imports.union(new_imports)
-        
+
         self.completely_processed = True
         self.pretty_print()
 
 #        atexit.register(self.cleanup)
-    
-   
+
+
     def pretty_print (self):
 
-        print "\n+++++++++++++++++++++\nall " + str(len(self.imports))  + " modules of "+ self.module_name +":\n+++++++++++++++++++++"
+        print("\n+++++++++++++++++++++\nall " + str(len(self.imports))  + " modules of "+ self.module_name +":\n+++++++++++++++++++++")
 
         imports = self.get_sorted_imports()
 
-        print "Undefined nonlogical symbols: " + str(self.get_undefined_nonlogical_symbols()) 
+        print("Undefined nonlogical symbols: " + str(self.get_undefined_nonlogical_symbols())) 
 
         for n in imports:
             indent = ''
             for _ in range(n.get_depth()):
                 indent += "----"
-            print '|-' + indent + str(n)
-            print '|'
-            print '|'
+            print('|-' + indent + str(n))
+            print('|')
+            print('|')
 
-        print "+++++++++++++++++++++\n"
-    
-          
+        print("+++++++++++++++++++++\n")
+
+
     def set_module_name (self,module_name):  
         """initially set the name of the top module
            NOT to be used later on"""
@@ -133,23 +133,24 @@ class ClifModuleSet(object):
 
     def get_imports (self):
         return self.imports
-    
+
     def get_top_imports (self):
-        return filter(lambda x: x.depth == 1, self.imports)
-    
+        return [x for x in self.imports if x.depth == 1]
+
     def get_axioms (self):
         axioms = self.imports.copy()
         axioms.discard(self.lemma_module) 
         return axioms
-    
+
     def get_sorted_imports (self):
         l = list(self.imports)
-        l.sort(ClifModule.compare)
+        #l.sort(ClifModule.compare)
+        l.sort(key=lambda clif_module: clif_module.get_depth())
         return l 
-    
+
     def get_import_by_name (self, name):
         """Find and return a module from the list of imports by its module name. """
-        m = filter(lambda s:s.module_name==name, list(self.imports))
+        m = [s for s in list(self.imports) if s.module_name==name]
         if len(m)==0:
             #print "IMPORTS in " + self.module_name
             #for i in self.imports:
@@ -159,7 +160,7 @@ class ClifModuleSet(object):
             raise ClifModuleSetError("Multiple modules with name '{0}' exist in ClifModuleSet {1}".format(name, self.module_name))            
         elif len(m)==1:
             return m[0]
-    
+
     def get_import_closure (self, module):
         """return the set of all direct and indirect imports."""
         import_names = set([])  # list of the names of modules directly or indirectly imported by module
@@ -173,10 +174,11 @@ class ClifModuleSet(object):
             imports.add(i)
             new_imports.update(set(i.get_imports()).difference(import_names)) # add the imports that have not yet been processed
         imports = list(imports)
-        imports.sort(ClifModule.compare)
+        #imports.sort(ClifModule.compare)
+        imports.sort(key=lambda clif_module: clif_module.get_depth())
         return imports
-        
-    
+
+
 #     def update_nonlogical_symbols (self,new_nonlogical_symbols,depth):
 #         """update the ClifModuleSet's list of nonlogical symbols with the symbols in new_nonlogical_symbols
 #            new_nonlogical_symbols -- list of tuples (symbol_name, number of modules this occurs in, minimal_depth in import tree, maximal_depth in import tree)
@@ -210,7 +212,7 @@ class ClifModuleSet(object):
             return self.nonlogical_symbols
         else:
             return False
-        
+
 
     def get_defined_nonlogical_symbols (self):
         """Determine all the nonlogical symbols that are defined in one of the imported modules that are definitions (including the top module).
@@ -218,21 +220,21 @@ class ClifModuleSet(object):
         if self.completely_processed:
             for i in self.imports:
                 self.defined_nonlogical_symbols.update(i.get_defined_symbols())
-            print "Defined symbols: " + str(self.defined_nonlogical_symbols)
+            print("Defined symbols: " + str(self.defined_nonlogical_symbols))
             return self.defined_nonlogical_symbols
         else:
             return False
-            
+
     def get_undefined_nonlogical_symbols (self):
         if self.completely_processed:
             return self.get_all_nonlogical_symbols() - self.get_defined_nonlogical_symbols()
         else:
             return False
-            
+
     def add_lemma_module (self, lemma_module):
         """Add a lemma module to this ClifModuleSet. If one already exists, the old one is overwritten."""
         self.module_name = lemma_module.module_name
-        
+
         # delete old lemma module if one exists
         if self.lemma_module is not None:
             self.imports.remove(self.lemma_module)
@@ -246,10 +248,10 @@ class ClifModuleSet(object):
         logging.getLogger(__name__).debug("SETTING LEMMA MODULE: " + str(lemma_module) + " for " + self.module_name)        
 
         return self.lemma_module
-    
+
     def get_lemma_module (self):
         return self.lemma_module
-        
+
     def remove_lemma_module (self):
         # delete old lemma module if one exists
         if self.lemma_module is not None:
@@ -259,7 +261,7 @@ class ClifModuleSet(object):
                 m.depth = m.depth - 1
             self.lemma_module = None
             return True
-        
+
         return False
 
     def remove_module (self, removal_module):
@@ -271,28 +273,28 @@ class ClifModuleSet(object):
                 self.imports.remove(removal_module)
                 return True
             return False
-    
+
 
     # extract the predicates and functions from prover9 mock run
     def extract_p9_predicates_and_functions (self):
-    
+
         #print 'extract predicates and functions'
         prover9args = 'prover9 -t 0 -f '
-        
-    
+
+
         for f in self.imports:
             prover9args += f.p9_file_name + ' '
-        
+
         options_file = commands.get_p9_empty_optionsfile(self.get_p9_file_name(), verbose=False)
         prover9args += ' ' + options_file + ' '
 
-        
+
         # would be better to create a temporary file or read the output stream directly
         temp_file = self.get_module_name() + '_order' + filemgt.read_config('ladr','ending')
         prover9args += ' > ' + temp_file
         logging.getLogger(__name__).debug(prover9args)
         process.executeSubprocess(prover9args)
-        
+
         order_file = open(temp_file, 'r')
         line = order_file.readline()
         predicates = None
@@ -310,7 +312,7 @@ class ClifModuleSet(object):
                     functions[i] = functions[i].replace(',','')
                 break
             line = order_file.readline()
-            
+
         order_file.close()
         #print 'temp file : ' + temp_file
         #print 'options file : ' + options_file
@@ -323,62 +325,62 @@ class ClifModuleSet(object):
 
     # extracts the predicates and functions from the output of a prover9 mock run
     def get_predicates_and_functions (self):
-      
+
         # process the predicates and functions
         (predicates, functions) = self.extract_p9_predicates_and_functions()
-        
+
         #print 'all predicates: ' + str(predicates)
         #print 'all functions: ' + str(functions)
         #print 'all named entities: ' + str(namedentities)
-    
+
         # extracting defined predicates, (potentially) primitive predicates, and functions   
         for function in functions:
             for (entity, count, depth_min, depth_max) in self.nonlogical_symbols:
                 if function == entity:
                     self.nonskolem_functions.append([entity, count, depth_min, depth_max])
-    
+
         for (predicate, count, depth_min, depth_max) in self.nonlogical_symbols:
             if predicate in predicates:
                 self.primitive_predicates.append([predicate, count, depth_min, depth_max])
             else:
                 if predicate not in functions:
                     self.defined_predicates.append([predicate, count, depth_min, depth_max])
-        
+
         logging.getLogger(__name__).debug("all primitive predicates of " + self.module_name  + " : " + str(self.primitive_predicates))
         logging.getLogger(__name__).debug( "all defined predicates " + self.module_name  + " : " +  str(self.defined_predicates))
         logging.getLogger(__name__).debug( "all defined predicates " + self.module_name  + " : " + str(self.nonskolem_functions))
-    
-                
-                
+
+
+
     def get_nonlogical_symbols (self, imports=None):
         """returns a simple list of nonlogical symbols without additional information.
         This is different from self.nonlogical_symbols, which stores additional information about frequency, depth, etc."""
         s = set([])
         if not imports:
             imports = self.imports
-        
+
         for m in imports:
             s.update(m.get_nonlogical_symbols())
         return s
-      
-    
-    
+
+
+
     def run_simple_consistency_check (self, module_name = None, modules = None, options_files = None):
         """ test the input for consistency by trying to find a model or an inconsistency."""
         # want to create a subfolder for the output files
         outfile_stem = filemgt.get_full_path(self.module_name, 
                                             folder=filemgt.read_config('output','folder')) 
-        
+
         if not module_name:
             module_name = self.module_name
-        
+
         if not modules: 
             modules = self.imports  # use all imports as default set of modules
-        
+
         reasoners = ReasonerSet() 
         reasoners.constructAllCommands(modules, outfile_stem)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
-        
+
         # run provers and modelfinders simultaneously and wait until one returns
         reasoners = process.raceProcesses(reasoners)
 
@@ -389,7 +391,7 @@ class ClifModuleSet(object):
             self.pretty_print_result(module_name + " (without imports)", return_value)
         else:
             self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
-        
+
         results = []
         results.append((tuple(modules), return_value, fastest_reasoner))
         #print str(results)
@@ -411,7 +413,7 @@ class ClifModuleSet(object):
 
         if not modules:
             modules = self.imports
-        
+
         # first do simple consistency check
         (_, return_value, fastest_reasoner) = self.run_simple_consistency_check(modules= modules, options_files = options_files)[0] 
 
@@ -426,7 +428,7 @@ class ClifModuleSet(object):
                                                                abort = abort, 
                                                                abort_signal = abort_signal, 
                                                                increasing= increasing)
-            
+
         else:
             results = []
             results.append((tuple(modules), return_value, fastest_reasoner))
@@ -460,14 +462,14 @@ class ClifModuleSet(object):
         logging.getLogger(__name__).debug("STARTING consistency check by subset; max_depth=" + str(max_depth))
         if increasing:
             # starting with the smallest modules first
-            ran = range(max_depth,min_depth,-1)
+            ran = list(range(max_depth,min_depth,-1))
         else:
-            ran = range(min_depth,max_depth,1)
+            ran = list(range(min_depth,max_depth,1))
         for reverse_depth in ran:
             #print "-----------------------"
             #print " LEVEL = " + str(reverse_depth)
             #print "-----------------------"
-            current_imports = filter(lambda i:i.get_depth()==reverse_depth, imports)  # get all imports with reverse_depth level
+            current_imports = [i for i in imports if i.get_depth()==reverse_depth]  # get all imports with reverse_depth level
             #print "-----------------------"
             #print "Next Try: " + str(current_imports)
             #print "-----------------------"
@@ -485,10 +487,10 @@ class ClifModuleSet(object):
                     logging.getLogger(__name__).info("FOUND PROOF FOR SUBONTOLOGY AT IMPORT LEVEL " + str(reverse_depth))
                     if abort and abort_signal==ClifModuleSet.INCONSISTENT:
                         return results
-                
+
         return results   
-            
-        
+
+
 
 
     def run_consistency_check_by_depth (self, modules=None, options_files = None, abort=True, abort_signal=CONSISTENT, increasing = False):
@@ -507,7 +509,7 @@ class ClifModuleSet(object):
 
         imports = list(modules)
         results = []
-        
+
         if self.lemma_module:
             min_depth = 0
         else:
@@ -517,9 +519,9 @@ class ClifModuleSet(object):
 
         if increasing:
             # starting with the smallest modules first
-            ran = range(max_depth,min_depth,-1)
+            ran = list(range(max_depth,min_depth,-1))
         else:
-            ran = range(min_depth,max_depth,1)
+            ran = list(range(min_depth,max_depth,1))
 
         for reverse_depth in ran:
             tmp_imports = self.get_consistent_module_set(modules=modules, min_depth=reverse_depth, max_depth=max_depth) 
@@ -537,7 +539,7 @@ class ClifModuleSet(object):
                     return results
 
         return results   
-        
+
 
 
     def get_consistent_module_set (self, modules=None, min_depth=0, max_depth=None):
@@ -555,8 +557,8 @@ class ClifModuleSet(object):
                 imports.add(m)
 
         return imports
-        
-        
+
+
 
     def get_consistent_modules (self):
         """get a set of all the imported modules that are not provably inconsistent by themselves."""
@@ -580,16 +582,16 @@ class ClifModuleSet(object):
         reasoners = ReasonerSet() 
         reasoners.constructAllCommands([module], outfile_stem)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
-        
+
         # run provers and modelfinders simultaneously and wait until one returns
         reasoners = process.raceProcesses(reasoners)
 
         (return_value, _) = self.consolidate_results(reasoners)    
         self.pretty_print_result(module.module_name, return_value)
-        
+
         return return_value  
-        
-        
+
+
     def consolidate_results (self, reasoners):
         """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found.
         return values:
@@ -600,7 +602,7 @@ class ClifModuleSet(object):
         return_value = 0
         successful_reasoner = ''
         fastest_reasoner = None
-         
+
         for r in reasoners:
             if r.terminatedSuccessfully():
                 if return_value == 0:
@@ -619,7 +621,7 @@ class ClifModuleSet(object):
                     logging.getLogger(__name__).critical("CONTRADICTORY RESULTS from " + self.module_name +': ' + r.name + ' and ' + successful_reasoner)
             if r.terminatedUnknowingly():
                 logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(r.output) + "): " + r.name)
-    
+
         logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
         return (return_value, fastest_reasoner)
 
@@ -630,8 +632,8 @@ class ClifModuleSet(object):
             return self.pretty_print_proof_result(module_name, return_value)
         else:
             return self.pretty_print_consistency_result(module_name, return_value)
-        
-        
+
+
     def pretty_print_consistency_result (self, module_name, return_value):
         """
         consistent (1) -- model found, the ontology is consistent
@@ -642,7 +644,7 @@ class ClifModuleSet(object):
         elif return_value==ClifModuleSet.INCONSISTENT: s="INCONSISTENT"
         elif return_value==ClifModuleSet.UNKNOWN or return_value==None: s="UNKNOWN"
         else: s="CONTRADICTION"
-        
+
         logging.getLogger(__name__).info(s + " (return value = " + str(return_value) + "): " + module_name)
 
 
@@ -659,7 +661,7 @@ class ClifModuleSet(object):
 
         logging.getLogger(__name__).info(s + " (return value = " + str(return_value) + "): " + module_name)
 
-        
+
 #    def check_consistency(self):
 #        (predicates_primitive, self.predicates_defined, self.functions_nonskolem) = self.get_predicates_and_functions(p9_files, namedentities)
 #        if not self.test_heuristics:
@@ -680,20 +682,20 @@ class ClifModuleSet(object):
 #                    print '--- TESTCASE: ' + order[0] + ' ---' 
 #                    print '----------------------' 
 #                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
-        
-       
+
+
     def get_ladr_files (self, imports = None):
         """get a list of translations of all associated ClifModules in LADR syntax."""
-        
+
         if not imports:
             imports = self.imports
-        
+
         p9_files = []
         for m in imports:
             p9_files.append(m.get_p9_file_name())
         return p9_files
 
-   
+
     def get_single_ladr_file (self, imports = None):
         """get the ClifModuleSet as a single file in LADR syntax."""
 
@@ -714,7 +716,7 @@ class ClifModuleSet(object):
             name = imports[0].module_name
         # construct the final ending
         ending += filemgt.read_config('ladr','ending')
-        
+
         p9_files = self.get_ladr_files(imports)
 
         p9_file_name = filemgt.get_full_path(name, 
@@ -722,29 +724,29 @@ class ClifModuleSet(object):
                                            ending=ending)
         if not imports:
             self.p9_file_name = p9_file_name
-            
+
         #print "FILE NAME:" + self.p9_file_name
         # TODO: need to initialize self.replaceable_symbols
         ladr.cumulate_ladr_files(p9_files, p9_file_name)
         logging.getLogger(__name__).info("CREATED SINGLE LADR TRANSLATION: " + p9_file_name)
         return p9_file_name
-   
+
 
     def get_tptp_files (self, imports = None):
         """ get a list of translations of all associated ClifModules in TPTP syntax."""
-        
+
         if not imports:
             imports = self.imports
-        
+
         tptp_files = []
         for m in imports:
             tptp_files.append(m.get_tptp_file_name())
         return tptp_files
-    
+
 
     def get_single_tptp_file (self, imports = None):
         """translate the module and all imported modules to a single TPTP file."""
-        
+
         # if the given imports are identical to the modules imports, treat it as the modules imports were used
         if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
             imports = None
@@ -769,7 +771,7 @@ class ClifModuleSet(object):
         if not imports:
             self.tptp_file_name = tptp_file_name
             imports = self.get_imports().copy()
-        
+
         tptp_sentences = []
         if self.lemma_module:
             imports.remove(self.lemma_module)
@@ -789,9 +791,9 @@ class ClifModuleSet(object):
 
 
 class ClifModuleSetError(Exception):
-    
+
     output = []
-    
+
     def __init__(self, value, output=[]):
         self.value = value
         self.output = output
@@ -800,7 +802,7 @@ class ClifModuleSetError(Exception):
         return repr(self.value) + '\n\n' + (''.join('{}: {}'.format(*k) for k in enumerate(self.output)))
 
 
-        
+
 if __name__ == '__main__':
     import sys
     # global variables
@@ -808,5 +810,5 @@ if __name__ == '__main__':
     m = ClifModuleSet(options[1])
     #print m.get_single_tptp_file()
     #print m.get_top_module()
-    print m.get_import_closure(m.get_top_module())
+    print(m.get_import_closure(m.get_top_module()))
     #print m.get_import_closure(m.get_import_by_name("codi\codi_linear_int"))

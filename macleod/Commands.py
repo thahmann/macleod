@@ -29,7 +29,7 @@ def get_positive_returncodes (name):
 
 def get_unknown_returncodes (name):
     return get_returncodes(name, type="unknown_returncode")
-    
+
 def get_returncodes (name,type="positive_returncode"):
     code_list = filemgt.read_config(name,type) 
     codes = []
@@ -54,9 +54,9 @@ def get_p9_cmd (imports,output_stem, option_files = None):
     if option_files:
         for f in option_files:
             args.append(f)
-            
+
     return (args, [])
-    
+
 
 def get_m4_cmd (imports,output_stem):
     """get a formatted command to run Mace4 with options (timeout, etc.) set in the class instance."""
@@ -72,7 +72,7 @@ def get_m4_cmd (imports,output_stem):
     # append all ladr input files
     for m in imports:
         args.append(m.get_p9_file_name())
-    
+
     return (args, [])
 
 
@@ -108,9 +108,9 @@ def get_vampire_cmd (imports,ouput_stem):
     logging.getLogger(__name__).debug("COMMAND FOR vampire IS " + str(args))
     # works for linux, not for Windows
     #return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])
-    
+
     return (args, [])
-    
+
 
 
 def get_ladr_to_tptp_cmd (input_file_name, output_file_name):
@@ -139,7 +139,7 @@ def get_p9_empty_optionsfile (p9_file_name, verbose=True):
     #print 'OPTIONS FILE - P9 file name = ' + p9_file_name
     options_file_name = os.path.join(os.path.dirname(p9_file_name), 
                                      os.path.splitext(os.path.basename(p9_file_name))[0] + filemgt.read_config('prover9','options_ending'))
-    
+
     #print 'OPTIONS FILE = ' + options_file_name
 
     ladr.options_files.append(options_file_name)

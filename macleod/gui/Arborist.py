@@ -9,12 +9,12 @@ more generic tree structure
 import sys
 sys.path.append("../src")
 
-from Tkinter import *
-from summary import *
+from tkinter import *
+from .summary import *
 import src.filemgt
 import logging
-import tkFont
-import ttk
+import tkinter.font
+import tkinter.ttk
 
 LOG = logging.getLogger(__name__)
 
@@ -72,10 +72,10 @@ class Arborist(object):
         removes = []
         for name in self.nodes:
             if src.filemgt.module_is_definition_set(name):
-                print name
+                print(name)
                 removes.append(name)
 
-        for name, node in self.nodes.iteritems():
+        for name, node in self.nodes.items():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
                 node.children = [c for c in node.children if not src.filemgt.module_is_definition_set(c.name)]
@@ -91,7 +91,7 @@ class Arborist(object):
 
         visited = self.traverse(self.tree)
 
-        for name, node in self.nodes.iteritems():
+        for name, node in self.nodes.items():
             if node not in visited:
                 removes.append(name)
 
@@ -160,7 +160,7 @@ class VisualArborist(Arborist):
         """ Climb the tree and weight each level based on its children """
 
         # Arrange nodes from deepest to root
-        nodes = sorted(self.nodes.values(), key=lambda n: n.depth, reverse=True)
+        nodes = sorted(list(self.nodes.values()), key=lambda n: n.depth, reverse=True)
 
         # First make sure all nodes width is that of their definition 
         for node in nodes:
@@ -192,7 +192,7 @@ class VisualArborist(Arborist):
         self.tree.y_pos = TREE_VERTICAL_SPACE
 
         levels = {}
-        for node in sorted(self.nodes.values(), key=lambda n: n.depth):
+        for node in sorted(list(self.nodes.values()), key=lambda n: n.depth):
             if node.depth in levels:
                 levels[node.depth].append(node)
             else:
@@ -219,8 +219,8 @@ class VisualArborist(Arborist):
     def draw_tree(self):
         """ Use Tkinter to draw the nodes on canvas """
 
-        [node.draw() for node in self.nodes.values()]
-        [node.draw_links() for node in self.nodes.values()]
+        [node.draw() for node in list(self.nodes.values())]
+        [node.draw_links() for node in list(self.nodes.values())]
 
     def get_sizes(self):
         """ Get the pixel width/height of text on screen """
@@ -236,7 +236,7 @@ class VisualArborist(Arborist):
     def adjust_text(self, size):
         """ Either increase or decrease font size for all nodes """
 
-        for node in self.nodes.values():
+        for node in list(self.nodes.values()):
             if size:
                 node.font_size += 1
             else:
@@ -331,15 +331,15 @@ class VisualNode(Node):
 
         self.visualizer.create_tab(self)
 
-        print '-----------------------------'
-        print '| Name:', self.name
-        print '| Depth:', self.depth
-        print '| Parent:', parent
-        print '| Width:', self.width
-        print '| # of children:', len(self.children)
-        print '| # of visual children:', len(self.visual_children)
-        print '| x:', self.x_pos, 'y:', self.y_pos
-        print '-----------------------------'
+        print('-----------------------------')
+        print('| Name:', self.name)
+        print('| Depth:', self.depth)
+        print('| Parent:', parent)
+        print('| Width:', self.width)
+        print('| # of children:', len(self.children))
+        print('| # of visual children:', len(self.visual_children))
+        print('| x:', self.x_pos, 'y:', self.y_pos)
+        print('-----------------------------')
 
     def on_enter(self, event):
         """ Draw all child links of node """
@@ -364,7 +364,7 @@ class VisualNode(Node):
                     self.visual_parent = parent
         if self.visual_parent is None and self.depth != 1:
             for parent in self.parents:
-                print parent.name
+                print(parent.name)
             LOG.debug('Non-root node without parent ' + self.name)
 
     def set_visual_children(self):
