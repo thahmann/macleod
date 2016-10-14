@@ -9,6 +9,7 @@ setup(name='macleod',
       license='GPL3',
       packages=['macleod'],
       install_requires=['pyparsing==2.1.10',
-                        'configparser'],
+                        'configparser',
+                        'owlready'],
       classifiers=["Programming Language :: Python :: 2.7"],
       zip_safe=False)
