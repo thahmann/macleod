@@ -417,6 +417,9 @@ def is_unary(symbol_expression):
     variable.
     """
 
+    if not isinstance(symbol_expression, list):
+        return False
+
     if len(symbol_expression) != 2:
         return False
 
@@ -432,6 +435,8 @@ def is_binary(expression):
     sentence should contain three elements: a nonlogical symbol followed by two
     variables.
     """
+    if not isinstance(expression, list):
+        return False
 
     if len(expression) != 3:
         return False
@@ -447,6 +452,8 @@ def is_universal(sentence):
     Determines whether or not a sentence is universally quantified or not.
 
     TODO: Figure out how this should handle differently placed quantifiers.
+    param: list sentence, FOL sentence
+    return: list/boolean, sentence or false
     """
 
     if sentence[0] != 'forall':
@@ -464,6 +471,42 @@ def is_existential(sentence):
         return False
 
     return sentence[2]
+
+#def strip_quantifier(sentence):
+#    '''
+#    Attempt to remove all quantifiers found in a FOL sentence.
+#
+#    :param list FOL sentence
+#    :return list, FOL with no quantifications
+#    '''
+#
+#    stripped = strip_quantifiers(sentence)
+#
+#    return [strip_quantifiers(x) for x in stripped]
+
+def strip_quantifier(sentence):
+    '''
+    Attempt remove to quantifiers at the beginning of a sentence until only predicates
+    and logical symbols remain. Assumes quantifiers are chained at beginning of
+    sentence.
+
+    :param list sentence, the quantified sentence
+    :return list sentence, sentence with quantifiers stripped
+    '''
+
+    if not isinstance(sentence, list):
+        return sentence
+
+    existential = is_existential(sentence)
+    universal = is_universal(sentence)
+
+    if existential != False:
+        return strip_quantifier(existential)
+
+    if universal != False:
+        return strip_quantifier(universal)
+
+    return [strip_quantifier(x) for x in sentence]
 
 def is_subclass(sentence):
     """
@@ -582,12 +625,16 @@ def remove_implications(sentence):
 
     return [remove_implications(term) for term in sentence]
 
-def distribute_negation(sentence):
-    """
+
+def distribute_negation(sentence, modified):
+    '''
     Recurse over a sentence pushing all negation inwards
 
     # TODO Go back and understand how I came up with this!
-    """
+    :param list sentence, FOL sentence
+    :param list modified, flag indcating changes occured
+    :return list sentence
+    '''
 
     if not isinstance(sentence, list):
         return sentence
@@ -599,10 +646,11 @@ def distribute_negation(sentence):
         simplified = from_negation(sentence)
 
         if simplified:
+            
+            modified.append(True)
+            return [distribute_negation(term, modified) for term in simplified]
 
-            return [distribute_negation(term) for term in simplified]
-
-    return [distribute_negation(term) for term in sentence]
+    return [distribute_negation(term, modified) for term in sentence]
 
 def remove_existentials(sentence):
     """
@@ -625,6 +673,192 @@ def remove_existentials(sentence):
 
     return [remove_existentials(term) for term in sentence]
 
+def get_quantifier_order(sentence):
+    '''
+    Wrapper function around get_quantifier_order_recursive
+
+    :param list sentence, FOL sentence
+    :return list sentence, same sentence with quantifiers pulled to front
+    '''
+
+    acc = []
+    get_quantifier_order_recursive(sentence[:], acc)
+
+    quantifier_order = [acc.pop(0)]
+
+    while len(acc) != 0:
+
+        quantifier, variables = acc.pop(0)
+        if  quantifier == quantifier_order[-1][0]:
+            quantifier_order[-1][1] += variables
+        else:
+            quantifier_order.append([quantifier, variables])
+
+    return quantifier_order
+
+def get_quantifier_order_recursive(sentence, acc):
+    '''
+    Recursively pull the quantifier order of a FOL sentence without
+    changing the meaning of the sentence. Do this with a breadth first traversal
+    of the sentence aggregating the same type of quantifiers.
+
+    :param list sentence, FOL sentence
+    :param list accumulator
+    :return None
+    '''
+
+    if not isinstance(sentence, list):
+
+        return acc
+
+    if is_existential(sentence):
+
+        # Don't want to add variables to existing list
+        quantifier = 'exists'
+        variables = sentence[1][:]
+
+        for term in sentence:
+
+            if is_existential(term):
+                variables += term[1][:]
+
+        acc.append([quantifier, variables])
+
+    elif is_universal(sentence):
+
+        # Don't want to add variables to existing list
+        quantifier = 'forall'
+        variables = sentence[1][:]
+
+        for term in sentence:
+
+            if is_universal(term):
+                variables += term[1][:]
+
+        acc.append([quantifier, variables])
+
+
+    [get_quantifier_order_recursive(x, acc) for x in sentence]
+
+def remove_nesting_helper(sentence, modified):
+    '''
+    Helper function to remove nesting found within the CNF sentence.
+
+    :param list sentence, input FOL sentence
+    :return list sentence, simplified FOL sentence
+    '''
+
+    return [remove_nesting(x, modified) for x in sentence]
+
+def remove_nesting(sentence, modified):
+    '''
+    Recurse over a sentence and remove redundant nesting.
+
+    :param list sentence, input FOL sentence
+    :return list sentence, simplified FOL sentence
+    '''
+
+    if not isinstance(sentence, list):
+
+        return sentence
+
+    new_sentence = []
+
+    conjunction = is_conjunction(sentence)
+    disjunction = is_disjunction(sentence)
+
+    if conjunction:
+
+        while len(conjunction) != 0:
+
+            term = conjunction.pop()
+            nested_conjunction = is_conjunction(term)
+
+            if nested_conjunction:
+                modified.append(True)
+                new_sentence += nested_conjunction
+            else:
+                new_sentence.append(term)
+
+        return remove_nesting_helper(to_conjunction(new_sentence), modified)
+
+    elif disjunction:
+
+        while len(disjunction) != 0:
+
+            term = disjunction.pop()
+            nested_disjunction = is_disjunction(term)
+
+            if nested_disjunction:
+                modified.append(True)
+                new_sentence += nested_disjunction
+            else:
+                new_sentence.append(term)
+
+        return remove_nesting_helper(to_disjunction(new_sentence), modified)
+
+    else:
+
+        return remove_nesting_helper(sentence, modified)
+
+def rename_all_variables(sentence, variables):
+    '''
+    Helper function
+
+    :param list sentence
+    :param dict variables
+    '''
+
+    if not isinstance(sentence, list):
+
+        if sentence in variables:
+
+            sentence = variables[sentence]
+
+        return sentence
+
+    return [rename_all_variables(x, variables) for x in sentence]
+
+def rename_variables(sentence, depth, variables):
+    '''
+    Function to recursively rename variables according to scoped quantifiers
+
+    :param list sentence
+    :param int depth
+    :param dict variables
+    '''
+
+    if not isinstance(sentence, list):
+
+        if sentence in variables:
+            sentence = sentence + str(depth)
+
+        return sentence
+
+    universal = is_universal(sentence)
+    existential = is_existential(sentence)
+
+    if universal or existential:
+
+        depth = depth + 1
+
+        variables = {}
+        for new_variable in sentence[1]:
+
+            variables[new_variable] = new_variable + str(depth)
+
+            sentence = rename_all_variables(sentence, variables)
+
+    return [rename_variables(x, depth, variables) for x in sentence]
+
+
+
+
+
+
+
+
+
 def distribute_terms(disjunction_term, conjunction):
     """
     Perform simple distribution of terms.
@@ -646,7 +880,7 @@ def distribute_terms(disjunction_term, conjunction):
 
     return to_conjunction(expr)
 
-def to_cnf(sentence):
+def to_cnf(sentence, modified):
     """
     Recurse over a sentence and translate it into an equivalent CNF statement.
 
@@ -674,35 +908,214 @@ def to_cnf(sentence):
                     disjunctive_term = disjunction[1]
 
                 conjunction = distribute_terms(disjunctive_term, sub_element)
+                modified.append(True) 
+                return [to_cnf(elm, modified) for elm in conjunction]
 
-                return [to_cnf(elm) for elm in conjunction]
+    return [to_cnf(sub, modified) for sub in sentence]
 
-    return [to_cnf(sub) for sub in sentence]
+def find_unary_predicates(sentence, predicates):
+    '''
+    Given a FOL setence, extract all nonlogical symbols that have arity 1.
 
+    :param list sentence, input FOL sentence
+    :param list predicates, accumulator for found unary predicates
+    return list predicates, all unary predicates found in the sentence
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    sentence = strip_quantifier(sentence)
+
+    for sub_sentence in sentence:
+
+        if is_unary(sub_sentence):
+            predicates.append(sub_sentence)
+        else:
+            find_unary_predicates(sub_sentence, predicates)
+
+def find_binary_predicates(sentence, predicates):
+    '''
+    Given a FOL setence, extract all nonlogical symbols that have arity 1.
+
+    :param list sentence, input FOL sentence
+    :param list predicates, accumulator for found unary predicates
+    return list predicates, all unary predicates found in the sentence
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    sentence = strip_quantifier(sentence)
+
+    for sub_sentence in sentence:
+
+        if is_binary(sub_sentence):
+            predicates.append(sub_sentence)
+        else:
+            find_binary_predicates(sub_sentence, predicates)
+
+def find_subclass_relations(sentence):
+    '''
+    Given a FOL sentence in CNF* form, extract any subclass relations.
+
+    :param list sentence, CNF* FOL sentence
+    :return list subclasses, list of tuples (x, y) where x subclass y
+    '''
+
+
+
+
+def get_universally_quantified(sentence, variables):
+    '''
+    Given a FOL sentence return all universally quantified variables
+
+    :param list sentence, FOL sentence
+    :return list variables, universally quantified variables
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    universal = is_universal(sentence)
+
+    if universal != False:
+        variables += sentence[1]
+
+    for element in sentence:
+
+        get_universally_quantified(element, variables)
+
+def get_existentially_quantified(sentence, variables):
+    '''
+    Given a FOL sentence return all existentially quantified variables
+
+    :param list sentence, FOL sentence
+    :return list variables, universally quantified variables
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    existential = is_existential(sentence)
+
+    if existential != False:
+        variables += sentence[1]
+
+    for element in sentence:
+
+        get_existentially_quantified(element, variables)
+
+def translate_sentence(sentence):
+    '''
+    Given a sentence in FOL break it down into a quasi conjuntive normal form.
+    Specifically,
+        1. Simplify biconditionals
+        2. Simplify implications
+        3. Distribute negation
+        4. Put into conjunctive normal form**
+
+    **Doesn't skolemize existential quantifiers.
+
+    :param list sentence, FOL sentence
+    :return list CNF, equivalent FOL sentence in near CNF form
+    '''
+
+    renamed = rename_variables(sentence, 0, [])
+    quantifiers = get_quantifier_order(renamed)
+    simplified = strip_quantifier(renamed)
+
+    implications = remove_biconditionals(simplified)
+
+    #print ('=== Simplified ===')
+    simplified = remove_implications(implications)
+    #pprint.pprint(simplified)
+
+    #print ('=== Distributed ===')
+
+    distributed = distribute_negation(simplified, [])
+    distributing = True
+    while distributing:
+        
+        # See if distributing flag gets set again
+        distributing = False
+        modified_distribution = [True]
+        modified_nesting = [True]
+
+        while len(modified_distribution) != 0:
+            # See if the function call sets modified
+            modified_distribution[:] = []
+            distributed = distribute_negation(distributed, modified_distribution)
+
+            if len(modified_distribution) != 0:
+                distributing = True
+
+        while len(modified_nesting) != 0:
+            # See if the function call sets modified
+            modified_nesting[:] = []
+            distributed = remove_nesting(distributed, modified_nesting)
+
+            if len(modified_nesting) != 0:
+                distributing = True
+
+    #pprint.pprint(distributed)
+
+    #print ('=== CNF ===')
+    cnf = to_cnf(distributed, [])
+    normalizing = True
+    while normalizing:
+
+        normalizing = False
+        modified_normalization = [True]
+        modified_nesting = [True]
+
+        while len(modified_normalization) != 0:
+            modified_normalization[:] = []
+            cnf = to_cnf(cnf, modified_normalization)
+
+            if len(modified_normalization) != 0:
+                normalizing = True
+
+        while len(modified_nesting) != 0:
+            # See if the function call sets modified
+            modified_nesting[:] = []
+            cnf = remove_nesting(cnf, modified_nesting)
+
+            if len(modified_nesting) != 0:
+                normalizing = True
+
+    #pprint.pprint(cnf)
+
+    #print ('=== Final Output ===')
+    #print (quantifiers)
+    #pprint.pprint(cnf, width=80)
+
+    return [quantifiers, cnf]
 
 if __name__ == '__main__':
 
     import pprint
 
-    sentences = clif.get_sentences_from_file('qs/multidim_space_ped/ped.clif_backup')
-    pprint.pprint(sentences)
-
-    print('Done')
-
-    Common = CommonLogic(sentences)
-
+    sentences = clif.get_sentences_from_file('../../qs/multidim_space_ped/ped.clif_backup')
 
     for s in sentences:
-        a = remove_biconditionals(s)
-        b = remove_implications(a)
-        c = distribute_negation(b)
-        #d = remove_existentials(c)
 
-        q = to_cnf(c)
-        pprint.pprint(q)
+        translated = translate_sentence(s)
 
+        translation, quantifiers = translated.pop(), translated.pop()
+        unary_predicates = []
+        binary_predicates = []
+        find_unary_predicates(translation, unary_predicates)
+        find_binary_predicates(translation, binary_predicates)
 
-
-
-
-
+        print('____________________')
+        pprint.pprint(s)
+        print('')
+        pprint.pprint(translation, width=60)
+        print()
+        #pprint.pprint(translation)
+        print('---- Extractions ---')
+        print('Unary:', unary_predicates)
+        print('Binary:', binary_predicates)
+        print('Quantifiers', quantifiers)
+        print('____________________')
