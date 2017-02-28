@@ -6,6 +6,8 @@ This is going to get worse before it gets better...
 """
 
 import macleod.Clif as clif
+import pprint
+
 
 def disjunctive_precondition(sentence):
     """
@@ -47,48 +49,6 @@ def disjunctive_precondition(sentence):
         collection.append(statement)
 
     return collection
-
-def conjuntive_conclusion(sentence):
-    """
-    Attempt to simplify a sentence in the form:
-
-    forall(...)[if binary(x, y) --> unary(x) & unary(y)
-
-    into the form
-
-    forall(x, y)[if binary(x, y) --> unary(x)]
-    forall(x, y)]if binary(x, y) --> unary(y)]
-    """
-
-    collection = []
-
-    quantified = is_universal(sentence)
-
-    if not quantified:
-        return False
-
-    implication = is_implication(quantified)
-
-    if not implication:
-        return False
-
-    precond = implication[0]
-    result = implication[1]
-
-    conjunction = is_conjunction(result)
-
-    if not conjunction:
-        return False
-
-    for thing in conjunction:
-
-        statement = to_implication(precond, thing)
-        statement = to_universal(sentence[1], statement)
-
-        collection.append(statement)
-
-    return collection
-
 
 def from_biconditional(sentence):
     """
@@ -198,8 +158,6 @@ def from_negation(expression):
     """
     Attempt to push negation inwards within an expression
 
-    # TODO What to do about negated quantifiers?
-
     I think in general anything that gets rid of a existential is good.
     However, my guess is that it's going to remove some of the OWL
     some-value-from interpretations. Then again, probably not because if it's
@@ -286,7 +244,6 @@ def from_existential(expression):
 
     for index, var in enumerate(variables):
 
-        # TODO Turn into function call with universal variables
         skolem = skolemize_variable(var, var.upper() + str(index), skolem)
 
     return skolem
@@ -508,89 +465,6 @@ def strip_quantifier(sentence):
 
     return [strip_quantifier(x) for x in sentence]
 
-def is_subclass(sentence):
-    """
-    Determines if the sentence contains a subclass relation. Subclass relations
-    follow the form of:
-
-        if Unary(x) --> Unary(y)
-
-    where Unary(x) is the subclass of the Unary(y) relation.
-    """
-
-    implication = is_implication(sentence)
-
-    if implication == False:
-        return False
-
-    if len(implication) != 2:
-        return False
-
-    if is_unary(implication[0]) == False:
-        return False
-
-    if is_unary(implication[1]) == False:
-        return False
-
-    return implication
-
-def is_disjoint(sentence):
-    """
-    Determines if the sentence contains a disjoint relation. Disjoint relations
-    follow the form of:
-
-        if Unary(x) --> not Unary(y)
-
-    where Unary(x) is disjoint with the Unary(y) relation.
-    """
-
-    implication = is_implication(sentence)
-
-    if implication == False:
-        return False
-
-    # Check if 2nd term is negated
-    negated = is_negated(implication[1])
-
-    if negated == False:
-        return False
-
-    if is_unary(implication[0]) == False:
-        return False
-
-    if is_unary(negated) == False:
-        return False
-
-    return [implication[0], negated]
-
-class CommonLogic(object):
-    """
-    A temporary class to help identify the pieces of a ClifModule that are
-    important to this project. At the moment will serve as a nice holder for
-    the sentences, symbols, and variables.
-    """
-
-    def __init__(self, sentences):
-
-        self.sentences = sentences
-        self.nonlogical_symbols = set()
-        self.variables = set()
-
-        self._init()
-
-    def _init(self):
-        """
-        An abstracted startup function to extract the symbols, variables, etc
-        from a collection of passed in sentences.
-
-        :return None
-        """
-
-        for sentence in self.sentences[:]:
-
-            symbols, _ = clif.get_nonlogical_symbols_and_variables(sentence)
-            self.nonlogical_symbols |= symbols
-
 def remove_biconditionals(sentence):
     """
     Recursive function to remove biconditional statements.
@@ -630,7 +504,6 @@ def distribute_negation(sentence, modified):
     '''
     Recurse over a sentence pushing all negation inwards
 
-    # TODO Go back and understand how I came up with this!
     :param list sentence, FOL sentence
     :param list modified, flag indcating changes occured
     :return list sentence
@@ -646,7 +519,7 @@ def distribute_negation(sentence, modified):
         simplified = from_negation(sentence)
 
         if simplified:
-            
+
             modified.append(True)
             return [distribute_negation(term, modified) for term in simplified]
 
@@ -851,14 +724,6 @@ def rename_variables(sentence, depth, variables):
 
     return [rename_variables(x, depth, variables) for x in sentence]
 
-
-
-
-
-
-
-
-
 def distribute_terms(disjunction_term, conjunction):
     """
     Perform simple distribution of terms.
@@ -908,62 +773,20 @@ def to_cnf(sentence, modified):
                     disjunctive_term = disjunction[1]
 
                 conjunction = distribute_terms(disjunctive_term, sub_element)
-                modified.append(True) 
-                return [to_cnf(elm, modified) for elm in conjunction]
+
+                # Make sure to not drop remainder of original disjunction
+                remainder = [x for x in disjunction if x != disjunctive_term and x != sub_element]
+
+                if len(remainder) != 0:
+                    remainder.append(conjunction)
+                    new_term = to_disjunction(remainder)
+                else:
+                    new_term = conjunction
+
+                modified.append(True)
+                return [to_cnf(elm, modified) for elm in new_term]
 
     return [to_cnf(sub, modified) for sub in sentence]
-
-def find_unary_predicates(sentence, predicates):
-    '''
-    Given a FOL setence, extract all nonlogical symbols that have arity 1.
-
-    :param list sentence, input FOL sentence
-    :param list predicates, accumulator for found unary predicates
-    return list predicates, all unary predicates found in the sentence
-    '''
-
-    if not isinstance(sentence, list):
-        return None
-
-    sentence = strip_quantifier(sentence)
-
-    for sub_sentence in sentence:
-
-        if is_unary(sub_sentence):
-            predicates.append(sub_sentence)
-        else:
-            find_unary_predicates(sub_sentence, predicates)
-
-def find_binary_predicates(sentence, predicates):
-    '''
-    Given a FOL setence, extract all nonlogical symbols that have arity 1.
-
-    :param list sentence, input FOL sentence
-    :param list predicates, accumulator for found unary predicates
-    return list predicates, all unary predicates found in the sentence
-    '''
-
-    if not isinstance(sentence, list):
-        return None
-
-    sentence = strip_quantifier(sentence)
-
-    for sub_sentence in sentence:
-
-        if is_binary(sub_sentence):
-            predicates.append(sub_sentence)
-        else:
-            find_binary_predicates(sub_sentence, predicates)
-
-def find_subclass_relations(sentence):
-    '''
-    Given a FOL sentence in CNF* form, extract any subclass relations.
-
-    :param list sentence, CNF* FOL sentence
-    :return list subclasses, list of tuples (x, y) where x subclass y
-    '''
-
-
 
 
 def get_universally_quantified(sentence, variables):
@@ -1026,43 +849,35 @@ def translate_sentence(sentence):
     simplified = strip_quantifier(renamed)
 
     implications = remove_biconditionals(simplified)
-
-    #print ('=== Simplified ===')
     simplified = remove_implications(implications)
-    #pprint.pprint(simplified)
 
-    #print ('=== Distributed ===')
 
     distributed = distribute_negation(simplified, [])
     distributing = True
     while distributing:
-        
-        # See if distributing flag gets set again
+
         distributing = False
         modified_distribution = [True]
         modified_nesting = [True]
 
         while len(modified_distribution) != 0:
-            # See if the function call sets modified
             modified_distribution[:] = []
             distributed = distribute_negation(distributed, modified_distribution)
 
             if len(modified_distribution) != 0:
                 distributing = True
 
+
         while len(modified_nesting) != 0:
-            # See if the function call sets modified
             modified_nesting[:] = []
             distributed = remove_nesting(distributed, modified_nesting)
 
             if len(modified_nesting) != 0:
                 distributing = True
 
-    #pprint.pprint(distributed)
-
-    #print ('=== CNF ===')
     cnf = to_cnf(distributed, [])
     normalizing = True
+
     while normalizing:
 
         normalizing = False
@@ -1077,45 +892,31 @@ def translate_sentence(sentence):
                 normalizing = True
 
         while len(modified_nesting) != 0:
-            # See if the function call sets modified
             modified_nesting[:] = []
             cnf = remove_nesting(cnf, modified_nesting)
 
             if len(modified_nesting) != 0:
                 normalizing = True
 
-    #pprint.pprint(cnf)
-
-    #print ('=== Final Output ===')
-    #print (quantifiers)
-    #pprint.pprint(cnf, width=80)
-
     return [quantifiers, cnf]
 
 if __name__ == '__main__':
 
-    import pprint
 
-    sentences = clif.get_sentences_from_file('../../qs/multidim_space_ped/ped.clif_backup')
+    SENTENCES = clif.get_sentences_from_file('../../qs/multidim_space_ped/ped.clif_backup')
 
-    for s in sentences:
+    for s in SENTENCES:
 
         translated = translate_sentence(s)
 
         translation, quantifiers = translated.pop(), translated.pop()
         unary_predicates = []
         binary_predicates = []
-        find_unary_predicates(translation, unary_predicates)
-        find_binary_predicates(translation, binary_predicates)
 
         print('____________________')
         pprint.pprint(s)
         print('')
+        print (quantifiers)
         pprint.pprint(translation, width=60)
         print()
-        #pprint.pprint(translation)
-        print('---- Extractions ---')
-        print('Unary:', unary_predicates)
-        print('Binary:', binary_predicates)
-        print('Quantifiers', quantifiers)
         print('____________________')
