@@ -685,14 +685,41 @@ def extract_irreflexive_relation(axiom, _quantifiers):
 
     return ('reflexive', reflexive_property)
 
-
-
 def get_predicate_name(predicate):
     '''
     Returns a predicates symbol, minus the variables
     '''
 
     return predicate[0]
+
+def extract_conjuncts(sentence):
+    '''
+    Accepts a conjunction and returns a list of individual conjuncts to be
+    examined later
+    '''
+
+    axioms = []
+
+    if Translation.is_conjunction(sentence):
+        axioms += Translation.is_conjunction(sentence)
+    elif Translation.is_disjunction(sentence):
+        axioms = [sentence]
+    else:
+        print("Don't know when this could ever happen")
+        print("We're going down captain!")
+
+    return axioms
+
+def trim_quantifier(sentence, quantifiers):
+    '''
+    Take a sentence and set of quantifiers and trim the quantifiers so only
+    variables in the sentence exist in the quantifier. Error check that we
+    can't delete a nested variable by deleting it's parent quantifier
+    '''
+
+
+
+
 
 # Module global set of all extractions
 EXTRACTIONS = {extract_disjoint_relation, extract_domain_restriction,
@@ -726,26 +753,19 @@ if __name__ == '__main__':
             continue
 
         translated = Translation.translate_sentence(s)
-        axioms = []
-        qts = translated[0]
-
-        if Translation.is_conjunction(translated[1]):
-            axs = Translation.is_conjunction(translated[1])
-        elif Translation.is_disjunction(translated[1]):
-            axs = [translated[1]]
-        else:
-            axs = [[translated[1]]]
+        axioms = extract_conjuncts(translated[1])
 
         pp.pprint(s)
         pp.pprint(translated)
-        print('')
+        for i,thing in enumerate(axioms):
+            print("     [+ {}]".format(i), thing)
 
-        for ax in axs:
+        #for ax in axs:
 
-            EXT = narrow_translations(ax, qts)
+        #    EXT = narrow_translations(ax, qts)
 
-            for ex in EXT:
-                if ex(ax, qts) != None:
-                    print("   [+] ",ex(ax, qts))
+        #    for ex in EXT:
+        #        if ex(ax, qts) != None:
+        #            print("   [+] ",ex(ax, qts))
 
-        print('')
+        #print('')
