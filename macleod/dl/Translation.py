@@ -553,65 +553,39 @@ def get_quantifier_order(sentence):
     :param list sentence, FOL sentence
     :return list sentence, same sentence with quantifiers pulled to front
     '''
+    quantifiers = get_quantifier_order_r(sentence[:])
 
-    acc = []
-    get_quantifier_order_recursive(sentence[:], acc)
+    return quantifiers
 
-    quantifier_order = [acc.pop(0)]
-
-    while len(acc) != 0:
-
-        quantifier, variables = acc.pop(0)
-        if  quantifier == quantifier_order[-1][0]:
-            quantifier_order[-1][1] += variables
-        else:
-            quantifier_order.append([quantifier, variables])
-
-    return quantifier_order
-
-def get_quantifier_order_recursive(sentence, acc):
+def filter_child(axiom):
     '''
-    Recursively pull the quantifier order of a FOL sentence without
-    changing the meaning of the sentence. Do this with a breadth first traversal
-    of the sentence aggregating the same type of quantifiers.
-
-    :param list sentence, FOL sentence
-    :param list accumulator
-    :return None
+    Remove unnessary nesting on a single element list
     '''
 
-    if not isinstance(sentence, list):
+    term = axiom
+    while len(term) == 1:
+        term = axiom[0]
 
-        return acc
+    return term
 
-    if is_existential(sentence):
+def get_quantifier_order_r(axm):
+    '''
+    Pull out the nested structure representing quantifiers and variables from
+    an axiom
+    '''
 
-        # Don't want to add variables to existing list
-        quantifier = 'exists'
-        variables = sentence[1][:]
+    if not isinstance(axm, list):
+        return None
 
-        for term in sentence:
-
-            if is_existential(term):
-                variables += term[1][:]
-
-        acc.append([quantifier, variables])
-
-    elif is_universal(sentence):
-
-        # Don't want to add variables to existing list
-        quantifier = 'forall'
-        variables = sentence[1][:]
-
-        for term in sentence:
-
-            if is_universal(term):
-                variables += term[1][:]
-
-        acc.append([quantifier, variables])
-
-
-    [get_quantifier_order_recursive(x, acc) for x in sentence]
+    if axm[0] == 'forall' or axm[0] == 'exists':
+        axs = axm[0:2] + [get_quantifier_order_r(ax) for ax in axm[2:]]
+        axiom = list(filter(None, axs))
+        axiom = list(map(filter_child, axiom))
+        return axiom
+    else:
+        return list(map(filter_child,
+                        list(filter(None,
+                                    [get_quantifier_order_r(ax) for ax in axm]))))
 
 def remove_nesting_helper(sentence, modified):
     '''
