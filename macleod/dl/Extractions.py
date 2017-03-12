@@ -8,6 +8,7 @@ Module that contains each of the translated DL axioms
 import macleod.Clif as clif
 import macleod.dl.Translation as Translation
 import macleod.dl.DL as DL
+import macleod.dl.Utilities as Util
 
 
 import pprint as pp
@@ -710,6 +711,25 @@ def extract_conjuncts(sentence):
 
     return axioms
 
+def trim_quantifier_r(symbol, quantifier):
+    '''
+    DFS through a quantifier tree and remove the designated symbol. Trim
+    quantifiers that range over no variables
+    '''
+
+    if not isinstance(quantifier, list):
+        return
+
+    if (quantifier[0] == 'forall' or quantifier[0] == 'exists') and len(quantifier) == 1:
+        quantifier = []
+        return
+
+    if symbol in quantifier[1]:
+        quantifier[1].remove(symbol)
+        return
+    else:
+        [trim_quantifier_r(symbol, q) for q in quantifier[2]]
+
 def trim_quantifier(sentence, quantifiers):
     '''
     Take a sentence and set of quantifiers and trim the quantifiers so only
@@ -717,7 +737,20 @@ def trim_quantifier(sentence, quantifiers):
     can't delete a nested variable by deleting it's parent quantifier
     '''
 
+    new_quantifiers = quantifiers[:]
+    predicates = []
+    DL.find_binary_predicates(sentence, predicates)
+    DL.find_unary_predicates(sentence, predicates)
 
+    variables = []
+    #Translation.get_universally_quantified(quantifiers, variables)
+    #Translation.get_existentially_quantified(quantifiers, variables)
+
+    predicates = set(map(get_predicate_name, predicates))
+    flattened_axiom = list(Util.flatten(sentence))
+    print(variables)
+    print(predicates)
+    print(flattened_axiom)
 
 
 
@@ -757,6 +790,7 @@ if __name__ == '__main__':
 
         pp.pprint(s)
         pp.pprint(translated)
+        trim_quantifier(translated[1], translated[0])
         for i,thing in enumerate(axioms):
             print("     [+ {}]".format(i), thing)
 

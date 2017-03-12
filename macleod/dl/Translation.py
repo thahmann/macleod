@@ -311,6 +311,21 @@ def to_disjunction(expressions):
 
     return disjunction
 
+def is_nonlogical(symbol):
+    """
+    Returns true if the examined symbol is not a logical symbol
+    """
+
+    value = True
+
+    value &= symbol != 'exists'
+    value &= symbol != 'forall'
+    value &= symbol != 'and'
+    value &= symbol != 'or'
+    value &= symbol != 'not'
+
+    return value
+
 def is_conjunction(expression):
     """
     Determine if a passed expression is a conjunction
@@ -546,16 +561,32 @@ def remove_existentials(sentence):
 
     return [remove_existentials(term) for term in sentence]
 
-def get_quantifier_order(sentence):
+def simplify_quantifier_order(quantifiers):
     '''
-    Wrapper function around get_quantifier_order_recursive
-
-    :param list sentence, FOL sentence
-    :return list sentence, same sentence with quantifiers pulled to front
+    Conduct a DFS through a tree and condense quantifiers. Modifies the input
+    list in-place to condense.
     '''
-    quantifiers = get_quantifier_order_r(sentence[:])
 
-    return quantifiers
+    print (quantifiers)
+    if not isinstance(quantifiers, list):
+        return
+
+    if len(quantifiers) < 3:
+        return
+
+    for scoped in quantifiers[2]:
+        if scoped[0] == quantifiers[0]:
+            quantifiers[1] += scoped[1]
+
+            if len(scoped) == 2:
+                quantifiers[2].remove(scoped)
+
+                if len(quantifiers[2]) == 1:
+                    quantifiers[2] = quantifiers[2][0]
+            else:
+                simplify_quantifier_order(scoped)
+        else:
+            simplify_quantifier_order(scoped)
 
 def filter_child(axiom):
     '''
@@ -563,29 +594,55 @@ def filter_child(axiom):
     '''
 
     term = axiom
-    while len(term) == 1:
-        term = axiom[0]
+    while len(term) == 1 and isinstance(term[0], list):
+        if term[0] != 'exists' and term[0] != 'forall':
+            term = term[0]
 
     return term
+
+def get_quantifier_order(sentence):
+    '''
+    Wrapper function around get_quantifier_order_recursive
+
+    :param list sentence, FOL sentence
+    :return list sentence, same sentence with quantifiers pulled to front
+    '''
+
+    quantifiers = get_quantifier_order_r(sentence[:])
+    quantifiers = list(map(filter_child, quantifiers))
+    simplify_quantifier_order(quantifiers)
+
+    return quantifiers
 
 def get_quantifier_order_r(axm):
     '''
     Pull out the nested structure representing quantifiers and variables from
-    an axiom
+    an axiom.
     '''
 
     if not isinstance(axm, list):
         return None
 
     if axm[0] == 'forall' or axm[0] == 'exists':
-        axs = axm[0:2] + [get_quantifier_order_r(ax) for ax in axm[2:]]
-        axiom = list(filter(None, axs))
-        axiom = list(map(filter_child, axiom))
-        return axiom
+
+        quantifier = axm[0:2] 
+
+        if len(axm) >= 3:
+
+            nested_quantifiers = [get_quantifier_order_r(ax) for ax in axm[2:]]
+            nested_quantifiers = list(filter(None, nested_quantifiers))
+            nested_quantifiers = list(map(filter_child, nested_quantifiers))
+
+            print (nested_quantifiers)
+            
+            return quantifier + nested_quantifiers
+        else:
+            return quantifier
+
+        #axs.append(list(filter(None, [get_quantifier_order_r(ax) for ax in axm[2:]])))
+        #axiom = list(filter(None, axs))
     else:
-        return list(map(filter_child,
-                        list(filter(None,
-                                    [get_quantifier_order_r(ax) for ax in axm]))))
+        return list(filter(None, [get_quantifier_order_r(ax) for ax in axm]))
 
 def remove_nesting_helper(sentence, modified):
     '''
@@ -771,6 +828,8 @@ def get_universally_quantified(sentence, variables):
     :return list variables, universally quantified variables
     '''
 
+    print(sentence)
+
     if not isinstance(sentence, list):
         return None
 
@@ -779,7 +838,7 @@ def get_universally_quantified(sentence, variables):
     if universal != False:
         variables += sentence[1]
 
-    for element in sentence:
+    for element in sentence[2]:
 
         get_universally_quantified(element, variables)
 
@@ -791,6 +850,7 @@ def get_existentially_quantified(sentence, variables):
     :return list variables, universally quantified variables
     '''
 
+    print(sentence)
     if not isinstance(sentence, list):
         return None
 
@@ -799,7 +859,8 @@ def get_existentially_quantified(sentence, variables):
     if existential != False:
         variables += sentence[1]
 
-    for element in sentence:
+
+    for element in sentence[2]:
 
         get_existentially_quantified(element, variables)
 
