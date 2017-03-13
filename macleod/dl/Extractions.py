@@ -738,19 +738,19 @@ def trim_quantifier(sentence, quantifiers):
     '''
 
     new_quantifiers = quantifiers[:]
-    predicates = []
-    DL.find_binary_predicates(sentence, predicates)
-    DL.find_unary_predicates(sentence, predicates)
+    #predicates = []
+    #DL.find_binary_predicates(sentence, predicates)
+    #DL.find_unary_predicates(sentence, predicates)
 
-    variables = []
+    #variables = []
     #Translation.get_universally_quantified(quantifiers, variables)
     #Translation.get_existentially_quantified(quantifiers, variables)
 
-    predicates = set(map(get_predicate_name, predicates))
-    flattened_axiom = list(Util.flatten(sentence))
-    print(variables)
-    print(predicates)
-    print(flattened_axiom)
+    #predicates = set(map(get_predicate_name, predicates))
+    #flattened_axiom = list(Util.flatten(sentence))
+    #print(variables)
+    #print(predicates)
+    #print(flattened_axiom)
 
 
 
@@ -788,11 +788,12 @@ if __name__ == '__main__':
         translated = Translation.translate_sentence(s)
         axioms = extract_conjuncts(translated[1])
 
-        pp.pprint(s)
+        #pp.pprint(s)
         pp.pprint(translated)
+
         trim_quantifier(translated[1], translated[0])
-        for i,thing in enumerate(axioms):
-            print("     [+ {}]".format(i), thing)
+        #for i,thing in enumerate(axioms):
+            #print("     [+ {}]".format(i), thing)
 
         #for ax in axs:
 

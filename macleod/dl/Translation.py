@@ -563,11 +563,14 @@ def remove_existentials(sentence):
 
 def simplify_quantifier_order(quantifiers):
     '''
-    Conduct a DFS through a tree and condense quantifiers. Modifies the input
-    list in-place to condense.
+    Search through a list of nested quantifiers and simplify the structure. If
+    a quantifier has a nested child of the same type, combine the child's
+    variables with the parents and remove the nesting.
+
+    :param list quantifiers, nested quantifier structure
+    :return None
     '''
 
-    print (quantifiers)
     if not isinstance(quantifiers, list):
         return
 
@@ -575,30 +578,20 @@ def simplify_quantifier_order(quantifiers):
         return
 
     for scoped in quantifiers[2]:
+
+        # Found a nested quantifier
         if scoped[0] == quantifiers[0]:
+
+            # Aggregate the variables
             quantifiers[1] += scoped[1]
 
-            if len(scoped) == 2:
-                quantifiers[2].remove(scoped)
+            # Raise a level of potentially nested quantifiers
+            quantifiers[2] += scoped[2]
 
-                if len(quantifiers[2]) == 1:
-                    quantifiers[2] = quantifiers[2][0]
-            else:
-                simplify_quantifier_order(scoped)
-        else:
-            simplify_quantifier_order(scoped)
+            # Remove the defunct quantifier
+            quantifiers[2].remove(scoped)
 
-def filter_child(axiom):
-    '''
-    Remove unnessary nesting on a single element list
-    '''
-
-    term = axiom
-    while len(term) == 1 and isinstance(term[0], list):
-        if term[0] != 'exists' and term[0] != 'forall':
-            term = term[0]
-
-    return term
+        simplify_quantifier_order(scoped)
 
 def get_quantifier_order(sentence):
     '''
@@ -608,41 +601,49 @@ def get_quantifier_order(sentence):
     :return list sentence, same sentence with quantifiers pulled to front
     '''
 
-    quantifiers = get_quantifier_order_r(sentence[:])
-    quantifiers = list(map(filter_child, quantifiers))
+    quantifiers = []
+    pull_quantifiers(sentence, quantifiers)
+    quantifiers = quantifiers.pop()
     simplify_quantifier_order(quantifiers)
 
     return quantifiers
 
-def get_quantifier_order_r(axm):
+def pull_quantifiers(sentence, parent):
     '''
-    Pull out the nested structure representing quantifiers and variables from
-    an axiom.
+    Retrieves the nested quantifier hierarchy out of a sentence. Returns a list
+    of the form [quantifier, [variables], [[nested],[expressesions]]]. If no
+    nested quantifiers are found, the third element will be an empty list.
+
+    :param list sentence, fully quantified sentence
+    :param list parent, accumulator for nested quantifier hierarchy
+    :return None
     '''
 
-    if not isinstance(axm, list):
-        return None
+    if not isinstance(sentence, list):
+        return
 
-    if axm[0] == 'forall' or axm[0] == 'exists':
+    if is_universal(sentence) or is_existential(sentence):
 
-        quantifier = axm[0:2] 
+        if parent == []:
 
-        if len(axm) >= 3:
+            # If we're starting from the top
+            starting_parent = [sentence[0], sentence[1], []]
+            parent.append(starting_parent)
 
-            nested_quantifiers = [get_quantifier_order_r(ax) for ax in axm[2:]]
-            nested_quantifiers = list(filter(None, nested_quantifiers))
-            nested_quantifiers = list(map(filter_child, nested_quantifiers))
+            if len(sentence) == 3:
+                pull_quantifiers(sentence[2], starting_parent)
 
-            print (nested_quantifiers)
-            
-            return quantifier + nested_quantifiers
         else:
-            return quantifier
+            # If hitting a different quantifier add this element as nested q
+            new_parent = [sentence[0], sentence[1], []]
+            parent[2].append(new_parent)
 
-        #axs.append(list(filter(None, [get_quantifier_order_r(ax) for ax in axm[2:]])))
-        #axiom = list(filter(None, axs))
+            if len(sentence) == 3:
+                pull_quantifiers(sentence[2], new_parent)
     else:
-        return list(filter(None, [get_quantifier_order_r(ax) for ax in axm]))
+
+        # Current clause isn't a quantifier
+        _ = [pull_quantifiers(term, parent) for term in sentence]
 
 def remove_nesting_helper(sentence, modified):
     '''
@@ -828,8 +829,6 @@ def get_universally_quantified(sentence, variables):
     :return list variables, universally quantified variables
     '''
 
-    print(sentence)
-
     if not isinstance(sentence, list):
         return None
 
@@ -850,7 +849,6 @@ def get_existentially_quantified(sentence, variables):
     :return list variables, universally quantified variables
     '''
 
-    print(sentence)
     if not isinstance(sentence, list):
         return None
 
@@ -937,21 +935,6 @@ def translate_sentence(sentence):
 
 if __name__ == '__main__':
 
+    print("Thou shall not pass,")
+    print("nor will thou call this file directly!")
 
-    SENTENCES = clif.get_sentences_from_file('../../qs/multidim_space_ped/ped.clif_backup')
-
-    for s in SENTENCES:
-
-        translated = translate_sentence(s)
-
-        translation, quantifiers = translated.pop(), translated.pop()
-        unary_predicates = []
-        binary_predicates = []
-
-        print('____________________')
-        pprint.pprint(s)
-        print('')
-        print (quantifiers)
-        pprint.pprint(translation, width=60)
-        print()
-        print('____________________')
