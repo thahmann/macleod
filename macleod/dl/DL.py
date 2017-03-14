@@ -141,14 +141,22 @@ def find_unary_predicates(sentence, predicates):
     if not isinstance(sentence, list):
         return None
 
-    #sentence = Translation.strip_quantifier(sentence)
+    # Need to handle the case where we have a top-level predicate
+    if not any([isinstance(a, list) for a in sentence]):
+        if Translation.is_unary(sentence):
+            predicates.append(sentence)
 
-    for sub_sentence in sentence:
+        return
 
-        if Translation.is_unary(sub_sentence):
-            predicates.append(sub_sentence)
-        else:
-            find_unary_predicates(sub_sentence, predicates)
+    else:
+
+        for sub_sentence in sentence:
+
+            if Translation.is_unary(sub_sentence):
+                predicates.append(sub_sentence)
+            else:
+                find_unary_predicates(sub_sentence, predicates)
+
 
 def find_binary_predicates(sentence, predicates):
     '''
@@ -161,14 +169,21 @@ def find_binary_predicates(sentence, predicates):
     if not isinstance(sentence, list):
         return None
 
-    #sentence = Translation.strip_quantifier(sentence)
+    # Need to handle the case where we have a top-level predicate
+    if not any([isinstance(a, list) for a in sentence]):
+        if Translation.is_binary(sentence):
+            predicates.append(sentence)
 
-    for sub_sentence in sentence:
+        return
 
-        if Translation.is_binary(sub_sentence):
-            predicates.append(sub_sentence)
-        else:
-            find_binary_predicates(sub_sentence, predicates)
+    else:
+
+        for sub_sentence in sentence:
+
+            if Translation.is_binary(sub_sentence):
+                predicates.append(sub_sentence)
+            else:
+                find_binary_predicates(sub_sentence, predicates)
 
 def find_negated_predicates(sentence, predicates):
     '''
@@ -242,8 +257,8 @@ if __name__ == '__main__':
         print('-----------')
         #pp.pprint(s)
         print('')
-        print(is_all_unary(translated[1]))
-        pp.pprint(translated)
+        #print(is_all_unary(translated[1]))
+        #pp.pprint(translated)
 
         #print(unary_predicates)
         #print(binary_predicates)

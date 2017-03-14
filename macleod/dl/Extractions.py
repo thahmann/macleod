@@ -15,6 +15,7 @@ import pprint as pp
 import argparse
 import tempfile
 import os
+import copy
 
 TMPDIR = "/tmp"
 EQ = "="
@@ -662,7 +663,7 @@ def extract_inverted_subproperty_relation(axiom, _quantifiers):
 
     return ('inverted_subproperty', subset, superset)
 
-# TODO Find an object inverse realtion with two inverted subproperties
+# TODO Find an object inverse relation with two inverted subproperties
 def extract_inverse_relation(a, q):
     pass
 
@@ -711,48 +712,142 @@ def extract_conjuncts(sentence):
 
     return axioms
 
-def trim_quantifier_r(symbol, quantifier):
+def generate_quantifier(sentence, quantifiers):
     '''
-    DFS through a quantifier tree and remove the designated symbol. Trim
-    quantifiers that range over no variables
+    Take a sentence and set of quantifiers and trim the quantifiers so only
+    variables in the sentence exist in the quantifier.
     '''
+
+    new_quantifiers = quantifiers[:]
+    predicates = []
+    DL.find_binary_predicates(sentence, predicates)
+    DL.find_unary_predicates(sentence, predicates)
+    predicates = list(set([get_predicate_name(p) for p in predicates]))
+
+    print("[+] Found Predicates:", predicates)
+
+    quantified_variables = []
+    # Need to consider the possibility of having multiple top-level quantifiers
+    for quantifier in new_quantifiers:
+        Translation.get_universally_quantified(quantifier, quantified_variables)
+        Translation.get_existentially_quantified(quantifier, quantified_variables)
+
+    quantified_variables = list(set(quantified_variables))
+
+    print("[+] Found Quantified Variables:", quantified_variables)
+
+    flattened_axiom = list(set(list(Util.flatten(sentence))))
+    
+    variables = list(filter(Translation.is_nonlogical, flattened_axiom))
+    variables = [v for v in variables if v not in predicates]
+
+    print("[+] Found Variables:", variables)
+
+    variables_to_trim = [v for v in quantified_variables if v not in variables]
+
+    print("[+] Removing Variables:", variables_to_trim)
+
+    print("[+] Starting Quantifier:", new_quantifiers)
+
+    new_quantifiers = trim_quantifier(new_quantifiers, variables_to_trim)
+
+    print("[+] Generated Quantifier:", new_quantifiers)
+
+def trim_quantifier(quantifiers, variables):
+    '''
+    Utility function combing the trim_quantifier and restructure_quantifier
+    functionality
+    '''
+
+    for quantifier in quantifiers:
+        trim_variables(quantifier, variables)
+
+    while True:
+
+        add_list = []
+        remove_list = []
+        for quantifier in quantifiers:
+            result = restructure_quantifier(quantifier)
+
+            if result:
+                add_list = result
+                remove_list.append(quantifier)
+
+        if len(add_list) == 0:
+            break
+        else:
+            quantifiers += add_list
+            _ = [quantifiers.remove(x) for x in remove_list]
+
+    return quantifiers
+
+def trim_variables(quantifiers, variables):
+    '''
+    Search through a nested quantifier structure and remove the given
+    variables. Trim the nested structure as needed if all the variables are
+    removed from a given quantifier then cry yourself to sleep because that's
+    another boundary/theoretical problem to worry about.
+    
+    :param list quantifiers, nested quantifiers
+    :param list variables, list of variables to be removed
+    :return None
+    '''
+
+    if not isinstance(quantifiers, list):
+        return
+
+    # Remove variables if present in both lists
+    quantifiers[1] = [v for v in quantifiers[1] if v not in variables]
+
+    # In the case of a missing parent, just promote any present children
+    if len(quantifiers[1]) == 0:
+        quantifiers[0] = []
+
+    if len(quantifiers) >= 2:
+        _ = [trim_variables(q, variables) for q in quantifiers[2]]
+
+def restructure_quantifier(quantifier):
+    '''
+    Utility function to fix the overall structure of quantifiers after trimming
+    occurs. If any quantifier quantifies no variables, replace it with any
+    nested quantifiers if they exist. Otherwise, empty the whole list. In the
+    case where a previously top-level quantifier is removed the function will
+    return a new list of quantifiers to be located at the top level.
+
+    :param list quantifier, potentially de-structured quantifier
+    :return list/None, interrupt result
+    '''
+
+    print (quantifier)
 
     if not isinstance(quantifier, list):
         return
 
-    if (quantifier[0] == 'forall' or quantifier[0] == 'exists') and len(quantifier) == 1:
-        quantifier = []
-        return
+    # Special case to handle when the top-level quantifier gets removed
+    # Return the new quantifier
+    if quantifier[0] == []:
+        
+        new_quantifier = copy.deepcopy(quantifier[2])
+        return new_quantifier
 
-    if symbol in quantifier[1]:
-        quantifier[1].remove(symbol)
-        return
+    # If quantifier has no empty children continue down the tree
+    if not any([True for x in quantifier[2] if len(x[1]) == 0]):
+
+        _ = [restructure_quantifier(x) for x in quantifier[2] if x != []]
+
+    # We have a child that quantifies no variables, promote its children
     else:
-        [trim_quantifier_r(symbol, q) for q in quantifier[2]]
 
-def trim_quantifier(sentence, quantifiers):
-    '''
-    Take a sentence and set of quantifiers and trim the quantifiers so only
-    variables in the sentence exist in the quantifier. Error check that we
-    can't delete a nested variable by deleting it's parent quantifier
-    '''
+        add_list = []
+        for child in quantifier[2]:
 
-    new_quantifiers = quantifiers[:]
-    #predicates = []
-    #DL.find_binary_predicates(sentence, predicates)
-    #DL.find_unary_predicates(sentence, predicates)
+            if len(child[1]) == 0:
+                add_list += child[2]
+                quantifier[2].remove(child)
 
-    #variables = []
-    #Translation.get_universally_quantified(quantifiers, variables)
-    #Translation.get_existentially_quantified(quantifiers, variables)
-
-    #predicates = set(map(get_predicate_name, predicates))
-    #flattened_axiom = list(Util.flatten(sentence))
-    #print(variables)
-    #print(predicates)
-    #print(flattened_axiom)
-
-
+        quantifier[2] += add_list
+        # Since we just promoted children need to re-run on the current node
+        restructure_quantifier(quantifier)
 
 # Module global set of all extractions
 EXTRACTIONS = {extract_disjoint_relation, extract_domain_restriction,
@@ -785,15 +880,16 @@ if __name__ == '__main__':
         if s[0] == 'cl-imports':
             continue
 
-        translated = Translation.translate_sentence(s)
-        axioms = extract_conjuncts(translated[1])
+        quantifiers, axiom = Translation.translate_sentence(s)
+        axioms = extract_conjuncts(axiom[:])
 
         #pp.pprint(s)
-        pp.pprint(translated)
+        print(quantifiers, axiom)
 
-        trim_quantifier(translated[1], translated[0])
-        #for i,thing in enumerate(axioms):
-            #print("     [+ {}]".format(i), thing)
+        for i,thing in enumerate(axioms):
+            print("     [+ {}]".format(i), thing)
+            print("[-] Quantifier", quantifiers)
+            generate_quantifier(thing, copy.deepcopy(quantifiers))
 
         #for ax in axs:
 

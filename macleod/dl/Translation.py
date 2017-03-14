@@ -571,10 +571,12 @@ def simplify_quantifier_order(quantifiers):
     :return None
     '''
 
+    print(quantifiers)
+
     if not isinstance(quantifiers, list):
         return
 
-    if len(quantifiers) < 3:
+    if quantifiers == []:
         return
 
     for scoped in quantifiers[2]:
@@ -602,9 +604,13 @@ def get_quantifier_order(sentence):
     '''
 
     quantifiers = []
+
     pull_quantifiers(sentence, quantifiers)
-    quantifiers = quantifiers.pop()
-    simplify_quantifier_order(quantifiers)
+
+    # Remember it's possible to have multiple top-level quantifiers
+    for quantifier in quantifiers:
+        simplify_quantifier_order(quantifier)
+
 
     return quantifiers
 
