@@ -5,26 +5,19 @@
 Module that contains each of the translated DL axioms
 """
 
+import pprint as pp
+import argparse
+import tempfile
+import copy
+
 import macleod.Clif as clif
 import macleod.dl.Translation as Translation
 import macleod.dl.DL as DL
 import macleod.dl.Utilities as Util
 
-
-import pprint as pp
-import argparse
-import tempfile
-import os
-import copy
-
 TMPDIR = "/tmp"
 EQ = "="
 
-def extract_disjoint_union(a, q):
-    #TODO Pass on this one for now as it's syntatic sugar
-    pass
-
-# FIRST
 def filter_on_quantifiers(sentence, quantifiers, extractions):
     '''
     Filter the number of possible extractions from an axiom based on number of
@@ -79,8 +72,8 @@ def filter_on_variables(sentence, quantifiers, extractions):
     if num_of_variables == 1:
 
         local_set = {extract_domain_restriction, extract_disjoint_relation,
-                     extract_subclass_relation, extract_equivalent_classes,
-                     extract_disjoint_union, extract_reflexive_relation,
+                     extract_subclass_relation,
+                     extract_reflexive_relation,
                      extract_irreflexive_relation}
 
         extractions = extractions & local_set
@@ -89,7 +82,7 @@ def filter_on_variables(sentence, quantifiers, extractions):
     elif num_of_variables == 2:
 
         local_set = {extract_asymmetric_relation, extract_subproperty_relation,
-                     extract_equivalent_properties, extract_inverse_relation,
+                     extract_inverse_relation,
                      extract_inverted_subproperty_relation,
                      extract_symmetric_relation,
                      extract_property_domain_restriction,
@@ -118,8 +111,8 @@ def filter_on_predicates(sentence, quantifiers, extractions):
     if DL.is_all_unary(sentence):
 
         local_set = {extract_domain_restriction, extract_disjoint_relation,
-                     extract_subclass_relation, extract_equivalent_classes,
-                     extract_disjoint_union}
+                     extract_subclass_relation
+                     }
 
         extractions = extractions & local_set
         return filter_on_sign(sentence, quantifiers, extractions)
@@ -128,8 +121,7 @@ def filter_on_predicates(sentence, quantifiers, extractions):
 
         local_set = {extract_disjoint_properties, extract_asymmetric_relation,
                      extract_subproperty_relation,
-                     extract_inverted_subproperty_relation, 
-                     extract_equivalent_properties,
+                     extract_inverted_subproperty_relation,
                      extract_inverse_relation, extract_symmetric_relation,
                      extract_reflexive_relation}
 
@@ -167,10 +159,10 @@ def filter_on_sign(sentence, _quantifiers, extractions):
 
     else:
 
-        local_set = {extract_subclass_relation, extract_equivalent_classes,
-                     extract_disjoint_union, extract_subproperty_relation,
+        local_set = {extract_subclass_relation,
+                     extract_subproperty_relation,
                      extract_inverted_subproperty_relation,
-                     extract_equivalent_properties, extract_inverse_relation,
+                     extract_inverse_relation,
                      extract_symmetric_relation,
                      extract_property_domain_restriction,
                      extract_property_range_restriction}
@@ -235,10 +227,31 @@ def count_clauses(axiom):
 
 def count_quantifiers(quantifiers):
     '''
-    Counts the number of quantifiers in a given axiom
+    Wrapper function to count the number of quantifiers for a given axiom
     '''
 
-    return len(quantifiers)
+    count = 0
+
+    for q in quantifiers:
+        count += count_quantifiers_helper(q)
+
+    return count
+
+def count_quantifiers_helper(quantifiers):
+    '''
+    Counts the number of quantifiers in a given axiom. Assumes that it has been
+    passed a top level quantifier, not a list of top level quantifiers
+
+    '''
+
+    if quantifiers[2] == []:
+
+        return 1
+
+    else:
+
+        return 1 + sum([count_quantifiers_helper(q) for q in quantifiers[2]])
+
 
 def count_variables(axiom):
     '''
@@ -268,26 +281,24 @@ def count_variables(axiom):
 def count_universal(quantifiers):
     '''
     Returns the number of universally quantified variables
+
     '''
 
-    count = 0
+    quantified_variables = []
     for quantifier in quantifiers:
-        if quantifier[0] == 'forall':
-            count += len(quantifier[1])
+        Translation.get_universally_quantified(quantifier, quantified_variables)
 
-    return count
+    return len(quantified_variables)
 
 def count_existential(quantifiers):
     '''
     Returns the number of universally quantified variables
+
     '''
 
-    count = 0
+    quantified_variables = []
     for quantifier in quantifiers:
-        if quantifier[0] == 'exists':
-            count += len(quantifier[1])
-
-    return count
+        Translation.get_existentially_quantified(quantifier, quantified_variables)
 
 def same_variables(pred_one, pred_two):
     '''
@@ -435,7 +446,7 @@ def extract_inverse_functional_relation(axiom, _quantifier):
         return
 
     return ('inverse_functional_property', get_predicate_name(negated[0]))
-    
+
 def extract_property_domain_restriction(axiom, _quantifier):
     '''
     Assumes a single negated binary predicate, then an arbitrary of positive
@@ -536,24 +547,6 @@ def extract_asymmetric_relation(axiom, _quantifier):
         return
 
     return ('asymmetric_relation', get_predicate_name(prop[0]))
-
-
-def extract_equivalent_classes(a, q):
-    '''
-    Assume that all predicates are unary, that there are two predicates, and
-    that each appears as both a normal and negated predicate
-
-    TODO: Passing for now, can pick this up later as two subclasses
-    '''
-
-    pass
-
-def extract_equivalent_properties(a, q):
-    '''
-    TODO: Passing for now, can pick this up later as two subproperties
-    '''
-
-    pass
 
 def extract_disjoint_relation(axiom, _quantifiers):
     '''
@@ -715,43 +708,48 @@ def extract_conjuncts(sentence):
 def generate_quantifier(sentence, quantifiers):
     '''
     Take a sentence and set of quantifiers and trim the quantifiers so only
-    variables in the sentence exist in the quantifier.
+    variables in the sentence exist in the quantifier. Return the new
+    quantifier and sentence together in a list.
+
+    return list axiom, [[quantifiers], [sentence]]
     '''
 
     new_quantifiers = quantifiers[:]
+
     predicates = []
     DL.find_binary_predicates(sentence, predicates)
     DL.find_unary_predicates(sentence, predicates)
     predicates = list(set([get_predicate_name(p) for p in predicates]))
 
-    print("[+] Found Predicates:", predicates)
+    #print("[+] Found Predicates:", predicates)
 
     quantified_variables = []
-    # Need to consider the possibility of having multiple top-level quantifiers
     for quantifier in new_quantifiers:
         Translation.get_universally_quantified(quantifier, quantified_variables)
         Translation.get_existentially_quantified(quantifier, quantified_variables)
 
     quantified_variables = list(set(quantified_variables))
 
-    print("[+] Found Quantified Variables:", quantified_variables)
+    #print("[+] Found Quantified Variables:", quantified_variables)
 
     flattened_axiom = list(set(list(Util.flatten(sentence))))
-    
+
     variables = list(filter(Translation.is_nonlogical, flattened_axiom))
     variables = [v for v in variables if v not in predicates]
 
-    print("[+] Found Variables:", variables)
+    #print("[+] Found Variables:", variables)
 
     variables_to_trim = [v for v in quantified_variables if v not in variables]
 
-    print("[+] Removing Variables:", variables_to_trim)
+    #print("[+] Removing Variables:", variables_to_trim)
 
-    print("[+] Starting Quantifier:", new_quantifiers)
+    #print("[+] Starting Quantifier:", new_quantifiers)
 
     new_quantifiers = trim_quantifier(new_quantifiers, variables_to_trim)
 
-    print("[+] Generated Quantifier:", new_quantifiers)
+    #print("[+] Generated Quantifier:", new_quantifiers)
+
+    return [copy.deepcopy(new_quantifiers), copy.deepcopy(sentence)]
 
 def trim_quantifier(quantifiers, variables):
     '''
@@ -787,7 +785,7 @@ def trim_variables(quantifiers, variables):
     variables. Trim the nested structure as needed if all the variables are
     removed from a given quantifier then cry yourself to sleep because that's
     another boundary/theoretical problem to worry about.
-    
+
     :param list quantifiers, nested quantifiers
     :param list variables, list of variables to be removed
     :return None
@@ -818,7 +816,7 @@ def restructure_quantifier(quantifier):
     :return list/None, interrupt result
     '''
 
-    print (quantifier)
+    #print (quantifier)
 
     if not isinstance(quantifier, list):
         return
@@ -826,7 +824,7 @@ def restructure_quantifier(quantifier):
     # Special case to handle when the top-level quantifier gets removed
     # Return the new quantifier
     if quantifier[0] == []:
-        
+
         new_quantifier = copy.deepcopy(quantifier[2])
         return new_quantifier
 
@@ -849,6 +847,39 @@ def restructure_quantifier(quantifier):
         # Since we just promoted children need to re-run on the current node
         restructure_quantifier(quantifier)
 
+def generate_all_axiom(sentences):
+    '''
+    Utility function which accepts a raw set of axioms and returns a set of
+    quantified CNF axioms
+    '''
+
+    new_sentences = []
+
+    for sentence in sentences:
+
+        # Skip the import lines
+        if sentence[0] == 'cl-imports':
+            continue
+
+        print("[+] Sentence:")
+        pp.pprint(sentence)
+
+        quantifiers, axiom = Translation.translate_sentence(sentence)
+        axioms = extract_conjuncts(axiom[:])
+
+        print("[+] Translated Sentence:")
+        pp.pprint(axiom)
+
+        print("------------------")
+        for axiom in axioms:
+            new_sentences.append(generate_quantifier(axiom, copy.deepcopy(quantifiers)))
+            print("[-]  ", new_sentences[-1])
+
+        print("")
+
+    return new_sentences
+
+
 # Module global set of all extractions
 EXTRACTIONS = {extract_disjoint_relation, extract_domain_restriction,
                extract_irreflexive_relation, extract_reflexive_relation,
@@ -870,33 +901,22 @@ if __name__ == '__main__':
     FILE = tempfile.mkstemp(prefix="translation_", dir=TMPDIR)
 
     clif.remove_all_comments(args.file, FILE[1])
-    sentences = clif.get_sentences_from_file(FILE[1])
+    RAW = clif.get_sentences_from_file(FILE[1])
 
     print(args.file)
     print('-----------')
-    for s in sentences:
 
-        # Skip the import lines
-        if s[0] == 'cl-imports':
-            continue
+    AXIOMS = generate_all_axiom(RAW)
 
-        quantifiers, axiom = Translation.translate_sentence(s)
-        axioms = extract_conjuncts(axiom[:])
+    print('Translations:')
+    print('-------------')
+    for ax in AXIOMS:
 
-        #pp.pprint(s)
-        print(quantifiers, axiom)
+        print('[-]  ', ax)
 
-        for i,thing in enumerate(axioms):
-            print("     [+ {}]".format(i), thing)
-            print("[-] Quantifier", quantifiers)
-            generate_quantifier(thing, copy.deepcopy(quantifiers))
+        quantifier, axiom = ax
+        EXT = narrow_translations(axiom, quantifier)
 
-        #for ax in axs:
-
-        #    EXT = narrow_translations(ax, qts)
-
-        #    for ex in EXT:
-        #        if ex(ax, qts) != None:
-        #            print("   [+] ",ex(ax, qts))
-
-        #print('')
+        for ex in EXT:
+            if ex(axiom, quantifier) != None:
+                print("   [*] ", ex(axiom, quantifier))

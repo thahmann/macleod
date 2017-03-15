@@ -571,8 +571,6 @@ def simplify_quantifier_order(quantifiers):
     :return None
     '''
 
-    print(quantifiers)
-
     if not isinstance(quantifiers, list):
         return
 
@@ -603,6 +601,8 @@ def get_quantifier_order(sentence):
     :return list sentence, same sentence with quantifiers pulled to front
     '''
 
+    #print("SDLFKJDSLFJ", sentence)
+
     quantifiers = []
 
     pull_quantifiers(sentence, quantifiers)
@@ -612,6 +612,7 @@ def get_quantifier_order(sentence):
         simplify_quantifier_order(quantifier)
 
 
+    #print("FOUNDLDKFJ", quantifiers)
     return quantifiers
 
 def pull_quantifiers(sentence, parent):
@@ -624,6 +625,8 @@ def pull_quantifiers(sentence, parent):
     :param list parent, accumulator for nested quantifier hierarchy
     :return None
     '''
+
+    #print("DERP", sentence, parent)
 
     if not isinstance(sentence, list):
         return
@@ -644,8 +647,7 @@ def pull_quantifiers(sentence, parent):
             new_parent = [sentence[0], sentence[1], []]
             parent[2].append(new_parent)
 
-            if len(sentence) == 3:
-                pull_quantifiers(sentence[2], new_parent)
+            pull_quantifiers(sentence[2], new_parent)
     else:
 
         # Current clause isn't a quantifier
@@ -862,7 +864,6 @@ def get_existentially_quantified(sentence, variables):
 
     if existential != False:
         variables += sentence[1]
-
 
     for element in sentence[2]:
 
