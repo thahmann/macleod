@@ -2,18 +2,19 @@
 @author Robert Powell
 @version 0.0.4
 
-Module that contains each of the translated DL axioms
+Module that contains each of the translated Translation axioms
 """
 
 import pprint as pp
 import argparse
 import tempfile
 import copy
+import functools
 
 import macleod.Clif as clif
-import macleod.dl.Translation as Translation
-import macleod.dl.DL as DL
+
 import macleod.dl.Utilities as Util
+import macleod.dl.Translation as Translation
 
 TMPDIR = "/tmp"
 EQ = "="
@@ -56,9 +57,14 @@ def filter_on_quantifiers(sentence, quantifiers, extractions):
     # Inverse Functional Property
 
     if num_of_quantifiers == 1:
+
         return filter_on_variables(sentence, quantifiers, extractions)
     else:
-        return []
+
+        local_set = {extract_some_partA, extract_some_partB}
+        extractions = extractions & local_set
+
+        return filter_on_variables(sentence, quantifiers, extractions)
 
 # SECOND
 def filter_on_variables(sentence, quantifiers, extractions):
@@ -86,7 +92,9 @@ def filter_on_variables(sentence, quantifiers, extractions):
                      extract_inverted_subproperty_relation,
                      extract_symmetric_relation,
                      extract_property_domain_restriction,
-                     extract_property_range_restriction}
+                     extract_property_range_restriction,
+                     extract_some_partA, extract_some_partB,
+                     extract_all_values}
 
         extractions = extractions & local_set
         return filter_on_predicates(sentence, quantifiers, extractions)
@@ -108,16 +116,15 @@ def filter_on_predicates(sentence, quantifiers, extractions):
     predicates.
     '''
 
-    if DL.is_all_unary(sentence):
+    if Translation.is_all_unary(sentence):
 
         local_set = {extract_domain_restriction, extract_disjoint_relation,
-                     extract_subclass_relation
-                     }
+                     extract_subclass_relation, extract_some_partB}
 
         extractions = extractions & local_set
         return filter_on_sign(sentence, quantifiers, extractions)
 
-    elif DL.is_all_binary(sentence):
+    elif Translation.is_all_binary(sentence):
 
         local_set = {extract_disjoint_properties, extract_asymmetric_relation,
                      extract_subproperty_relation,
@@ -131,7 +138,9 @@ def filter_on_predicates(sentence, quantifiers, extractions):
     else:
 
         local_set = {extract_property_domain_restriction,
-                     extract_property_range_restriction}
+                     extract_property_range_restriction,
+                     extract_some_partA, extract_all_values}
+
         extractions = extractions & local_set
         return filter_on_sign(sentence, quantifiers, extractions)
 
@@ -142,14 +151,14 @@ def filter_on_sign(sentence, _quantifiers, extractions):
     predicates signs
     '''
 
-    if DL.is_all_positive(sentence):
+    if Translation.is_all_positive(sentence):
 
         local_set = {extract_domain_restriction, extract_reflexive_relation}
 
         extractions = extractions & local_set
         return extractions
 
-    elif DL.is_all_negative(sentence):
+    elif Translation.is_all_negative(sentence):
 
         local_set = {extract_disjoint_relation, extract_disjoint_properties,
                      extract_irreflexive_relation, extract_asymmetric_relation}
@@ -165,7 +174,9 @@ def filter_on_sign(sentence, _quantifiers, extractions):
                      extract_inverse_relation,
                      extract_symmetric_relation,
                      extract_property_domain_restriction,
-                     extract_property_range_restriction}
+                     extract_property_range_restriction,
+                     extract_some_partA, extract_some_partB,
+                     extract_all_values}
 
         extractions = extractions & local_set
         return extractions
@@ -228,6 +239,7 @@ def count_clauses(axiom):
 def count_quantifiers(quantifiers):
     '''
     Wrapper function to count the number of quantifiers for a given axiom
+
     '''
 
     count = 0
@@ -332,12 +344,12 @@ def extract_subclass_relation(axiom, _quantifiers):
 
     # More than one means intersection of terms
     subset = []
-    DL.find_negated_predicates(axiom, subset)
+    Translation.find_negated_predicates(axiom, subset)
     subset = [Translation.negate_negation(x) for x in subset]
 
     # More than one means union of terms
     unary = []
-    DL.find_unary_predicates(axiom, unary)
+    Translation.find_unary_predicates(axiom, unary)
     superset = [x for x in unary if x not in subset]
 
     subset = list(map(get_predicate_name, subset))
@@ -358,7 +370,7 @@ def extract_functional_relation(axiom, _quantifier):
         return
 
     clauses = []
-    DL.find_binary_predicates(axiom, clauses)
+    Translation.find_binary_predicates(axiom, clauses)
 
     if len(clauses) != 3:
         return
@@ -369,7 +381,7 @@ def extract_functional_relation(axiom, _quantifier):
         return
 
     negated = []
-    DL.find_negated_predicates(axiom, negated)
+    Translation.find_negated_predicates(axiom, negated)
     negated = [Translation.negate_negation(x) for x in negated]
 
 
@@ -409,7 +421,7 @@ def extract_inverse_functional_relation(axiom, _quantifier):
         return
 
     clauses = []
-    DL.find_binary_predicates(axiom, clauses)
+    Translation.find_binary_predicates(axiom, clauses)
 
     if len(clauses) != 3:
         return
@@ -420,7 +432,7 @@ def extract_inverse_functional_relation(axiom, _quantifier):
         return
 
     negated = []
-    DL.find_negated_predicates(axiom, negated)
+    Translation.find_negated_predicates(axiom, negated)
     negated = [Translation.negate_negation(x) for x in negated]
 
 
@@ -454,12 +466,15 @@ def extract_property_domain_restriction(axiom, _quantifier):
     '''
 
     prop = []
-    DL.find_binary_predicates(axiom, prop)
+    Translation.find_binary_predicates(axiom, prop)
 
     classes = []
-    DL.find_unary_predicates(axiom, classes)
+    Translation.find_unary_predicates(axiom, classes)
 
     if any([Translation.is_negated(x) for x in classes]):
+        return
+
+    if not all([Translation.is_negated(x) for x in prop]):
         return
 
     if len(prop) != 1:
@@ -483,10 +498,10 @@ def extract_property_range_restriction(axiom, _quantifier):
     '''
 
     prop = []
-    DL.find_binary_predicates(axiom, prop)
+    Translation.find_binary_predicates(axiom, prop)
 
     classes = []
-    DL.find_unary_predicates(axiom, classes)
+    Translation.find_unary_predicates(axiom, classes)
 
     if any([Translation.is_negated(x) for x in classes]):
         return
@@ -512,7 +527,7 @@ def extract_symmetric_relation(axiom, _quantifiers):
     '''
 
     prop = []
-    DL.find_binary_predicates(axiom, prop)
+    Translation.find_binary_predicates(axiom, prop)
 
     if len(prop) != 2:
         return
@@ -535,7 +550,7 @@ def extract_asymmetric_relation(axiom, _quantifier):
     '''
 
     prop = []
-    DL.find_binary_predicates(axiom, prop)
+    Translation.find_binary_predicates(axiom, prop)
 
     if len(prop) != 2:
         return
@@ -556,7 +571,7 @@ def extract_disjoint_relation(axiom, _quantifiers):
 
     # More than one means intersection of terms
     classes = []
-    DL.find_negated_predicates(axiom, classes)
+    Translation.find_negated_predicates(axiom, classes)
     classes = [Translation.negate_negation(x) for x in classes]
 
     classes = list(map(get_predicate_name, classes))
@@ -571,7 +586,7 @@ def extract_disjoint_properties(axiom, _quantifiers):
 
     # More than one means intersection of terms
     props = []
-    DL.find_negated_predicates(axiom, props)
+    Translation.find_negated_predicates(axiom, props)
     props = [Translation.negate_negation(x) for x in props]
 
     if not all([same_variables(props[0], x) for x in props]):
@@ -601,12 +616,12 @@ def extract_subproperty_relation(axiom, _quantifiers):
 
     # More than one means intersection of terms
     subset = []
-    DL.find_negated_predicates(axiom, subset)
+    Translation.find_negated_predicates(axiom, subset)
     subset = [Translation.negate_negation(x) for x in subset]
 
     # More than one means union of terms
     binary = []
-    DL.find_binary_predicates(axiom, binary)
+    Translation.find_binary_predicates(axiom, binary)
     superset = [x for x in binary if x not in subset]
 
     for predicate in subset[:] + superset[:]:
@@ -616,8 +631,6 @@ def extract_subproperty_relation(axiom, _quantifiers):
 
     subset = list(map(get_predicate_name, subset))
     superset = list(map(get_predicate_name, superset))
-
-
 
     return ('subproperty', subset, superset)
 
@@ -632,7 +645,7 @@ def extract_inverted_subproperty_relation(axiom, _quantifiers):
 
     # More than one means intersection of terms
     subset = []
-    DL.find_negated_predicates(axiom, subset)
+    Translation.find_negated_predicates(axiom, subset)
     subset = [Translation.negate_negation(x) for x in subset]
 
     if len(subset) != 1:
@@ -640,7 +653,7 @@ def extract_inverted_subproperty_relation(axiom, _quantifiers):
 
     # More than one means union of terms
     binary = []
-    DL.find_binary_predicates(axiom, binary)
+    Translation.find_binary_predicates(axiom, binary)
     superset = [x for x in binary if x not in subset]
 
     if len(superset) != 1:
@@ -680,6 +693,220 @@ def extract_irreflexive_relation(axiom, _quantifiers):
 
     return ('reflexive', reflexive_property)
 
+def compose(*functions):
+    return functools.reduce(lambda f, g: lambda x: f(g(x)), functions, lambda x: x)
+
+def binary_predicates(lst):
+
+    return [i for i in lst if len(i) == 3]
+
+def unary_predicates(lst):
+
+    return [i for i in lst if len(i) == 2]
+
+def positive_predicates(lst):
+
+    return [i for i in lst if not Translation.is_negated(i)]
+
+def negative_predicates(lst):
+
+    return [Translation.is_negated(i) for i in lst if Translation.is_negated(i)]
+
+def single_predicate(lst):
+
+    if len(lst) == 1 and isinstance(lst[0], list):
+        return lst.pop()
+    else:
+        return False
+
+def existential_predicate(predicate, quantifiers):
+
+    if predicate == [] or quantifiers == []:
+        return False
+
+    existentials = []
+    for quant in quantifiers:
+        Translation.get_existentially_quantified(quant, existentials)
+
+    if all([x in existentials for x in predicate[1:]]):
+        return predicate
+    else:
+        return False
+
+def all_existential(lst, q):
+
+    return list(filter(functools.partial(existential_predicate, quantifiers=q), lst))
+
+def universal_predicate(predicate, quantifiers):
+
+    if predicate == [] or quantifiers == []:
+        return False
+
+    universals = []
+    
+    for quant in quantifiers:
+        Translation.get_universally_quantified(quant, universals)
+
+    if all([x in universals for x in predicate[1:]]):
+        return predicate
+    else:
+        return False
+
+def all_universal(lst, q):
+
+    rtype = list(filter(functools.partial(universal_predicate, quantifiers=q), lst))
+
+
+    return rtype
+
+def variable_position(unary, binary):
+    '''
+    Return whether the unary predicate is scoped over the domain, range, both,
+    or none of the variables in the binary predicate. In the caes of none,
+    return None. In the case of both, return 3.
+
+    :param list unary, unary predicate
+    :param list binary, binary predicate
+    :param int/None pos, the position of the scoped variable
+    '''
+
+    variable = unary[1]
+
+
+    if variable == binary[1] and variable == binary[2]:
+        return 3
+    elif variable in binary:
+        return binary.index(variable)
+    else:
+        return None
+
+def extract_some_partA(axiom, quantifiers):
+    '''
+    Assumes that the setence is both universally and existentially quantified.
+    Contains a binary and unary predicate, detect the placement of the variable
+    to see if it's R^(-1).C or Regular R.C.
+    '''
+
+    binary = []
+    Translation.find_binary_predicates(axiom, binary)
+
+    unary = []
+    Translation.find_unary_predicates(axiom, unary)
+
+    negated = []
+    Translation.find_negated_predicates(axiom, negated)
+
+    # Simplified for now
+    # TODO: OWL allows for chained somevalues/allValues from
+    if count_clauses(axiom) != 2:
+        return
+
+    if Translation.is_negated(negated[0]) != unary[0]:
+        return
+
+    universal = []
+    existential = []
+
+    for quantifier in quantifiers:
+        Translation.get_existentially_quantified(quantifier, existential)
+        Translation.get_universally_quantified(quantifier, universal)
+
+    # Need to unary to be universally quantified
+    if unary[0][1] not in universal:
+        return
+
+    # Need the binary term to be existentially quantified
+    if binary[0][1] not in existential and binary[0][2] not in existential:
+        return
+
+    property_type = "someValues_A"
+
+    # See if it's an inverse relation or not
+    if unary[0][1] == binary[0][2]:
+        property_type = "someValues_A_Inverted"
+
+    return (property_type, get_predicate_name(unary[0]),
+            get_predicate_name(binary[0]))
+
+def extract_some_partB(axiom, quantifiers):
+    '''
+    Assumes that the setence is both universally and existentially quantified.
+    Contains two and unary predicates, .
+    '''
+
+    unary = []
+    Translation.find_unary_predicates(axiom, unary)
+
+    negated = []
+    Translation.find_negated_predicates(axiom, negated)
+
+    # Simplified for now
+    # TODO: OWL allows for chained somevalues/allValues from
+    if count_clauses(axiom) != 2:
+        return
+
+    universal = []
+    existential = []
+
+    for quantifier in quantifiers:
+        Translation.get_existentially_quantified(quantifier, existential)
+        Translation.get_universally_quantified(quantifier, universal)
+
+    # Need the subclass to be universal
+    if Translation.is_negated(negated[0])[1] not in universal:
+        return
+
+    restriction = [x for x in unary if Translation.to_negation(x) not in negated]
+    # Need the other to be existential
+    if restriction[0][1] not in existential:
+        return
+
+    property_type = "someValues_B"
+
+    return (property_type, get_predicate_name(Translation.is_negated(negated[0])),
+            get_predicate_name(restriction[0]))
+
+def extract_all_values(axiom, quantifiers):
+    '''
+    Assumes that the setence is both universally and existentially quantified.
+    Contains a binary and two unary predicates, detect the placement of the variable
+    to see if it's R^(-1).C or Regular R.C.
+
+    U(a) ^ B(a, b) --> U2(b)
+
+    -U(a) | -B(a, b) | U2(b)
+
+    forall [U sunclass B.U2]
+    '''
+
+    # This extraction requires three clauses -- could be another level of filtering
+    if count_clauses(axiom) != 3:
+        return
+
+    negated_binary = compose(single_predicate, binary_predicates, negative_predicates)(axiom)
+
+    negated_unary = compose(single_predicate,
+                            functools.partial(all_universal, q=quantifiers),
+                            unary_predicates,
+                            negative_predicates)(axiom)
+
+    positive_unary = compose(single_predicate,
+                             functools.partial(all_universal, q=quantifiers),
+                             unary_predicates, positive_predicates)(axiom)
+
+    # They all should be assigned, if not then we don't match
+    if not all([negated_binary, negated_unary, positive_unary]):
+        return
+
+    property_type = "allValues_A"
+
+    # See if it's an inverse relation or not
+    if variable_position(negated_unary, negated_binary) == 2:
+        property_type = "allValues_A_Inverted"
+
+    return (property_type, get_predicate_name(negated_unary),
+            get_predicate_name(negated_binary))
+
 def get_predicate_name(predicate):
     '''
     Returns a predicates symbol, minus the variables
@@ -700,7 +927,6 @@ def extract_conjuncts(sentence):
     elif Translation.is_disjunction(sentence):
         axioms = [sentence]
     else:
-        print("Don't know when this could ever happen")
         print("We're going down captain!")
 
     return axioms
@@ -717,8 +943,8 @@ def generate_quantifier(sentence, quantifiers):
     new_quantifiers = quantifiers[:]
 
     predicates = []
-    DL.find_binary_predicates(sentence, predicates)
-    DL.find_unary_predicates(sentence, predicates)
+    Translation.find_binary_predicates(sentence, predicates)
+    Translation.find_unary_predicates(sentence, predicates)
     predicates = list(set([get_predicate_name(p) for p in predicates]))
 
     #print("[+] Found Predicates:", predicates)
@@ -854,12 +1080,13 @@ def generate_all_axiom(sentences):
     '''
 
     new_sentences = []
-
     for sentence in sentences:
 
         # Skip the import lines
         if sentence[0] == 'cl-imports':
             continue
+
+        cnf = []
 
         print("[+] Sentence:")
         pp.pprint(sentence)
@@ -872,12 +1099,112 @@ def generate_all_axiom(sentences):
 
         print("------------------")
         for axiom in axioms:
-            new_sentences.append(generate_quantifier(axiom, copy.deepcopy(quantifiers)))
-            print("[-]  ", new_sentences[-1])
+            cnf.append(generate_quantifier(axiom, copy.deepcopy(quantifiers)))
+            print("[-]  ", cnf[-1])
 
+        new_sentences.append((sentence, cnf))
         print("")
 
     return new_sentences
+
+def generate_all_extractions(sentence):
+    '''
+    Utility function to return all the OWL extractions from a given sentence.
+    Returns a list of extractions.
+
+    :param tuple sentence, ([quantifiers, original], [clausal normal form])
+    :return tuple, ([quantifier, sentence], [clausal normal form], [OWL])
+    '''
+
+    extractions = []
+    original, cnf = sentence
+
+    for conjunct in cnf:
+
+        quantifier, axiom = conjunct
+        extractors = narrow_translations(axiom, quantifier)
+
+        for function in extractors:
+            if function(axiom, quantifier) != None:
+                extractions.append(function(axiom, quantifier))
+
+    return (original, cnf, extractions)
+
+def generate_some_conjunct_extractions(extraction):
+    '''
+    Utility function which looks over the extractions for a given CNF to
+    attempt to pull out patterns which may span multiple conjuncts. This applies
+    to allValuesFrom, someValuesFrom, and another whose name is escaping me
+    '''
+
+    original, conjunct, extractions = extraction
+
+    some_patterns_one = [(x[1], x[2]) for x in extractions if x[0] == 'someValues_A']
+    some_patterns_oneI = [(x[1], x[2]) for x in extractions if x[0] == 'someValues_A_Inverted']
+    some_patterns_two = [(x[1], x[2]) for x in extractions if x[0] == 'someValues_B']
+    some_patterns_thr = [(x[1], x[2]) for x in extractions if x[0] == 'someValues_C']
+
+    new_pattern = None
+    if len(some_patterns_one) != 0:
+        new_pattern = ("someValuesFrom", some_patterns_one[0][0],
+                       some_patterns_one[0][1])
+
+    if len(some_patterns_oneI) != 0:
+        new_pattern = ("someValuesFromInverse", some_patterns_oneI[0][0],
+                       some_patterns_oneI[0][1])
+
+    if new_pattern != None and len(some_patterns_two) != 0:
+        new_pattern = ("someValuesFrom", some_patterns_one[0][0],
+                       some_patterns_one[0][1], some_patterns_two[0][1])
+
+    if new_pattern != None and len(some_patterns_thr) != 0:
+        new_pattern = ("someValuesFromEquivalent", some_patterns_one[0][0],
+                       some_patterns_one[0][1], some_patterns_two[0][1])
+
+    return new_pattern
+
+def get_all_extractions(filepath):
+
+    FILE = tempfile.mkstemp(prefix="translation_", dir=TMPDIR)
+
+    clif.remove_all_comments(filepath, FILE[1])
+    RAW = clif.get_sentences_from_file(FILE[1])
+
+    for thing in RAW:
+        pp.pprint(thing)
+
+    print(filepath)
+    print('-----------')
+
+    axioms = generate_all_axiom(RAW)
+
+    print('Translations:')
+    print('-------------')
+
+    for ax in axioms:
+        pp.pprint(ax)
+
+    ext = []
+    for ax in axioms:
+        ext.append(generate_all_extractions(ax))
+
+    extractions = []
+    for e in ext:
+
+        original, clausal, extra = e
+
+        print(original, clausal, extra)
+
+        some_extract = (generate_some_conjunct_extractions(e))
+
+        if some_extract is not None:
+            extra.append(some_extract)
+
+        extractions.append((original, clausal, extra))
+
+
+    return extractions
+
 
 
 # Module global set of all extractions
@@ -890,33 +1217,27 @@ EXTRACTIONS = {extract_disjoint_relation, extract_domain_restriction,
                extract_property_domain_restriction,
                extract_inverted_subproperty_relation,
                extract_functional_relation,
-               extract_inverse_functional_relation}
+               extract_inverse_functional_relation,
+               extract_some_partA,
+               extract_some_partB,
+               extract_all_values}
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Convert to OWL!')
-    parser.add_argument('-f', '--file', type=str, help='Input Clif', required=True)
-    args = parser.parse_args()
+    PARSER = argparse.ArgumentParser(description='Convert to OWL!')
+    PARSER.add_argument('-f', '--file', type=str, help='Input Clif', required=True)
+    ARGS = PARSER.parse_args()
 
-    FILE = tempfile.mkstemp(prefix="translation_", dir=TMPDIR)
+    final = get_all_extractions(ARGS.file)
+    current = None
+    for thing in final:
+        o, c, e = thing
 
-    clif.remove_all_comments(args.file, FILE[1])
-    RAW = clif.get_sentences_from_file(FILE[1])
+        print('[+]', o)
+        for item in e:
+            print('     [*]', item)
+        print()
 
-    print(args.file)
-    print('-----------')
 
-    AXIOMS = generate_all_axiom(RAW)
 
-    print('Translations:')
-    print('-------------')
-    for ax in AXIOMS:
 
-        print('[-]  ', ax)
-
-        quantifier, axiom = ax
-        EXT = narrow_translations(axiom, quantifier)
-
-        for ex in EXT:
-            if ex(axiom, quantifier) != None:
-                print("   [*] ", ex(axiom, quantifier))

@@ -8,6 +8,204 @@ This is going to get worse before it gets better...
 import macleod.Clif as clif
 import pprint
 
+def is_all_universal(quantifiers):
+    '''
+    Checks if all quantifiers used are universal
+
+    :param list quantifiers
+    :return boolean result
+    '''
+
+    result = True
+
+    for quantifier in quantifiers:
+
+        result &= is_universal(quantifier)
+
+    return result
+
+def is_all_existential(quantifiers):
+    '''
+    Checks if all quantifiers used are existential
+
+    :param list quantifiers
+    :return boolean result
+    '''
+    result = True
+
+    for quantifier in quantifiers:
+
+        result &= is_existential(quantifier)
+
+    return result
+
+def is_all_unary(sentence):
+    '''
+    Checks to see if all predicates in sentence are unary.
+
+    :param list sentence, FOL sentence
+    :return boolean
+    '''
+
+    result = True
+
+    if is_disjunction(sentence):
+        terms = is_disjunction(sentence)
+    elif is_conjunction(sentence):
+        terms = is_conjunction(sentence)
+
+    else:
+        terms = sentence
+
+    for term in terms:
+
+        if is_negated(term):
+            result &= is_unary(term[1])
+        else:
+            result &= is_unary(term)
+
+    return result
+
+def is_all_binary(sentence):
+    '''
+    Checks to see if all predicates in sentence are binary.
+
+    :param list sentence, FOL sentence
+    :return boolean
+    '''
+
+    result = True
+
+    if is_disjunction(sentence):
+        terms = is_disjunction(sentence)
+
+    elif is_conjunction(sentence):
+        terms = is_conjunction(sentence)
+
+    else:
+        terms = sentence
+
+    for term in terms:
+
+        if is_negated(term):
+            result &= is_binary(term[1])
+        else:
+            result &= is_binary(term)
+
+    return result
+
+def is_all_positive(sentence):
+    '''
+    Checks to see if all predicates in sentence are not negated.
+
+    :param list sentence, FOL sentence
+    :return boolean
+    '''
+
+    result = True
+
+    for term in sentence:
+        if is_negated(term):
+            return False
+
+    return result
+
+def is_all_negative(sentence):
+    '''
+    Checks to see if all predicates in sentence are not negated.
+
+    :param list sentence, FOL sentence
+    :return boolean
+    '''
+
+    result = True
+
+    for term in sentence:
+        if term != 'or' and term != 'and' and not is_negated(term):
+            return False
+
+    return result
+
+def find_unary_predicates(sentence, predicates):
+    '''
+    Given a FOL setence, extract all nonlogical symbols that have arity 1.
+
+    :param list sentence, input FOL sentence
+    :param list predicates, accumulator for found unary predicates
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    # Need to handle the case where we have a top-level predicate
+    if not any([isinstance(a, list) for a in sentence]):
+        if is_unary(sentence):
+            predicates.append(sentence)
+
+        return
+
+    else:
+
+        if is_universal(sentence) or is_existential(sentence):
+            find_unary_predicates(sentence[2], predicates)
+        else:
+            for sub_sentence in sentence:
+                if is_unary(sub_sentence):
+                    predicates.append(sub_sentence)
+                else:
+                    find_unary_predicates(sub_sentence, predicates)
+
+
+def find_binary_predicates(sentence, predicates):
+    '''
+    Given a FOL setence, extract all nonlogical symbols that have arity 1.
+
+    :param list sentence, input FOL sentence
+    :param list predicates, accumulator for found unary predicates
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    # Need to handle the case where we have a top-level predicate
+    if not any([isinstance(a, list) for a in sentence]):
+        if is_binary(sentence):
+            predicates.append(sentence)
+
+        return
+
+    else:
+
+        if is_universal(sentence) or is_existential(sentence):
+            find_binary_predicates(sentence[2], predicates)
+        else:
+            for sub_sentence in sentence:
+
+                if is_binary(sub_sentence):
+                    predicates.append(sub_sentence)
+                else:
+                    find_binary_predicates(sub_sentence, predicates)
+
+def find_negated_predicates(sentence, predicates):
+    '''
+    Given a FOL setence, extract all nonlogical symbols that are negated.
+
+    :param list sentence, input FOL sentence
+    :param list predicates, accumulator for found unary predicates
+    '''
+
+    if not isinstance(sentence, list):
+        return None
+
+    #sentence = Translation.strip_quantifier(sentence)
+
+    for sub_sentence in sentence:
+
+        if is_negated(sub_sentence):
+            predicates.append(sub_sentence)
+        else:
+            find_negated_predicates(sub_sentence, predicates)
+ 
 
 def disjunctive_precondition(sentence):
     """
@@ -165,6 +363,8 @@ def from_negation(expression):
     it.
 
     PUNT FOR NOW -- I'm forgetting something important about forall vs. exist
+
+    #TODO Justify the not-quite-right flow of the CNF conversion
     """
 
     negated = is_negated(expression)
@@ -601,8 +801,6 @@ def get_quantifier_order(sentence):
     :return list sentence, same sentence with quantifiers pulled to front
     '''
 
-    #print("SDLFKJDSLFJ", sentence)
-
     quantifiers = []
 
     pull_quantifiers(sentence, quantifiers)
@@ -612,7 +810,6 @@ def get_quantifier_order(sentence):
         simplify_quantifier_order(quantifier)
 
 
-    #print("FOUNDLDKFJ", quantifiers)
     return quantifiers
 
 def pull_quantifiers(sentence, parent):
@@ -626,7 +823,6 @@ def pull_quantifiers(sentence, parent):
     :return None
     '''
 
-    #print("DERP", sentence, parent)
 
     if not isinstance(sentence, list):
         return
@@ -846,7 +1042,6 @@ def get_universally_quantified(sentence, variables):
         variables += sentence[1]
 
     for element in sentence[2]:
-
         get_universally_quantified(element, variables)
 
 def get_existentially_quantified(sentence, variables):
@@ -866,7 +1061,6 @@ def get_existentially_quantified(sentence, variables):
         variables += sentence[1]
 
     for element in sentence[2]:
-
         get_existentially_quantified(element, variables)
 
 def translate_sentence(sentence):
@@ -944,4 +1138,3 @@ if __name__ == '__main__':
 
     print("Thou shall not pass,")
     print("nor will thou call this file directly!")
-
