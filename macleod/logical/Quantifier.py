@@ -240,12 +240,14 @@ class Existential(Quantifier):
         elif isinstance(terms, list):
 
             if len(terms) != 1:
-                raise ValueError('Universal must be over a list of Logical')
+                raise ValueError('Existential must be over a list of Logical')
 
             self.terms = copy.deepcopy(terms)
 
         else:
 
+            
+            print(type(terms))
             raise ValueError('Exi must be over a LogicalObject!')
 
         if not isinstance(variables, list):
