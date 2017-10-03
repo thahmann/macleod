@@ -107,8 +107,8 @@ class Function(Logical.Logical):
             raise ValueError('Function variables must be contained in a list!')
 
         for var in variables:
-            if not isinstance(var, str):
-                raise ValueError('Function variables must be strings!')
+            if not isinstance(var, str) and not isinstance(var, type(self)):
+                raise ValueError('Function variables must be strings or functions!')
 
         self.name = name
         # Make sure you make a COPY of everything, no references!
@@ -121,4 +121,9 @@ class Function(Logical.Logical):
         :return self.__repr__() method
         '''
 
-        return "{}({})".format(self.name.lower(), ",".join([v for v in self.variables]))
+        return "{}({})".format(self.name.lower(), 
+                ",".join([v if isinstance(v, str) else repr(v) for v in self.variables]))
+
+
+
+

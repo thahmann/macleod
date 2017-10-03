@@ -2,6 +2,7 @@ import argparse
 
 import ply.lex as lex
 import ply.yacc as yacc
+import re
 
 import macleod.logical.Logical as Logical
 import macleod.logical.Connective as Connective
@@ -41,17 +42,17 @@ def t_IF(t): r'if'; return t
 def t_CLCOMMENT(t): r'cl-comment'; return t
 def t_START(t): r'cl-text'; return t
 def t_IMPORT(t): r'cl-imports'; return t
+def t_LPAREN(t): r'\('; return t
+def t_RPAREN(t): r'\)'; return t
 
 def t_error(t):
     raise TypeError("Unknown text '%s'" % (t.value,))
 
-t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-t_LPAREN = r"\("
-t_RPAREN = r"\)"
-t_NONLOGICAL = r'[\w\-=]+'
-t_ignore = " \t\n"
+t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+t_NONLOGICAL = r'[<>=\w\-=]+'
 t_COMMENT = r'\/\*[\w\W\d*]+?\*\/'
 t_STRING = r"'(.+?)'"
+t_ignore = " \r\t\n"
 
 def p_stater(p):
     """
@@ -72,21 +73,22 @@ def p_ontology(p):
     ontology : LPAREN START URI statement RPAREN
     ontology : statement
     """
-    #if len(p) == 1:
-    #    # the empty string means there are no atomic symbols
-    #    p[0] = []
-    #else:
-    #    p[0] = p[4]
-    pass
+    if len(p) == 6:
+
+        p[0] = p[4]
+
+    else:
+
+        p[0] = p[1]
 
 def p_statement(p):
     """
     statement : axiom statement
     statement : import statement
     statement : comment statement
-    statement : comment
     statement : axiom
-    statement : statement
+    statement : import
+    statement : comment
     """
 
     if len(p) == 3:
@@ -218,24 +220,43 @@ def p_predicate(p):
 
 def p_parameter(p):
     """
-    parameter : function 
-                | nonlogicals
+    parameter : function parameter
+    parameter : nonlogicals parameter
+    parameter : function
+    parameter : nonlogicals
     """
 
     if len(p) == 3:
-        parameters = [p[1]]
-        parameters.append(p[2])
+
+        if isinstance(p[1], list):
+            parameters = p[1]
+            if isinstance(p[2], list):
+                parameters += p[2]
+            else:
+                parameters.append(p[2])
+        else:
+            parameters = [p[1]]
+            if isinstance(p[2], list):
+                parameters += p[2]
+            else:
+                parameters.append(p[2])
+
         p[0] = parameters
+
     else:
-        p[0] = p[1]
+
+        if isinstance(p[1], list):
+            p[0] = p[1]
+        else:
+            p[0] = [p[1]]
 
 
 def p_function(p):
     """
-    function : LPAREN NONLOGICAL nonlogicals RPAREN
+    function : LPAREN NONLOGICAL parameter RPAREN
     """
 
-    p[0] = Symbol.Function(p[2], [p[3]])
+    p[0] = Symbol.Function(p[2], p[3])
 
 def p_nonlogicals(p):
     """
@@ -271,7 +292,7 @@ if __name__ == '__main__':
     with open(args.file, 'r') as f:
         buff = f.read()
 
-    lex.lex()
+    lex.lex(reflags=re.UNICODE)
 
 
     #lex.input(buff)
@@ -279,4 +300,7 @@ if __name__ == '__main__':
     #    print(repr(tok.type), repr(tok.value))
 
     yacc.yacc()
-    yacc.parse(buff, debug=True)
+    axioms = yacc.parse(buff, debug=True)
+
+    #for axiom in axioms:
+    #    print(repr(axiom))
