@@ -1,14 +1,21 @@
 import argparse
-
+import logging
+import os
 import ply.lex as lex
 import ply.yacc as yacc
 import re
 
+from pathlib import Path
+
+import macleod.Ontology as Ontology
 import macleod.logical.Logical as Logical
 import macleod.logical.Connective as Connective
-import macleod.logical.Symbol as Symbol
-import macleod.logical.Quantifier as Quantifier
+import macleod.logical.Logical as Logical
 import macleod.logical.Negation as Negation
+import macleod.logical.Quantifier as Quantifier
+import macleod.logical.Symbol as Symbol
+
+LOGGER = logging.getLogger('Parser')
 
 tokens = (
     "LPAREN",
@@ -111,7 +118,9 @@ def p_comment(p):
     comment : LPAREN CLCOMMENT STRING RPAREN
     """
 
-    p[0] = p[3]
+    #p[0] = p[3]
+    p[0] = None
+    
 
 def p_import(p):
     """
@@ -284,23 +293,51 @@ def p_error(p):
     print("Welp this is confusing", p.lineno, p.lexpos)
     raise TypeError("unknown text at %r" % (p.value,))
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Testing')
-    parser.add_argument('-f', '--file', type=str, help='file', required=True)
-    args = parser.parse_args()
+def parse_file(path, sub, base, resolve=False):
+    """
+    Accepts a path to a Common Logic file and parses it to return an Ontology object.
 
-    with open(args.file, 'r') as f:
+    :param String path, path to common logic file
+    :return Ontology onto, newly constructed ontology object
+    """
+
+    if not os.path.isfile(path):
+        LOGGER.warning("Attempted to parse non-existent file: " + path)
+
+    with open(path, 'r') as f:
         buff = f.read()
 
     lex.lex(reflags=re.UNICODE)
-
-
-    #lex.input(buff)
-    #for tok in iter(lex.token, None):
-    #    print(repr(tok.type), repr(tok.value))
-
     yacc.yacc()
-    axioms = yacc.parse(buff, debug=True)
 
-    #for axiom in axioms:
-    #    print(repr(axiom))
+    parsed_objects = yacc.parse(buff)
+
+    ontology = Ontology(path)
+    ontology.basepath = (sub, base)
+
+    for logical_thing in parsed_objects:
+
+        if isinstance(logical_thing, Logical.Logical):
+
+            ontology.add_axiom(logical_thing)
+
+        elif isinstance(logical_thing, str):
+
+            ontology.add_import(logical_thing)
+
+    if resolve:
+
+        ontology.resolve_imports(resolve)
+
+    return ontology
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Parsing our stuff!')
+    parser.add_argument('-f', '--file', type=str, help='file', required=True)
+    parser.add_argument('-b', '--base', type=str, help='basepath', required=True)
+    parser.add_argument('-s', '--sub', type=str, help='substitution string', required=True)
+    parser.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    args = parser.parse_args()
+
+    ontology = parse_file(args.file, args.sub, args.base, args.resolve)
+    print(repr(ontology))

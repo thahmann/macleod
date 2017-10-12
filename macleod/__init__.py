@@ -1,3 +1,6 @@
+import logging
+from pathlib import Path
+
 from .ClifModule import *
 from .ClifModuleSet import *
 from .ClifLemmaSet import *
@@ -8,5 +11,8 @@ from .Commands import *
 from .Ladr import *
 from .Filemgt import *
 from .Process import *
+from .Ontology import *
+
+logging.config.fileConfig(str(Path.home().joinpath('.macleod').joinpath('logging.conf')))
 
 __all__ = ["filemgt", "commands", "clif", "ladr", "process", "ReasonerSet", "Reasoner", "ClifModule", "ClifModuleSet", "ClifLemmaSet"]
