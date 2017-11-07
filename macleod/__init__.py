@@ -13,6 +13,6 @@ from .Filemgt import *
 from .Process import *
 from .Ontology import *
 
-logging.config.fileConfig(str(Path.home().joinpath('.macleod').joinpath('logging.conf')))
+#logging.config.fileConfig(str(Path.home().joinpath('.macleod').joinpath('logging.conf')))
 
-__all__ = ["filemgt", "commands", "clif", "ladr", "process", "ReasonerSet", "Reasoner", "ClifModule", "ClifModuleSet", "ClifLemmaSet"]
+__all__ = ["Ontology", "filemgt", "commands", "clif", "ladr", "process", "ReasonerSet", "Reasoner", "ClifModule", "ClifModuleSet", "ClifLemmaSet"]
