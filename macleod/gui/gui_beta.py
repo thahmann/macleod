@@ -1,40 +1,54 @@
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
+from os import path
 import tkinter.scrolledtext as st
-from gui_menu import GUIMenu
 
-class Editor(st.ScrolledText):
-    def __init__(self, *args, **kwargs):
-        st.ScrolledText.__init__(self, *args, **kwargs)
-
-class BebopApp(Tk):
+class GUI(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
-        container = Frame(self)
-        container.pack(side="top", fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-        self.frames = {}
-        frame = MainView(container, self)
-        self.frames[MainView] = frame
-        frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame(MainView)
-    def show_frame(self, cont):
-        frame = self.frames[cont]
-        frame.tkraise()
+        self.tab_controller = ttk.Notebook(self)
+        tab = Editor(self.tab_controller, self, "")
+        self.tab_controller.add(tab, text="NewFile", compound=TOP)
+        self.tab_controller.pack()
+    def open_file(self, file):
+        self.tab_controller.add(Editor(self.tab_controller, self, file.read()),
+                                sticky="nsew",
+                                text=path.basename(file.name))
+    def close(self):
+        tab_number = self.tab_controller.index(self.tab_controller.select())
+        self.tab_controller
 
-
-class MainView(Frame):
-    def __init__(self, parent, controller):
+class Editor(Frame):
+    def __init__(self, parent, controller, text):
         Frame.__init__(self, parent)
-        textPad = Editor(self, width=100, height=20)
-        textPad.pack(side="left")
-        var = StringVar()
-        sidebar = Label(self, textvariable=var)
-        var.set("FUTURE HOME OF INFO BAR")
-        sidebar.pack(side="right")
+        self.textPad = st.ScrolledText(self)
+        self.textPad.pack(fill="both")
+        self.textPad.insert(INSERT, text)
 
-app = BebopApp()
-menubar = GUIMenu(app)
+class Sidebar(Frame):
+    def __init__(self, parent, controller):
+        print("STUFF GOES HERE")
+
+app = GUI()
+
+#functions for the menu
+def close():
+    exit()
+
+def open():
+    file = filedialog.askopenfile(filetypes=[("Common Logic Files", "*.clif"),
+                                      ("All", '*')],)
+    app.open_file(file)
+
+
+menubar = Menu(app)
+filemenu = Menu(menubar, tearoff=0)
+
+filemenu.add_command(label="Open", command = open)
+filemenu.add_command(label="Close", command=close)
+
+menubar.add_cascade(label="File", menu=filemenu)
 
 app.title("macleod")
 app.config(menu=menubar)
