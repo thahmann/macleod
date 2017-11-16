@@ -147,9 +147,7 @@ class Negation(Logical.Logical):
 
         else:
 
-            return self.push_complete()
-
-
+            raise ValueError("Should have already pushed negation prior to ONF")
 
     def __repr__(self):
         '''
