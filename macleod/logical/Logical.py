@@ -83,14 +83,26 @@ class Logical(object):
     
     def is_onf(self):
         '''
-        Helper to decide is an element is already in onf form
+        Method that determines, from the view of this Logical, if it is in
+        Object Normal Form. Object normal form is just another name for CNF
+        minus any of the skolemization or functions. Does not recurse into
+        children to test for ONF!
+
+        :precondition FF and no nested Quantifiers
+        :return Boolean, True or False depending on ONF state
         '''
 
         raise NotImplementedError
 
     def to_onf(self):
         '''
-        Our basic modifier, feel like we could do something cool with classes and python mojo here
+        Method that translate, from the view of this Logical, to Object Normal
+        Form. Object normal form is just another name for CNF minus any of the
+        skolemization or functions. Does not recurse into children to test for
+        ONF!
+
+        :precondition FF and no nested Quantifiers 
+        :return Logical, A copy of the logical in ONF form
         '''
 
         raise NotImplementedError

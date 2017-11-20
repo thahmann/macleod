@@ -1,0 +1,1 @@
+∀(z,y,x)[∃(w)[(((ZEX(x) & intersection(z,y,x)) | ~S(z) | ~S(y) | C(z,y)) & (~ZEX(w) | ~intersection(z,y,w) | (S(z) & S(y) & ~C(z,y))))]]

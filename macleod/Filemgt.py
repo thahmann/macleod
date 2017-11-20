@@ -5,6 +5,7 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 @author: Torsten Hahmann
 '''
 
+from pathlib import Path
 import os, platform, logging.config
 from configparser import SafeConfigParser
 
@@ -12,22 +13,19 @@ LOGGER = None
 CONFIG_PARSER = None
 macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..' 
 
-#log_config_file_name = os.sep + 'conf' + os.sep + 'logging.conf'
 log_config_file_name = 'logging.conf'
 log_config_file = None
 
-#WIN_config_file = 'conf' + os.sep + 'macleod_win.conf'
-#MAC_config_file = 'conf' + os.sep + 'macleod_mac.conf'
-#LINUX_config_file = 'conf' + os.sep + 'macleod_linux.conf'
+WIN_config_file = 'macleod_win.conf'
+LINUX_config_file = 'macleod_linux.conf'
 MAC_config_file = 'macleod_mac.conf'
-#config_dir = macleod_dir + os.sep + 'conf' + os.sep
-config_dir = os.path.expanduser('~') + os.sep + '.macleod' + os.sep
+
+config_dir = str(Path.home().joinpath('macleod'))
 config_file = ''
 
 log_dir = None
 log_file = None
 subprocess_log_file = None
-
 
 def find_config (filename):
     """tries to find some configuration file with the path filename."""
@@ -66,7 +64,7 @@ def find_macleod_config():
 def find_log_config():
     """tries to find the MacLeod logging configuration file."""
     global log_config_file
-    log_config_file = config_dir + log_config_file_name
+    log_config_file = config_dir + os.sep + log_config_file_name
     log_config_file = find_config(os.path.abspath(log_config_file))
     print(("Log config file found: " + log_config_file))
 
@@ -159,9 +157,7 @@ def start_logging():
             print(("Problem reading logging config file from " + log_config_file))
         else:
             print(("Read logging config file from " + log_config_file))
-            #create_log_file_path()	
-            logging.config.fileConfig(log_config_file)
-            # create logger
+            create_log_file_path()	
             LOGGER = logging.getLogger(__name__)
             LOGGER.debug('Logging started')
             LOGGER.debug('Logging configuration read from ' + log_config_file)
