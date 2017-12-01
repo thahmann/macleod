@@ -6,9 +6,12 @@
 
 import copy
 import functools
+import logging
 
 import macleod.logical.Logical as Logical
 import macleod.logical.Quantifier as Quantifier
+
+LOGGER = logging.getLogger(__name__)
 
 class Connective(Logical.Logical):
     '''
@@ -63,6 +66,8 @@ class Connective(Logical.Logical):
         '''
 
         save_term = copy.deepcopy(self.terms)
+
+        LOGGER.debug(repr(t_one) + ' -- ' + repr(t_two))
 
         if not isinstance(t_one, Logical.Logical):
             raise ValueError("Can only distribute with Logicals")
@@ -125,11 +130,20 @@ class Connective(Logical.Logical):
         # 1.) Return a new connective
         # 2.) Don't screw around with parent classes
         # 3.) Handle the case where we promote the only available quantifier
+        # 4.) Just return if we don't even have a connective
+        # 5.) Handle the dirty case where we have a mix of uncoalesable quantifiers
 
 
         # Handle trivial case of single quantifier
         quantifiers = [x for x in self.get_term() if isinstance(x, Quantifier.Quantifier)]
+        if len(quantifiers) == 0:
+            LOGGER.debug("Found no quantifiers")
+
+            # Save off edited self
+            return self
+
         if len(quantifiers) == 1:
+            LOGGER.debug("Found one quantifiers")
 
             quant = quantifiers.pop()
             new_terms = quant.get_term()
@@ -142,21 +156,25 @@ class Connective(Logical.Logical):
         if parent is None:
             raise ValueError("More than one choice of quantifier, require lookahead value")
 
-        quantifier_type = None
-        if isinstance(parent, Conjunction):
+        q_type = None
+        if isinstance(parent, Conjunction) or isinstance(parent, Quantifier.Universal):
             q_type = Quantifier.Universal
 
-        elif isinstance(parent, Disjunction):
+        elif isinstance(parent, Disjunction) or isinstance(parent, Quantifier.Existential):
             q_type = Quantifier.Existential
 
         if q_type is None:
-            raise ValueError("WHATTTTTTT")
+            raise ValueError("Something Borked itself in a great but terrible way!")
 
-        dominant_quantifier = [x for x in self.get_term() if isinstance(x, q_type)]
-        weaker_quantifier = [x for x in self.get_term() if not isinstance(x, q_type)]
+        dominant_quantifier = [x for x in self.get_term() if isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
+        weaker_quantifier = [x for x in self.get_term() if not isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
+
+        LOGGER.debug('Number of weaker quantifiers: ' + str(len(weaker_quantifier)) + ' are ' + str(type(weaker_quantifier[0])))
+        LOGGER.debug('Number of dominant quantifiers: ' + str(len(dominant_quantifier)) + ' are ' + str(type(dominant_quantifier[0])))
 
         if (len(weaker_quantifier) + len(dominant_quantifier)) != 2:
-            raise ValueError("Need to coalesce quantifiers before rescoping!")
+            LOGGER.warning('Next step is experimental!')
+            #raise ValueError("Need to coalesce quantifiers before rescoping!")
 
         # Build the new connective
         new_terms = dominant_quantifier[0].get_term()
@@ -165,6 +183,7 @@ class Connective(Logical.Logical):
         new_connective = type(self)(new_terms)
         weaker = type(weaker_quantifier[0])(weaker_quantifier[0].variables, new_connective)
         stronger = type(dominant_quantifier[0])(dominant_quantifier[0].variables, weaker)
+        LOGGER.debug("Returning new dominant quantifier: " + repr(stronger))
 
         return stronger
 
@@ -196,52 +215,113 @@ class Conjunction(Connective):
 
     def is_onf(self):
         '''
-        A conjunction really is always in onf form, these calls only apply to
-        the top level. Elements aren't counted.
+        A Conjunction is in ONF form unless it has children that are
+        Conjunctions, or it has any Quantifiers as children.
+
+        :return Conjunction, New ONF conjunction
         '''
 
         for term in self.get_term():
 
             if isinstance(term, Quantifier.Quantifier):
+
+                raise ValueError("Quantifer within connective during ONF")
+
+            elif isinstance(term, Conjunction):
+
+                raise ValueError("Has a conjunction nested in a conjunction")
+
+            elif term.is_onf() == False:
+
                 return False
 
         return True
 
     def to_onf(self):
         '''
-        So long as there are no nested quantifiers it should always be clear
+        If this conjunction is not found to be in ONF, call to_onf on that
+        child.
         '''
 
         if self.is_onf():
+
+            LOGGER.debug("Connective in ONF form: " + repr(self))
+
             return copy.deepcopy(self)
+
         else:
-            raise ValueError("Broaden quantifiers first skippy!")
+            
+            new_terms = []
+
+            for term in self.terms:
+
+                if term.is_onf():
+                    new_terms.append(term)
+                else:
+                    new_terms.append(term.to_onf())
+
+            return Conjunction(new_terms)
 
     def coalesce(self):
         '''
-        Look through for any quantifier children that should be merged
+        Coalesce or merge any like quantifiers held as terms of this
+        connective. Conjunctions will coalesce universals and will merge
+        existentials.
+
+        precondition: Must not have both universals and existentials
         '''
 
         obj = copy.deepcopy(self)
 
+        LOGGER.debug("Attempting to coalesce: " + repr(obj))
+
         universals = [x for x in obj.terms if isinstance(x, Quantifier.Universal)]
+        existentials = [x for x in obj.terms if isinstance(x, Quantifier.Existential)]
 
-        if len(universals) == 0:
-            return self
+        if len(universals) != 0:
 
-        new_universal = functools.reduce(lambda x, y: x.coalesce(y), universals)
+            LOGGER.debug("Coalescing Universals")
+            new_universal = functools.reduce(lambda x, y: x.coalesce(y), universals)
+            LOGGER.debug("Coalesced Universal: " + repr(new_universal))
 
-        if len(universals) == len(obj.terms):
+            if len(universals) == len(obj.terms):
 
-            return new_universal
+                LOGGER.debug("Returning plain: " + repr(new_universal))
+
+                return new_universal
+
+            else:
+
+                for term in universals:
+                    obj.remove_term(term)
+
+                obj.set_term(new_universal)
+
+                LOGGER.debug("Returning added: " + repr(obj))
+                return obj
+
+        elif len(existentials) != 0 and len(universals) == 0:
+
+            LOGGER.debug("Merging nested existentials")
+            
+            variables = []
+            terms = []
+            for quant in existentials:
+                variables += quant.variables
+                terms.append(quant.terms[0])
+
+            for term in obj.terms:
+                if term not in existentials:
+                    terms.append(term)
+
+            
+            terms = [type(self)(terms)]
+            return Quantifier.Existential(variables, terms)
 
         else:
 
-            for term in universals:
-                obj.remove_term(term)
-
-            obj.set_term(new_universal)
             return obj
+
 
 
 class Disjunction(Connective):
@@ -280,71 +360,110 @@ class Disjunction(Connective):
                 return False
 
             elif isinstance(term, Quantifier.Quantifier):
-                return False
+                raise ValueError("Found nested quantifier in disjunction!")
+
+            elif isinstance(term, Disjunction):
+                raise ValueError("Found nested disjunction within disjunction")
 
         return True
 
     def to_onf(self):
         '''
-        Precondition: It doesn't have any quantifiers as children:w
-        Postcondition: Without recursion this term is happy being a 
+        If we have a conjunction nested under the disjunction we need to
+        distribute.
         '''
 
-        is_onf = False
-        ret = copy.deepcopy(self)
+        working = copy.deepcopy(self)
 
         if self.is_onf():
             return copy.deepcopy(self)
 
-        while not is_onf:
+        while True:
 
             over = None
-            terms = ret.get_term()
+            terms = working.get_term()
 
             for term in terms:
 
-                if isinstance(term, Conjunction):
+                LOGGER.debug("++" + repr(term))
+                LOGGER.debug(type(term))
 
+                if isinstance(term, Disjunction):
                     over = term
+                    LOGGER.debug("Distributing over a nested Disjunction: " + repr(over))
+                    LOGGER.debug("Distributing over a nested Disjunction: " + repr(working))
+                    #raise ValueError("Somehow have a disjunction nested in a disjunction")
+                    break
+
+                elif isinstance(term, Conjunction):
+                    over = term
+                    LOGGER.debug("Distributing over a nested Conjunction: " + repr(over))
                     break
 
                 elif isinstance(term, Quantifier.Quantifier):
 
                     raise ValueError('Broaden quantifiers first skippy!')
 
-            # Hueristic to distribute smarter?
+                else:
+
+                    LOGGER.debug("Found a Predicate")
+
             distribute = terms[0] if terms[0] != over else terms[1] 
 
-            ret = ret.distribute(distribute, over)
+            if over is not None:
+                working = working.distribute(distribute, over)
 
-            if ret.is_onf():
-                is_onf = True
+            LOGGER.debug("Current working: " + repr(working))
+            if working.is_onf():
+                break
 
-        return ret
+        return working
 
     def coalesce(self):
         '''
-        Look through for any quantifier children that should be merged
+        Coalesce or merge any like quantifiers held as terms of this
+        connective. Disjunctions will coalesce existentials and will merge
+        universals.
         '''
 
         obj = copy.deepcopy(self)
 
         existentials = [x for x in obj.terms if isinstance(x, Quantifier.Existential)]
+        universals = [x for x in obj.terms if isinstance(x, Quantifier.Universal)]
 
-        if len(existentials) == 0:
+        if len(existentials) != 0:
 
-            return self
+            LOGGER.debug("Coalescing existentials")
+            new_existential = functools.reduce(lambda x, y: x.coalesce(y), existentials)
 
-        new_existential = functools.reduce(lambda x, y: x.coalesce(y), existentials)
+            if len(existentials) == len(obj.terms):
+                return new_existential
 
-        if len(existentials) == len(obj.terms):
+            else:
+                for term in existentials:
+                    obj.remove_term(term)
 
-            return new_existential
+                obj.set_term(new_existential)
+                return obj
+
+        elif len(universals) != 0 and len(existentials) == 0:
+
+            LOGGER.debug("Merging nested Universals")
+            variables = []
+            terms = []
+            for quant in universals:
+                variables += quant.variables
+                terms.append(quant.terms[0])
+
+            for term in obj.terms:
+                LOGGER.debug("Adding term: " + repr(term))
+                if term not in universals:
+                    terms.append(term)
+
+            terms = [type(self)(terms)]
+            return Quantifier.Universal(variables, terms)
 
         else:
 
-            for term in existentials:
-                obj.remove_term(term)
-
-            obj.set_term(new_existential)
             return obj
+

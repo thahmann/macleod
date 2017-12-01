@@ -3,10 +3,14 @@
 @version 0.0.2
 """
 
+import logging
+
 import macleod.logical.Logical as Logical
 import macleod.logical.Symbol as Symbol
 
 import copy
+
+LOGGER = logging.getLogger(__name__)
 
 class Quantifier(Logical.Logical):
 
@@ -26,13 +30,32 @@ class Quantifier(Logical.Logical):
         else:
             self.terms = [term]
 
-
     def is_onf(self):
         '''
-        Really a quantifier is in onf only if it's applied term is in onf
+        A Quantifier can only be in ONF if it is applied to another Quantifer
+        and if it's term is in ONF.
         '''
 
         return self.terms[0].is_onf()
+
+    def to_onf(self):
+        '''
+        A Quantifier enters ONF by making it's term ONF.
+
+        :return Quantifier, new Quantifier object whose children should be in ONF
+        '''
+
+        if self.is_onf():
+
+            return copy.deepcopy(self)
+
+        else:
+
+            new_child = copy.deepcopy(self.terms[0])
+            new_child = new_child.to_onf()
+
+            return type(self)(self.variables, [new_child])
+        
 
     def add_variables(self, variables):
         
@@ -87,8 +110,6 @@ class Quantifier(Logical.Logical):
         renamed variables as needed. Must be a B
         '''
 
-        # TODO Based on how this is used, can short-circuit subtrees of different quantifier
-
         ret_object = copy.deepcopy(self)
 
         def broaden(symbol, parent, quantifier):
@@ -96,32 +117,53 @@ class Quantifier(Logical.Logical):
             top_q = quantifier[0]
 
             if parent is not None:
+
                 if isinstance(symbol, Existential) or isinstance(symbol, Universal):
 
                     symbol_classname = type(symbol).__name__
 
-                    #First fix parent references!
+                    LOGGER.debug("Quantifier: " + repr(top_q))
+                    LOGGER.debug("Symbol: " + repr(symbol))
+                    LOGGER.debug("Parent: " + repr(parent))
+
                     parent.remove_term(symbol)
                     parent.set_term(symbol.get_term())
+
+                    LOGGER.debug("Parent after: " + repr(parent))
+                    LOGGER.debug("Symbol after: " + repr(symbol))
+                    LOGGER.debug("Quantifier after: " + repr(top_q))
 
                     #Second version A -- if quantifiers match
                     if isinstance(symbol, type(top_q)):
                         top_q.add_variables(symbol.variables)
 
+                        LOGGER.debug("Broadened Quantifier to parent")
+                        LOGGER.debug(repr(top_q))
+
                     #Second version B -- if quantifiers don't match
                     else:
+
                         everything = top_q.get_term()
                         new_quantifier = globals()[symbol_classname](symbol.variables, everything)
+                        new_quantifier.terms = top_q.get_term()
+
+                        LOGGER.debug("New Quantifier: " + repr(new_quantifier))
 
                         #Third set upper quantifier to new quantifier
                         top_q.set_term(new_quantifier)
                         quantifier[0] = new_quantifier
+
+                        LOGGER.debug("Reset top quantifier")
+                        LOGGER.debug(repr(top_q))
+                        LOGGER.debug(repr(quantifier[0]))
 
 
         def bfs_broaden(symbol, left):
 
             quantifier = [symbol]
             seen = set()
+
+            left.append((symbol, None))
 
             for item in symbol.get_term():
                 left.append((item, None))
@@ -133,6 +175,7 @@ class Quantifier(Logical.Logical):
                 stack = [x for x in left if (x[1] == current_parent and not isinstance(x, Symbol.Predicate))]
                 for item in stack:
                     if isinstance(item[0], type(quantifier[0])):
+                        LOGGER.debug("+++ " + repr(item))
                         broaden(item[0], item[1], quantifier)
                         left.remove(item)
                         for term in item[0].get_term():
@@ -140,6 +183,7 @@ class Quantifier(Logical.Logical):
                         stack.remove(item)
 
                 for item_left in stack:
+                    LOGGER.debug("--- " + repr(item))
                     broaden(item_left[0], item_left[1], quantifier)
                     left.remove(item_left)
                     if not isinstance(item_left[0], Symbol.Predicate):

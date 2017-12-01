@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 import macleod.Ontology as Ontology
+from macleod.Ontology import pretty_print
 import macleod.logical.Logical as Logical
 import macleod.logical.Connective as Connective
 import macleod.logical.Logical as Logical
@@ -15,7 +16,7 @@ import macleod.logical.Negation as Negation
 import macleod.logical.Quantifier as Quantifier
 import macleod.logical.Symbol as Symbol
 
-LOGGER = logging.getLogger('Parser')
+LOGGER = logging.getLogger(__name__)
 
 tokens = (
     "LPAREN",
@@ -332,12 +333,18 @@ def parse_file(path, sub, base, resolve=False):
     return ontology
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Parsing our stuff!')
-    parser.add_argument('-f', '--file', type=str, help='file', required=True)
-    parser.add_argument('-b', '--base', type=str, help='basepath', required=True)
-    parser.add_argument('-s', '--sub', type=str, help='substitution string', required=True)
+
+    # Support conditional parameters
+    import sys
+
+    parser = argparse.ArgumentParser(description='Utility function to read and translate Common Logic Interchange Format (.clif) files.')
+    parser.add_argument('-f', '--file', type=str, help='Path to Clif file to parse', required=True)
+    parser.add_argument('-p', '--ffpcnf', action="store_true", help='Automatically convert axioms to function-free prenex conjuntive normal form', default=False)
     parser.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    parser.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files')
+    parser.add_argument('-s', '--sub', required='--resolve' in sys.argv, type=str, help='String to replace with basepath found in imports')
     args = parser.parse_args()
 
+    LOGGER.warning("DERP")
     ontology = parse_file(args.file, args.sub, args.base, args.resolve)
-    print(repr(ontology))
+    pretty_print(ontology, args.ffpcnf)
