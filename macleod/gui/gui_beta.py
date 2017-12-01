@@ -1,17 +1,22 @@
-from tkinter import *
+import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 from os import path
 import tkinter.scrolledtext as st
 from CustomNotebook import *
 
-class GUI(Tk):
+class GUI(tk.Tk):
     def __init__(self, *args, **kwargs):
-        Tk.__init__(self, *args, **kwargs)
-        # set up the tabs
+        tk.Tk.__init__(self, *args, **kwargs)
+        # set up the window
         self.tab_controller = CustomNotebook(self)
-        tab = Editor(self.tab_controller, self, "")
+        self.explorer_bar = ExplorerBar(self)
+        self.information_bar = InformationBar(self)
         self.new_tab()
-        self.tab_controller.pack(fill="both")
+
+        self.explorer_bar.pack(side="left", fill="y", expand=True, anchor="w")
+        self.information_bar.pack(side="right", fill="y", expand=True, anchor="e")
+        self.tab_controller.pack(fill="both", expand=True)
 
     def open_file(self, file):
         new_editor = Editor(self.tab_controller, self, file.read())
@@ -21,7 +26,7 @@ class GUI(Tk):
     def save_file(self, file):
         window = self.tab_controller.select()
         current_editor = self.tab_controller.children[window.split('.')[2]]
-        buffer = current_editor.textPad.get("1.0", END)
+        buffer = current_editor.textPad.get("1.0", tk.END)
         file.write(buffer)
         self.tab_controller.tab(window, text=path.basename(file.name))
 
@@ -31,16 +36,20 @@ class GUI(Tk):
         self.tab_controller.tab(tab, text="Untitled "+str(self.tab_controller.index("end"))+".clif")
         self.tab_controller.select(tab)
 
-class Editor(Frame):
+class Editor(tk.Frame):
     def __init__(self, parent, controller, text):
-        Frame.__init__(self, parent)
+        tk.Frame.__init__(self, parent)
         self.textPad = st.ScrolledText(self)
-        self.textPad.pack(fill="both")
-        self.textPad.insert(INSERT, text)
+        self.textPad.pack(fill="both", expand=True)
+        self.textPad.insert(tk.INSERT, text)
 
-class Sidebar(Frame):
-    def __init__(self, parent, controller):
-        print("STUFF GOES HERE")
+class InformationBar(ttk.Treeview):
+    def __init__(self, parent):
+        ttk.Treeview.__init__(self, parent)
+
+class ExplorerBar(ttk.Treeview):
+    def __init__(self, parent):
+        ttk.Treeview.__init__(self, parent)
 
 app = GUI()
 
@@ -63,14 +72,13 @@ def save():
 def new():
     app.new_tab()
 
-menubar = Menu(app)
-filemenu = Menu(menubar, tearoff=0)
+menubar = tk.Menu(app)
+filemenu = tk.Menu(menubar, tearoff=0)
 
 filemenu.add_command(label="New File", command=new)
 filemenu.add_command(label="Open", command=open)
 filemenu.add_command(label="Save", command=save)
 filemenu.add_command(label="Quit", command=quit)
-
 
 menubar.add_cascade(label="File", menu=filemenu)
 
