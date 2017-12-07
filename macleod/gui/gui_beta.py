@@ -27,6 +27,7 @@ class GUI(tk.Tk):
         new_editor = Editor(self.tab_controller, self, file.read())
         self.tab_controller.add(new_editor, sticky="nsew", text=os.path.basename(file.name))
         self.tab_controller.select(new_editor)
+        file.close()
 
     def save_file(self, file):
         window = self.tab_controller.select()
@@ -58,8 +59,9 @@ class ExplorerBar(ttk.Treeview):
         ttk.Treeview.__init__(self, parent)
         self.file_img = PhotoImage(data=FILE_IMAGE)
         self.folder_img = PhotoImage(data=FOLDER_IMAGE)
-        root_node = self.insert('', 'end', text=os.path.abspath(project_path), open=True)
+        root_node = self.insert('', 'end', text=os.path.abspath(project_path), open=True, image=self.folder_img)
         self.generate_directory(root_node, project_path)
+        self.bind("<Double-1>", self.double_click)
 
     def generate_directory(self, parent, path):
         for p in os.listdir(path):
@@ -69,12 +71,26 @@ class ExplorerBar(ttk.Treeview):
             oid = self.insert(parent, 'end', text=p, open=False, image=cur_image)
             if isdir:
                 self.generate_directory(oid, abspath)
+
+    def double_click(self, event):
+        item = self.selection()[0]
+        path = self.get_path(item, self.item(item, "text"))
+        isdir = os.path.isdir(path)
+        if not isdir:
+            app.open_file(open(path))
+
+
+    def get_path(self, item, path):
+        if self.parent(item) == "":
+            return path
+        path = os.path.join(self.item(self.parent(item), "text"), path)
+        return self.get_path(self.parent(item), path)
+
 app = GUI(os.curdir)
 
-
-def open():
+def open_file():
     file = filedialog.askopenfile(filetypes=[("Common Logic Files", "*.clif"),
-                                      ("All", '*')],)
+                                      ("All", '*')], initialdir=os.curdir)
     app.open_file(file)
 
 def save():
@@ -87,11 +103,13 @@ def save():
 def new():
     app.new_tab()
 
+
+
 menubar = tk.Menu(app)
 filemenu = tk.Menu(menubar, tearoff=0)
 
 filemenu.add_command(label="New File", command=new)
-filemenu.add_command(label="Open", command=open)
+filemenu.add_command(label="Open", command=open_file)
 filemenu.add_command(label="Save", command=save)
 filemenu.add_command(label="Quit", command=exit)
 
@@ -100,3 +118,4 @@ menubar.add_cascade(label="File", menu=filemenu)
 app.title("macleod")
 app.config(menu=menubar)
 app.mainloop()
+
