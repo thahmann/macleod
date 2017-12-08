@@ -4,6 +4,7 @@ from tkinter import messagebox
 import os
 import tkinter.scrolledtext as st
 from CustomNotebook import *
+from tkinter import font
 
 FILE_IMAGE = """R0lGODlhEAAQAKEAACEhIa3Y5sDv/yEhISH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAAMALAAAAAAQ
                 ABAAAAIy3ICpxiABYwCTnSchrcZljQEdlini9ZVjKp0eq60w98Iuyd4zjaf6fBMIh0TB6WBKGgoAOw=="""
@@ -54,27 +55,42 @@ class InformationBar(ttk.Treeview):
         ttk.Treeview.__init__(self, parent)
 
 #https://stackoverflow.com/questions/16746387/tkinter-treeview-widget
-class ExplorerBar(ttk.Treeview):
+class ExplorerBar(tk.Frame):
     def __init__(self, parent, project_path):
-        ttk.Treeview.__init__(self, parent)
+        tk.Frame.__init__(self, parent)
+
         self.file_img = PhotoImage(data=FILE_IMAGE)
         self.folder_img = PhotoImage(data=FOLDER_IMAGE)
-        root_node = self.insert('', 'end', text=os.path.abspath(project_path), open=True, image=self.folder_img)
+
+        xscrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
+        yscrollbar = tk.Scrollbar(self)
+        self.tree = ttk.Treeview(self, xscrollcommand=xscrollbar.set,
+                                 yscrollcommand=yscrollbar.set, )
+        xscrollbar.config(command=self.tree.xview)
+        yscrollbar.config(command=self.tree.yview)
+        root_node = self.tree.insert('', 'end', text=os.path.abspath(project_path),
+                                     open=True, image=self.folder_img)
         self.generate_directory(root_node, project_path)
-        self.bind("<Double-1>", self.double_click)
+        self.tree.bind("<Double-1>", self.double_click)
+
+        xscrollbar.pack(side="bottom", fill="x", anchor="s")
+        yscrollbar.pack(side="right", fill="y")
+        self.tree.pack(side="top", fill="both", expand=True)
+        self.get_max_width()
+
 
     def generate_directory(self, parent, path):
         for p in os.listdir(path):
             abspath = os.path.join(path, p)
             isdir = os.path.isdir(abspath)
             cur_image = self.file_img if not isdir else self.folder_img
-            oid = self.insert(parent, 'end', text=p, open=False, image=cur_image)
+            oid = self.tree.insert(parent, 'end', text=p, open=False, image=cur_image)
             if isdir:
                 self.generate_directory(oid, abspath)
 
     def double_click(self, event):
-        item = self.selection()[0]
-        path = self.get_path(item, self.item(item, "text"))
+        item = self.tree.selection()[0]
+        path = self.get_path(item, self.tree.item(item, "text"))
         isdir = os.path.isdir(path)
         if not isdir:
             app.open_file(open(path))
@@ -83,8 +99,15 @@ class ExplorerBar(ttk.Treeview):
     def get_path(self, item, path):
         if self.parent(item) == "":
             return path
-        path = os.path.join(self.item(self.parent(item), "text"), path)
-        return self.get_path(self.parent(item), path)
+        path = os.path.join(self.tree.item(self.tree.parent(item), "text"), path)
+        return self.get_path(self.tree.parent(item), path)
+
+    def get_max_width(self, node, current_width):
+        for child in self.tree.get_children(node):
+            ass = font.NORMAL
+            ass.le
+            if len(self.tree.get_children(child)) > 0:
+                return self.get_max_width(child)
 
 app = GUI(os.curdir)
 
