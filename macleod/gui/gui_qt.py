@@ -75,6 +75,7 @@ class MacleodWindow(QMainWindow):
         text_widget = self.editor_pane.currentWidget()
         filename = QFileDialog.getSaveFileName(self, "Open File", str(os.curdir),
                                                "Common Logic Files (*.clif);; All files (*)")
+
         f = open(filename[0], 'w')
         with f:
             f.write(text_widget.toPlainText())
