@@ -27,10 +27,15 @@ class MacleodWindow(QMainWindow):
 
         # file menu and associated actions
         file_menu = main_menu.addMenu('File')
+        new_action = QAction("New File", self)
+        file_menu.addAction(new_action)
+        new_action.triggered.connect(self.new_command)
         open_action = QAction("Open", self)
         file_menu.addAction(open_action)
         open_action.triggered.connect(self.open_command)
-        file_menu.addAction("Save")
+        save_action = QAction("Save", self)
+        file_menu.addAction(save_action)
+        save_action.triggered.connect(self.save_command)
 
         # edit menu and associated actions
         editMenu = main_menu.addMenu('Edit')
@@ -63,6 +68,18 @@ class MacleodWindow(QMainWindow):
 
         self.editor_pane.add_file(filename[0])
 
+    def new_command(self):
+        self.editor_pane.add_file()
+
+    def save_command(self):
+        text_widget = self.editor_pane.currentWidget()
+        filename = QFileDialog.getSaveFileName(self, "Open File", str(os.curdir),
+                                               "Common Logic Files (*.clif);; All files (*)")
+        f = open(filename[0], 'w')
+        with f:
+            f.write(text_widget.toPlainText())
+        self.editor_pane.setTabText(self.editor_pane.currentIndex(), os.path.basename(filename[0]))
+
 class EditorPane(QTabWidget):
     def __init__(self, parent=None):
         QTabWidget.__init__(self, parent)
@@ -77,12 +94,14 @@ class EditorPane(QTabWidget):
     def add_file(self, path=None):
         file_title = "Untitled " + str(self.untitled_file_counter) if path is None else os.path.basename(path)
         new_tab = QTextEdit()
+        new_tab.setLineWrapMode(QTextEdit.NoWrap)
         self.addTab(new_tab, file_title)
         if path is not None:
             f = open(path, 'r')
             with f:
                 new_tab.setText((f.read()))
         self.setCurrentWidget(new_tab)
+        self.untitled_file_counter += 1
 
     def remove_tab(self, index):
         widget = self.widget(index)
