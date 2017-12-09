@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 import os
 
 class MacleodWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, standard_output=None):
         super(MacleodWindow, self).__init__(parent)
         self.setup_widgets()
         self.setup_layout()
@@ -94,13 +94,21 @@ class EditorPane(QTabWidget):
 
     def add_file(self, path=None):
         file_title = "Untitled " + str(self.untitled_file_counter) if path is None else os.path.basename(path)
+        file_data = ""
+        if path is not None:
+            try:
+                f = open(path, 'r')
+                with f:
+                    file_data = f.read()
+            except Exception as e:
+                print(e)
+                return
+
         new_tab = QTextEdit()
         new_tab.setLineWrapMode(QTextEdit.NoWrap)
+        new_tab.setText(file_data)
         self.addTab(new_tab, file_title)
-        if path is not None:
-            f = open(path, 'r')
-            with f:
-                new_tab.setText((f.read()))
+
         self.setCurrentWidget(new_tab)
         self.untitled_file_counter += 1
 
@@ -130,10 +138,7 @@ class ProjectExplorer(QTreeView):
         isdir = os.path.isdir(path)
         if isdir:
             return
-        try:
-            window.editor_pane.add_file(path)
-        except Exception as e:
-            print(e)
+        window.editor_pane.add_file(path)
 
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
@@ -143,9 +148,16 @@ class Console(QTextEdit):
     def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
 
+    def write(self, text):
+        self.append(str(text))
+
 app = QApplication(sys.argv)
 window = MacleodWindow()
 window.setWindowTitle("Macleod")
 window.show()
+
+# let's catch the output of the file in our console
+backup = sys.stdout
+sys.stdout = window.console
 
 sys.exit(app.exec_())
