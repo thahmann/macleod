@@ -2,7 +2,16 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QTabWidget, QTextEdit, QMainWindow, \
     QFileSystemModel, QTreeWidget, QSplitter, QLabel, QFileDialog, QAction, QTreeView
 from PyQt5.QtCore import Qt
+import gui_file_helper
 import os
+
+class MacleodApplication(QApplication):
+    def __init__(self, argv, output_backup):
+        super(MacleodApplication, self).__init__(argv)
+        self.output_backup = output_backup
+    def closingDown(self):
+        sys.stdout = self.output_backup
+        super(MacleodApplication, self).closingDown()
 
 class MacleodWindow(QMainWindow):
     def __init__(self, parent=None, standard_output=None):
@@ -36,6 +45,12 @@ class MacleodWindow(QMainWindow):
         save_action = QAction("Save", self)
         file_menu.addAction(save_action)
         save_action.triggered.connect(self.save_command)
+        saveas_action = QAction("Save As..", self)
+        file_menu.addAction(saveas_action)
+        saveas_action.triggered.connect(self.saveas_command)
+        run_action = QAction("Run", self)
+        file_menu.addAction(run_action)
+        run_action.triggered.connect(self.run_command)
 
         # edit menu and associated actions
         editMenu = main_menu.addMenu('Edit')
@@ -73,23 +88,44 @@ class MacleodWindow(QMainWindow):
 
     def save_command(self):
         text_widget = self.editor_pane.currentWidget()
+        if self.editor_pane.file_helper.get_path(text_widget) is None:
+            return self.saveas_command()
+        f = open(self.editor_pane.file_helper.get_path(text_widget), 'w')
+        with f:
+            f.write(text_widget.toPlainText())
+        self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
+
+
+    def saveas_command(self):
+        text_widget = self.editor_pane.currentWidget()
         filename = QFileDialog.getSaveFileName(self, "Open File", str(os.curdir),
                                                "Common Logic Files (*.clif);; All files (*)")
+        if filename[0] == "":
+            return
+
+
 
         f = open(filename[0], 'w')
         with f:
             f.write(text_widget.toPlainText())
         self.editor_pane.setTabText(self.editor_pane.currentIndex(), os.path.basename(filename[0]))
+        self.editor_pane.file_helper.add_path(text_widget, filename[0])
+        self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
+
+
+    def run_command(self):
+        self.console.flush()
+
+        # testing dirty tracking, make sure to remove
+        print(self.editor_pane.file_helper.is_dirty(self.editor_pane.currentWidget(), self.editor_pane.currentWidget().toPlainText()))
 
 class EditorPane(QTabWidget):
     def __init__(self, parent=None):
         QTabWidget.__init__(self, parent)
         self.setTabsClosable(True)
-
         self.untitled_file_counter = 1
-
+        self.file_helper = gui_file_helper.GUI_file_helper()
         self.add_file()
-
         self.tabCloseRequested.connect(self.remove_tab)
 
     def add_file(self, path=None):
@@ -108,9 +144,13 @@ class EditorPane(QTabWidget):
         new_tab.setLineWrapMode(QTextEdit.NoWrap)
         new_tab.setText(file_data)
         self.addTab(new_tab, file_title)
-
         self.setCurrentWidget(new_tab)
+
+        self.file_helper.add_clean_hash(new_tab, new_tab.toPlainText())
+        if path is None:
+            return
         self.untitled_file_counter += 1
+        self.file_helper.add_path(new_tab, path)
 
     def remove_tab(self, index):
         widget = self.widget(index)
@@ -151,13 +191,16 @@ class Console(QTextEdit):
     def write(self, text):
         self.append(str(text))
 
-app = QApplication(sys.argv)
+    def flush(self):
+        self.setText("")
+
+# just in case anything gets weird, we will save a pointer to the regular console
+backup = sys.stdout
+
+app = MacleodApplication(sys.argv, backup)
 window = MacleodWindow()
+sys.stdout = window.console
 window.setWindowTitle("Macleod")
 window.show()
-
-# let's catch the output of the file in our console
-backup = sys.stdout
-sys.stdout = window.console
 
 sys.exit(app.exec_())

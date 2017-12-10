@@ -14,6 +14,6 @@ from .Process import *
 from .Ontology import *
 
 # Setup our package level logger
-logging.config.fileConfig(str(Path.home().joinpath('macleod').joinpath('logging.conf')))
+logging.config.fileConfig(str(Path.home().joinpath('.macleod').joinpath('logging.conf')))
 
 __all__ = ["Ontology", "filemgt", "commands", "clif", "ladr", "process", "ReasonerSet", "Reasoner", "ClifModule", "ClifModuleSet", "ClifLemmaSet"]
