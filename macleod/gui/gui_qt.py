@@ -1,9 +1,11 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QTabWidget, QTextEdit, QMainWindow, \
-    QFileSystemModel, QTreeWidget, QSplitter, QLabel, QFileDialog, QAction, QTreeView
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
 import gui_file_helper
 import os
+from bin import check_consistency
+from macleod.ClifModuleSet import ClifModuleSet
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -36,18 +38,27 @@ class MacleodWindow(QMainWindow):
 
         # file menu and associated actions
         file_menu = main_menu.addMenu('File')
+
         new_action = QAction("New File", self)
         file_menu.addAction(new_action)
         new_action.triggered.connect(self.new_command)
+
         open_action = QAction("Open", self)
         file_menu.addAction(open_action)
         open_action.triggered.connect(self.open_command)
+        open_shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
+        open_shortcut.activated.connect(self.open_command)
+
         save_action = QAction("Save", self)
         file_menu.addAction(save_action)
         save_action.triggered.connect(self.save_command)
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_shortcut.activated.connect(self.save_command)
+
         saveas_action = QAction("Save As..", self)
         file_menu.addAction(saveas_action)
         saveas_action.triggered.connect(self.saveas_command)
+
         run_action = QAction("Run", self)
         file_menu.addAction(run_action)
         run_action.triggered.connect(self.run_command)
@@ -88,36 +99,45 @@ class MacleodWindow(QMainWindow):
 
     def save_command(self):
         text_widget = self.editor_pane.currentWidget()
-        if self.editor_pane.file_helper.get_path(text_widget) is None:
+        path = self.editor_pane.file_helper.get_path(text_widget)
+        if path is None:
             return self.saveas_command()
-        f = open(self.editor_pane.file_helper.get_path(text_widget), 'w')
+        f = open(path, 'w')
         with f:
             f.write(text_widget.toPlainText())
         self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
+        return path
 
 
     def saveas_command(self):
         text_widget = self.editor_pane.currentWidget()
         filename = QFileDialog.getSaveFileName(self, "Open File", str(os.curdir),
                                                "Common Logic Files (*.clif);; All files (*)")
-        if filename[0] == "":
-            return
+        path = filename[0]
+        if path == "":
+            return None
 
-
-
-        f = open(filename[0], 'w')
+        f = open(path, 'w')
         with f:
             f.write(text_widget.toPlainText())
-        self.editor_pane.setTabText(self.editor_pane.currentIndex(), os.path.basename(filename[0]))
-        self.editor_pane.file_helper.add_path(text_widget, filename[0])
+        self.editor_pane.setTabText(self.editor_pane.currentIndex(), os.path.basename(path))
+        self.editor_pane.file_helper.add_path(text_widget, path)
         self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
+        return path
 
 
     def run_command(self):
-        self.console.flush()
+        text_widget = self.editor_pane.currentWidget()
+        path = self.save_command()
+        if path is None:
+            return
 
-        # testing dirty tracking, make sure to remove
-        print(self.editor_pane.file_helper.is_dirty(self.editor_pane.currentWidget(), self.editor_pane.currentWidget().toPlainText()))
+        self.console.flush()
+        try:
+            check_consistency.consistent(path, ClifModuleSet(path))
+        except Exception as e:
+            print(e)
+
 
 class EditorPane(QTabWidget):
     def __init__(self, parent=None):
@@ -147,9 +167,9 @@ class EditorPane(QTabWidget):
         self.setCurrentWidget(new_tab)
 
         self.file_helper.add_clean_hash(new_tab, new_tab.toPlainText())
+        self.untitled_file_counter += 1
         if path is None:
             return
-        self.untitled_file_counter += 1
         self.file_helper.add_path(new_tab, path)
 
     def remove_tab(self, index):
@@ -187,6 +207,7 @@ class InformationSidebar(QTreeWidget):
 class Console(QTextEdit):
     def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
+        self.setReadOnly(True)
 
     def write(self, text):
         self.append(str(text))
