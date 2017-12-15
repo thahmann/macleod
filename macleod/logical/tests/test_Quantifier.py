@@ -28,28 +28,39 @@ class QuantifierTest(unittest.TestCase):
     def test_cnf_quantifier_simplfy(self):
 
         alpha = Symbol.Predicate('A', ['x'])
+        beta = Symbol.Predicate('B', ['y'])
 
         uni_one = Quantifier.Universal(['x'], alpha)
-        mixer = uni_one | alpha
+        mixer = uni_one | beta
         uni_two = Quantifier.Universal(['y'], mixer)
 
-        self.assertEqual(repr(uni_two), "∀(y)[(∀(x)[A(x)] | A(x))]")
-        self.assertEqual(repr(uni_two.simplify()), "∀(y,x)[(A(x) | A(x))]")
+        uni_nested = Quantifier.Universal(['z'], alpha & (beta | (alpha & uni_one)))
+        self.assertEqual('∀(z)[(A(x) & (B(y) | (A(x) & ∀(x)[A(x)])))]', repr(uni_nested))
+        self.assertEqual('∀(z,x)[(A(x) & (B(y) | (A(x) & A(x))))]', repr(uni_nested.simplify()))
+
+        self.assertEqual(repr(uni_two), "∀(y)[(∀(x)[A(x)] | B(y))]")
+        self.assertEqual(repr(uni_two.simplify()), "∀(y,x)[(B(y) | A(x))]")
 
     def test_cnf_quantifier_scoping(self):
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['y'])
-        delta = Symbol.Predicate('D', ['z'])
+        a = Symbol.Predicate('A', ['x'])
+        b = Symbol.Predicate('B', ['y'])
+        c = Symbol.Predicate('C', ['z'])
 
-        uni_one = Quantifier.Universal(['x', 'y', 'z'], alpha | beta | delta)
-        exi_one = Quantifier.Existential(['x','y','z'], alpha & beta | delta)
-        term = exi_one | beta
-        term_two = exi_one | beta | uni_one
+        e = Quantifier.Existential(['x'], a)
+        u = Quantifier.Universal(['y'], b)
 
-        self.assertEqual(repr(Quantifier.Universal(['x','y','z'], uni_one).simplify()), "∀(x,y,z)[(A(x) | B(y) | D(z))]")
-        self.assertEqual(repr(Quantifier.Universal(['x','y','z'], term_two).simplify()), "∀(x,y,z)[(∃(x,y,z)[((A(x) & B(y)) | D(z))] | B(y) | (A(x) | B(y) | D(z)))]")
-        self.assertEqual(repr(Quantifier.Universal(['x','y','z'], term_two).simplify().rescope()), "∀(x,y,z)[∃(x,y,z)[(B(y) | (A(x) | B(y) | D(z)) | ((A(x) & B(y)) | D(z)))]]")
+        # Test the effect over an OR
+        self.assertEqual('∃(x)[(A(x) | B(y))]', repr((e | b).rescope()))
+        self.assertEqual('∀(y)[(B(y) | A(x))]', repr((u | a).rescope()))
+
+        # Test the effect over an AND
+        self.assertEqual('∃(x)[(A(x) & B(y))]', repr((e & b).rescope()))
+        self.assertEqual('∀(y)[(B(y) & A(x))]', repr((u & a).rescope()))
+
+        # Test with more than two to make sure things aren't dropped
+        self.assertEqual('∀(y)[(B(y) & (A(x) | C(z) | B(y)))]', repr((u & (a | c | b)).rescope()))
+
 
     def test_cnf_negation(self):
         '''
@@ -114,6 +125,7 @@ class QuantifierTest(unittest.TestCase):
         existential_two = Quantifier.Existential(['x'], a)
 
         # Coalescence over conjunction should merge Universals
+        print("THIS ONE IS FAILING")
         conjunction = universal & universal_two & existential & existential_two
         self.assertEqual(repr(conjunction.coalesce()), '(∃(y)[B(y)] & ∃(x)[A(x)] & ∀(x)[(B(x) & A(x))])')
 

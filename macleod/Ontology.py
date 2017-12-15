@@ -135,11 +135,6 @@ class Ontology(object):
 
         rep += '_' * len(self.name) + '\n'
 
-        #rep += "\n____________ Listing Resolved Imports of {}____________".format(self.name)
-        #for key in self.imports:
-        #    rep += "\n" + repr(self.imports[key])
-        #rep += "\n_________________________________________________"
-
         return rep
 
             

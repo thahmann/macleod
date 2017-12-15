@@ -46,7 +46,6 @@ class Connective(Logical.Logical):
 
         if isinstance(term, type(self)):
             self.terms.extend(copy.deepcopy(term.get_term()))
-
         elif isinstance(term, list):
             self.terms.extend(copy.deepcopy(term))
         else:
@@ -117,13 +116,13 @@ class Connective(Logical.Logical):
         else:
             return altered_self
 
+
     def rescope(self, parent=None):
         '''
         Look at children quantifiers along with parent to decide which
         quantifier to pull out to the front.
 
         Precondition: Already has had like children coalesced
-        
         '''
 
         # Need to update this a few ways
@@ -133,24 +132,49 @@ class Connective(Logical.Logical):
         # 4.) Just return if we don't even have a connective
         # 5.) Handle the dirty case where we have a mix of uncoalesable quantifiers
 
-
-        # Handle trivial case of single quantifier
         quantifiers = [x for x in self.get_term() if isinstance(x, Quantifier.Quantifier)]
-        if len(quantifiers) == 0:
-            LOGGER.debug("Found no quantifiers")
 
-            # Save off edited self
+        if len(quantifiers) == 0:
+
+            LOGGER.debug("No Quantifier children: " + repr(self))
             return self
 
+        # Handle trivial case of single quantifier
         if len(quantifiers) == 1:
-            LOGGER.debug("Found one quantifiers")
+            LOGGER.debug("1 Quantifier: " + repr(quantifiers[0]))
+            LOGGER.debug("TACO: " + repr(self))
 
-            quant = quantifiers.pop()
-            new_terms = quant.get_term()
-            new_terms.extend([x for x in self.get_term() if x != quant])
+            # Ensure we handle an accumulated chain of quantifiers properly
+            top_quant = quantifiers.pop()
+            walker = top_quant
+
+            if len(walker.get_term()) >= 1:
+                base = walker
+                walker = walker.get_term()
+            elif len(walker.get_term()) == 1 and isinstance(walker.get_term()[0], Connective):
+                LOGGER.debug("Shouldn't be a quanit: " + repr(walker.get_term()))
+                base = walker
+                walker = walker.get_term()
+            else:
+                # Walker down any prenex to reach a connective
+                LOGGER.debug("?: " + repr(walker.get_term()))
+                while len(walker.get_term()) == 1 and isinstance(walker.get_term()[0], Quantifier.Quantifier):
+                    LOGGER.debug("made it here once")
+                    base = walker
+                    walker = walker.get_term()
+                    if isinstance(walker, Quantifier.Quantifier) is False:
+                        break
+
+            LOGGER.debug("Walker: " + repr(walker))
+            LOGGER.debug("Base: " + repr(base))
+            new_terms = walker
+            new_terms.extend([x for x in self.get_term() if x != top_quant])
+            LOGGER.debug("New TERMS! " + repr(new_terms))
             new_connective = type(self)(new_terms)
 
-            return type(quant)(quant.variables, new_connective)
+            base_quant = type(base)(base.variables, new_connective)
+            
+            return copy.deepcopy(top_quant)
 
         # Handle lookahead case where two choices exist
         if parent is None:
@@ -169,24 +193,51 @@ class Connective(Logical.Logical):
         dominant_quantifier = [x for x in self.get_term() if isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
         weaker_quantifier = [x for x in self.get_term() if not isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
 
-        LOGGER.debug('Number of weaker quantifiers: ' + str(len(weaker_quantifier)) + ' are ' + str(type(weaker_quantifier[0])))
-        LOGGER.debug('Number of dominant quantifiers: ' + str(len(dominant_quantifier)) + ' are ' + str(type(dominant_quantifier[0])))
+        # Should have only of one of each
+        LOGGER.debug('Number of weaker quantifiers: ' + str(len(weaker_quantifier)) + ' are ' + repr(weaker_quantifier[0]))
+        LOGGER.debug('Number of dominant quantifiers: ' + str(len(dominant_quantifier)) + ' are ' + repr(dominant_quantifier[0]))
 
-        if (len(weaker_quantifier) + len(dominant_quantifier)) != 2:
-            LOGGER.warning('Next step is experimental!')
-            #raise ValueError("Need to coalesce quantifiers before rescoping!")
+        if len(dominant_quantifier) != 1 or len(weaker_quantifier) != 1:
+            raise ValueError("Should only be choosing to promote between two quantifiers")
 
         # Build the new connective
         new_terms = dominant_quantifier[0].get_term()
         new_terms.extend(weaker_quantifier[0].get_term())
         new_terms.extend([x for x in self.get_term() if x != dominant_quantifier[0] and x != weaker_quantifier[0]])
         new_connective = type(self)(new_terms)
-        weaker = type(weaker_quantifier[0])(weaker_quantifier[0].variables, new_connective)
+
+        # Test: Ensure we maintain the connective chain
+        new_term = new_connective.coalesce()
+        LOGGER.debug("Coalesced rescoped subterms: " + repr(new_term))
+
+        weaker = type(weaker_quantifier[0])(weaker_quantifier[0].variables, new_term)
+
+        # Need to ensure we leave partial pre-nex in good form after rescoping
+        if isinstance(new_term, Connective):
+            i = 1
+            scoped_term = new_term.rescope(weaker)
+            while True:
+
+                LOGGER.debug("Rescoped subterm pass #{}: {}".format(i, repr(scoped_term)))
+
+                if isinstance(scoped_term, Connective):
+                    tmp = scoped_term.rescope(weaker)
+                    if (tmp == scoped_term):
+                        break
+                    else:
+                        scoped_term = tmp
+                    i = i + 1
+                else:
+                    break
+
+        LOGGER.debug("YIPEEE: " + repr(scoped_term))
+        LOGGER.debug("PIPEEE: " + repr(weaker))
+        weaker.set_term(scoped_term)
+        # Form our chosen quantifier to the top
         stronger = type(dominant_quantifier[0])(dominant_quantifier[0].variables, weaker)
         LOGGER.debug("Returning new dominant quantifier: " + repr(stronger))
 
         return stronger
-
 
 class Conjunction(Connective):
     '''
@@ -245,81 +296,103 @@ class Conjunction(Connective):
 
         if self.is_onf():
 
-            LOGGER.debug("Connective in ONF form: " + repr(self))
-
             return copy.deepcopy(self)
 
         else:
+
+            LOGGER.debug("Conjunction: " + repr(self) + " not in CNF!")
             
             new_terms = []
 
-            for term in self.terms:
+            for term in copy.deepcopy(self.terms):
 
                 if term.is_onf():
+
                     new_terms.append(term)
+
                 else:
+
+                    LOGGER.debug("Culprit non-CNF term is: " + repr(term))
                     new_terms.append(term.to_onf())
 
-            return Conjunction(new_terms)
+            ret = Conjunction(new_terms)
+            LOGGER.debug("Returning new Conjunction : " + repr(ret))
+            return ret
 
     def coalesce(self):
         '''
         Coalesce or merge any like quantifiers held as terms of this
-        connective. Conjunctions will coalesce universals and will merge
-        existentials.
-
-        precondition: Must not have both universals and existentials
+        connective. Conjunctions will coalesce Universals and will merge
+        Existentials.
         '''
 
         obj = copy.deepcopy(self)
 
-        LOGGER.debug("Attempting to coalesce: " + repr(obj))
-
-        universals = [x for x in obj.terms if isinstance(x, Quantifier.Universal)]
         existentials = [x for x in obj.terms if isinstance(x, Quantifier.Existential)]
+        universals = [x for x in obj.terms if isinstance(x, Quantifier.Universal)]
 
-        if len(universals) != 0:
+        if len(universals) > 1:
 
             LOGGER.debug("Coalescing Universals")
             new_universal = functools.reduce(lambda x, y: x.coalesce(y), universals)
-            LOGGER.debug("Coalesced Universal: " + repr(new_universal))
 
-            if len(universals) == len(obj.terms):
-
-                LOGGER.debug("Returning plain: " + repr(new_universal))
-
-                return new_universal
-
-            else:
-
-                for term in universals:
-                    obj.remove_term(term)
-
-                obj.set_term(new_universal)
-
-                LOGGER.debug("Returning added: " + repr(obj))
-                return obj
-
-        elif len(existentials) != 0 and len(universals) == 0:
-
-            LOGGER.debug("Merging nested existentials")
+            # Ensure we rescope the internals of new quantifier
+            term = new_universal.get_term()[0]
             
+            if isinstance(term, Connective):
+                term = term.rescope(new_universal)
+
+            new_universal.set_term(term)
+
+            # If we only had the existentials just return the new joined one
+            if len(universals) == len(obj.terms):
+                return new_universal
+            else:
+                # Otherwise ensure we don't drop any terms
+                new_terms = [x for x in obj.get_term() if x not in universals]
+                new_terms.append(new_universal)
+                obj.set_term(new_terms)
+                LOGGER.debug(new_terms)
+
+                return type(obj)(new_terms) 
+
+        #elif len(existentials) > 1 and len(universals) == 0:
+        elif len(existentials) > 1:
+
+            LOGGER.debug("Merging nested Existentials")
+
             variables = []
             terms = []
+
             for quant in existentials:
-                variables += quant.variables
-                terms.append(quant.terms[0])
 
-            for term in obj.terms:
-                if term not in existentials:
-                    terms.append(term)
+                variables.extend(quant.variables)
+                terms.extend(quant.get_term())
 
-            
-            terms = [type(self)(terms)]
-            return Quantifier.Existential(variables, terms)
+            exi_terms = [type(self)(terms)]
+            new_existential = Quantifier.Existential(variables, exi_terms)
 
+            # Ensure we rescope the internals of new quantifier
+            term = new_existential.get_term()[0]
+
+            if isinstance(term, Connective):
+                term = term.rescope(new_existential)
+
+            new_existential.set_term(term)
+            LOGGER.debug("New Existential " + repr(new_existential))
+
+            # If the connective only had Universals as children just return the new Universal
+            if len(existentials) == len(obj.terms):
+                return new_existential
+            else:
+                # Ensure we don't drop any terms
+                leftover_terms = [x for x in obj.get_term() if x not in existentials]
+                leftover_terms.append(new_existential)
+
+                new_conjunction = Conjunction(leftover_terms)
+                LOGGER.debug("Merged Conjunction: " + repr(new_conjunction))
+                return new_conjunction
         else:
-
             return obj
 
 
@@ -369,55 +442,58 @@ class Disjunction(Connective):
 
     def to_onf(self):
         '''
-        If we have a conjunction nested under the disjunction we need to
-        distribute.
+        Determine if this disjunction is currently in CNF form. The only way
+        this isn't true is if there is a nested conjunction found. In this
+        case, distribute another term (randomly chosen...) over the nested
+        conjunction.
         '''
 
         working = copy.deepcopy(self)
 
         if self.is_onf():
+
             return copy.deepcopy(self)
 
-        while True:
+        LOGGER.debug("Disjunction: " + repr(self) + " is not in CNF")
 
-            over = None
-            terms = working.get_term()
 
-            for term in terms:
+        conjunct = None
+        terms = working.get_term()
 
-                LOGGER.debug("++" + repr(term))
-                LOGGER.debug(type(term))
-
-                if isinstance(term, Disjunction):
-                    over = term
-                    LOGGER.debug("Distributing over a nested Disjunction: " + repr(over))
-                    LOGGER.debug("Distributing over a nested Disjunction: " + repr(working))
-                    #raise ValueError("Somehow have a disjunction nested in a disjunction")
-                    break
-
-                elif isinstance(term, Conjunction):
-                    over = term
-                    LOGGER.debug("Distributing over a nested Conjunction: " + repr(over))
-                    break
-
-                elif isinstance(term, Quantifier.Quantifier):
-
-                    raise ValueError('Broaden quantifiers first skippy!')
-
-                else:
-
-                    LOGGER.debug("Found a Predicate")
-
-            distribute = terms[0] if terms[0] != over else terms[1] 
-
-            if over is not None:
-                working = working.distribute(distribute, over)
-
-            LOGGER.debug("Current working: " + repr(working))
-            if working.is_onf():
+        # Search for the nested conjunction
+        for term in terms:
+            if isinstance(term, Conjunction):
+                LOGGER.debug("Culprit is nested conjunction: " + repr(term))
+                conjunct = term
                 break
 
-        return working
+        # Pick a distribute term that isn't our conjunct
+        # TODO: Hueristic, always pick the smallest other term first
+        distributive_term = terms[0] if terms[0] != conjunct else terms[1] 
+
+        other_terms = [x for x in terms if (x != conjunct and x != distributive_term)]
+
+        distributed = working.distribute(distributive_term, conjunct)
+
+        return distributed.to_onf()
+
+        # If our original disjunction only had two terms it's now a conjunction
+        #if len(self.terms) == 2:
+
+        #    LOGGER.debug("New Conjunction: " + repr(distributed))
+
+        #else:
+        #    # We had other terms in the disjunction, so we're still not CNF
+        #    #other_terms = [x for x in working.get_term() if (x != conjunct and x != distributive_term)]
+        #    LOGGER.debug("Other terms: " + repr(other_terms))
+        #    LOGGER.debug(repr(distributed))
+
+        #    # Add our freshly distributed terms to the list
+        #    other_terms.append(distributed)
+        #    disjunction = Disjunction(other_terms)
+        #    LOGGER.debug("New Disjunction: " + repr(disjunction))
+
+        #    return disjunction.to_onf()
 
     def coalesce(self):
         '''
@@ -431,39 +507,64 @@ class Disjunction(Connective):
         existentials = [x for x in obj.terms if isinstance(x, Quantifier.Existential)]
         universals = [x for x in obj.terms if isinstance(x, Quantifier.Universal)]
 
-        if len(existentials) != 0:
+        if len(existentials) > 1:
 
             LOGGER.debug("Coalescing existentials")
             new_existential = functools.reduce(lambda x, y: x.coalesce(y), existentials)
+            LOGGER.debug("Coalesced existential: " + repr(new_existential))
 
+            # Ensure we rescope the internals of new quantifier
+            term = new_existential.get_term()[0]
+            
+            if isinstance(term, Connective):
+                term = term.rescope(new_existential)
+
+            new_existential.set_term(term)
+
+            # If we only had the existentials just return the new joined one
             if len(existentials) == len(obj.terms):
                 return new_existential
-
             else:
-                for term in existentials:
-                    obj.remove_term(term)
+                # Otherwise ensure we don't drop any terms
+                new_terms = [x for x in obj.get_term() if x not in existentials]
+                new_terms.append(new_existential)
 
-                obj.set_term(new_existential)
-                return obj
+                return type(obj)(new_terms)
 
-        elif len(universals) != 0 and len(existentials) == 0:
+        #elif len(universals) > 1 and len(existentials) == 0:
+        elif len(universals) > 1:
 
             LOGGER.debug("Merging nested Universals")
             variables = []
             terms = []
+
             for quant in universals:
-                variables += quant.variables
-                terms.append(quant.terms[0])
 
-            for term in obj.terms:
-                LOGGER.debug("Adding term: " + repr(term))
-                if term not in universals:
-                    terms.append(term)
+                variables.extend(quant.variables)
+                terms.extend(quant.get_term())
 
-            terms = [type(self)(terms)]
-            return Quantifier.Universal(variables, terms)
+            uni_terms = [type(self)(terms)]
+            new_universal = Quantifier.Universal(variables, uni_terms)
+            LOGGER.debug("New Universal: " + repr(new_universal))
 
+            # Ensure we rescope the internals of new quantifier
+            term = new_universal.get_term()[0]
+            
+            if isinstance(term, Connective):
+                term = term.rescope(new_universal)
+
+            new_universal.set_term(term)
+
+            # If the connective only had Universals as children just return the new Universal
+            if len(universals) == len(obj.terms):
+                return new_universal
+            else:
+                # Ensure we don't drop any terms
+                leftover_terms = [x for x in obj.get_term() if x not in universals]
+                leftover_terms.append(new_universal)
+                new_disjunction = Disjunction(leftover_terms)
+                LOGGER.debug("New Disjunction: " + repr(new_disjunction))
+                return new_disjunction
         else:
 
             return obj
-

@@ -42,17 +42,27 @@ class Axiom(object):
         ret_object = copy.deepcopy(self.sentence)
 
         # Step 1. Substitute any nested functions!
-        def dfs_functions(term, accumulator):
+        def dfs_functions(term, accumulator, parent):
 
             if isinstance(term, Symbol.Predicate):
 
                 if term.has_functions():
 
+                    #if isinstance(parent, Negation.Negation):
                     clause, axiom = term.substitute_function()
+                    #else:
+                    #    clause, axiom = term.substitute_function()
+
+
                     accumulator.append(axiom)
 
-                    # May need to repeat a few times!
-                    return dfs_functions(clause, accumulator)
+                    ## TODO: Quick fix for negating the negation issue
+                    #if isinstance(parent, Negation.Negation):
+                    #    double_negated = Negation.Negation(clause)
+                    #    return dfs_functions(double_negated, accumulator, term)
+                    #else:
+                    return dfs_functions(clause, accumulator, term)
+
 
                 else:
 
@@ -60,13 +70,13 @@ class Axiom(object):
 
             if isinstance(term, Quantifier.Quantifier):
 
-                return type(term)(term.variables, [dfs_functions(x, accumulator) for x in term.get_term()])
+                return type(term)(term.variables, [dfs_functions(x, accumulator, term) for x in term.get_term()])
 
             else:
 
-                return type(term)([dfs_functions(x, accumulator) for x in term.get_term()])
+                return type(term)([dfs_functions(x, accumulator, term) for x in term.get_term()])
 
-        return Axiom(dfs_functions(ret_object, []))
+        return Axiom(dfs_functions(ret_object, [], None))
 
     def standardize_variables(self):
         '''
@@ -169,13 +179,15 @@ class Axiom(object):
     def to_pcnf(self):
 
         new = copy.deepcopy(self)
-        LOGGER.debug('START ' + repr(new))
+        LOGGER.debug("Initial Axiom: " + repr(new))
         ff = new.substitute_functions()
-        LOGGER.debug('FF ' + repr(ff))
+        LOGGER.debug("Substitute Functions: " + repr(ff))
         std_var = ff.standardize_variables()
-        LOGGER.debug('STD ' + repr(std_var))
+        LOGGER.debug("Standardized Variables: " + repr(std_var))
         neg = std_var.push_negation()
-        LOGGER.debug('NEG ' + repr(neg))
+        LOGGER.debug("Pushed negations: " + repr(neg))
+
+        # Grab out starting logical
         obj = neg.sentence
 
         def reverse_bfs(root):
@@ -204,65 +216,81 @@ class Axiom(object):
             return reversed(accumulator)
 
         queue = reverse_bfs(obj)
-        #for thing in queue:
-        #    print(repr(thing))
 
+        LOGGER.debug("Beginning reversed BFS!")
         # Technically this is our reverse BFS
         for term, parent in queue:
 
+            LOGGER.debug("Current term: " + repr(term))
+            LOGGER.debug("Current parent: " + repr(parent))
+
             if isinstance(term, Quantifier.Quantifier):
 
-                LOGGER.debug("Need to work on quantifier now")
+                LOGGER.debug("Quantifier detected: " + repr(term))
 
                 # Absorb like-quantifier children, may require multiple passes
+                i = 1
                 simplified = term.simplify()
                 while True:
+                    LOGGER.debug("Simplified pass #{}: {}".format(i, repr(simplified)))
                     temp = simplified.simplify()
                     if str(temp) == str(simplified):
                         break
                     else:
                         simplified = temp
 
-                LOGGER.debug("Simplified: " + repr(simplified))
+                    i = i + 1
 
-                # Widen scope of nested quantifiers
-                broadended = simplified.rescope()
-                while True:
-                    temp = broadended.rescope()
-                    if str(temp) == str(broadended):
-                        break
-                    else:
-                        broadended = temp
-
-                #LOGGER.debug("Broadened: " + repr(broadended))
 
                 if not parent is None:
 
                     parent.remove_term(term)
-                    #parent.set_term(simplified)
-                    parent.set_term(broadended)
+                    parent.set_term(simplified)
 
                 else:
 
-                    #obj = simplified
-                    obj = broadended
+                    obj = simplified
 
             elif isinstance(term, Connective.Connective):
 
                 # Quantifier coalescence
-                LOGGER.debug('PRE-CSX ' + repr(term))
+                p = 1
                 new_term = term.coalesce()
+                # Keep rescoping till we push a quantifier outside
+                if isinstance(new_term, Connective.Connective):
+                    i = 1
+                    coalesced_term = new_term.coalesce()
+                    while True:
+                        LOGGER.debug("Coalesce pass #{}: {}".format(p, repr(coalesced_term)))
 
-                # Quantifier scoping
-                LOGGER.debug('CSX ' + repr(new_term))
+                        if isinstance(coalesced_term, Connective.Connective):
+                            tmp = coalesced_term.coalesce()
+                            if (repr(tmp) == repr(coalesced_term)):
+                                break
+                            else:
+                                coalesced_term = tmp
+                            p = p + 1
+                        else:
+                            break
 
-                if not isinstance(new_term, Quantifier.Quantifier):
-                    LOGGER.debug('Rescoping returned connective')
-                    scoped_term = new_term.rescope(parent)
-                else:
-                    LOGGER.debug('Rescoping returned quantifier')
-                    scoped_term = new_term.rescope()
+                LOGGER.debug("Coalesced: " + repr(new_term))
 
+                # Keep rescoping till we push a quantifier outside
+                if isinstance(coalesced_term, Connective.Connective):
+                    i = 1
+                    scoped_term = coalesced_term.rescope(parent)
+                    while True:
+                        LOGGER.debug("Rescoped pass #{}: {}".format(i, repr(scoped_term)))
+
+                        if isinstance(scoped_term, Connective.Connective):
+                            tmp = scoped_term.rescope(parent)
+                            if (tmp == scoped_term):
+                                break
+                            else:
+                                scoped_term = tmp
+                            i = i + 1
+                        else:
+                            break
 
                 if not parent is None:
 
@@ -273,18 +301,7 @@ class Axiom(object):
 
                     obj = scoped_term
 
-        LOGGER.debug('SCP ' + repr(obj))
-
+        LOGGER.debug("Created Prenex: " + repr(obj))
         onf_obj = obj.to_onf()
-        current = repr(onf_obj)
-
-
-        history = [onf_obj]
-        while current != repr(history[-1].to_onf()):
-            LOGGER.debug("Looping again for onf " + repr(onf_obj))
-            history.append(history[-1].to_onf)
-            current = repr(history[-1])
-
-        LOGGER.debug('FF-PCNF ' + repr(onf_obj))
 
         return Axiom(onf_obj)

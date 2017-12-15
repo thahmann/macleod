@@ -75,12 +75,18 @@ class Quantifier(Logical.Logical):
 
     def simplify(self):
         '''
-        Absorb the quantifiers
+        Perform a DFS from a quantifier through it's children to absorb like
+        quantifiers. This function is recursive where, upon reaching a
+        differently typed Quantifier, it'll restart with the new quantifier as
+        the root.
         '''
 
         ret_object = copy.deepcopy(self)
 
         def dfs_simplify(current, parent, root):
+
+            # TODO: Really gotta fix this import nonsense
+            import macleod.logical.Connective as Connective
 
             if parent != current:
                 # Quantifier: either Absorb or Reset
@@ -89,10 +95,12 @@ class Quantifier(Logical.Logical):
                     if parent != None:
 
                         if isinstance(current, type(root)):
-                            # Absorb
+
+                            # Absorb like children
                             root.add_variables(current.variables)
                             parent.remove_term(current)
-                            parent.set_term(current.get_term())
+                            terms = current.get_term()
+                            parent.set_term(terms)
 
                         else:
                             # Reset our root
@@ -154,8 +162,6 @@ class Quantifier(Logical.Logical):
                         quantifier[0] = new_quantifier
 
                         LOGGER.debug("Reset top quantifier")
-                        LOGGER.debug(repr(top_q))
-                        LOGGER.debug(repr(quantifier[0]))
 
 
         def bfs_broaden(symbol, left):
@@ -175,7 +181,6 @@ class Quantifier(Logical.Logical):
                 stack = [x for x in left if (x[1] == current_parent and not isinstance(x, Symbol.Predicate))]
                 for item in stack:
                     if isinstance(item[0], type(quantifier[0])):
-                        LOGGER.debug("+++ " + repr(item))
                         broaden(item[0], item[1], quantifier)
                         left.remove(item)
                         for term in item[0].get_term():
@@ -183,7 +188,6 @@ class Quantifier(Logical.Logical):
                         stack.remove(item)
 
                 for item_left in stack:
-                    LOGGER.debug("--- " + repr(item))
                     broaden(item_left[0], item_left[1], quantifier)
                     left.remove(item_left)
                     if not isinstance(item_left[0], Symbol.Predicate):

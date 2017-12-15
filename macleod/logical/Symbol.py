@@ -7,6 +7,27 @@ import macleod.logical.Logical as Logical
 
 import copy
 
+def generator():
+    '''
+    Utility function to ensure that we provide substituted functions
+    unique renamed variables.
+    '''
+
+    start = 1
+
+    def next_term():
+
+        nonlocal start
+
+        start += 1
+
+        return str(start)
+
+    return next_term
+
+global gen 
+gen = generator()
+
 class Predicate(Logical.Logical):
     '''
     Representation of a FOL predicate, with convenient mappings for arity and
@@ -30,6 +51,9 @@ class Predicate(Logical.Logical):
         # Make sure you make a COPY of everything, no references!
         self.variables = variables[:]
 
+        self.variable_generator = generator()
+
+
     def has_functions(self):
         '''
         Return true if contains nested functions
@@ -42,13 +66,16 @@ class Predicate(Logical.Logical):
 
         return False
 
-    def substitute_function(self):
+    def substitute_function(self, negated=False):
         '''
         Find a function that's nested and replace it by adding a new variable and term
         '''
 
         # TODO This a dirty hack because cyclic imports are painful
         import macleod.logical.Quantifier as Quantifier
+        import macleod.logical.Negation as Negation
+
+        global gen
 
         if not self.has_functions():
             return self
@@ -60,14 +87,19 @@ class Predicate(Logical.Logical):
                 function = var
                 pos = idx
 
-        # TODO Get a global variable singleton
-        n_var = function.name.lower()[0] + '1'
+        # TODO Get a global variable singleon
+        n_var = function.name.lower()[0] + gen()
         f_vars = copy.deepcopy(function.variables)
         f_vars.append(n_var)
         n_pred = Predicate(function.name, f_vars)
         e_vars = copy.deepcopy(self.variables)
         e_vars[pos] = n_var
+
+        #if negated:
+        #    e_pred = Negation.Negation(Predicate(self.name, e_vars))
+        #else:
         e_pred = Predicate(self.name, e_vars)
+
 
         return Quantifier.Universal([n_var], [e_pred & n_pred]), None
 
