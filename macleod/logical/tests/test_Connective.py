@@ -8,8 +8,9 @@ import macleod.logical.Symbol as Symbol
 class ConnectiveTest(unittest.TestCase):
 
     def test_conjunction_form(self):
-        ''' Ensure that the & operator works as intended
-        '''
+        """
+        Ensure basic & operator overloading is working
+        """
 
         alpha = Symbol.Predicate('A', ['x'])
         beta = Symbol.Predicate('B', ['x', 'y'])
@@ -20,7 +21,7 @@ class ConnectiveTest(unittest.TestCase):
 
     def test_disjunction_form(self):
         '''
-        Ensure that the & operator works as intended
+        Ensure basic | operator overloading is working
         '''
 
         alpha = Symbol.Predicate('A', ['x'])
@@ -32,9 +33,7 @@ class ConnectiveTest(unittest.TestCase):
 
     def test_mixed_form(self):
         '''
-        Ensure that the & operator works as intended
-        
-        Note that the '&' operator has a higher precedence in python.
+        Ensure that the &  and | operators work when chained
         '''
 
         alpha = Symbol.Predicate('A', ['x'])

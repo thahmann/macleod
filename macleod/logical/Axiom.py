@@ -278,13 +278,15 @@ class Axiom(object):
                 # Keep rescoping till we push a quantifier outside
                 if isinstance(coalesced_term, Connective.Connective):
                     i = 1
+                    LOGGER.debug("here")
                     scoped_term = coalesced_term.rescope(parent)
+                    LOGGER.debug("here?")
                     while True:
                         LOGGER.debug("Rescoped pass #{}: {}".format(i, repr(scoped_term)))
 
                         if isinstance(scoped_term, Connective.Connective):
                             tmp = scoped_term.rescope(parent)
-                            if (tmp == scoped_term):
+                            if (repr(tmp) == repr(scoped_term)):
                                 break
                             else:
                                 scoped_term = tmp

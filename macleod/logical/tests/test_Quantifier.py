@@ -125,7 +125,6 @@ class QuantifierTest(unittest.TestCase):
         existential_two = Quantifier.Existential(['x'], a)
 
         # Coalescence over conjunction should merge Universals
-        print("THIS ONE IS FAILING")
         conjunction = universal & universal_two & existential & existential_two
         self.assertEqual(repr(conjunction.coalesce()), '(∃(y)[B(y)] & ∃(x)[A(x)] & ∀(x)[(B(x) & A(x))])')
 

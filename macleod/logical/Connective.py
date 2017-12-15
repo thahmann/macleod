@@ -131,50 +131,43 @@ class Connective(Logical.Logical):
         # 3.) Handle the case where we promote the only available quantifier
         # 4.) Just return if we don't even have a connective
         # 5.) Handle the dirty case where we have a mix of uncoalesable quantifiers
+        # 5.) Recursively call rescope to ensure that prenexes stay in good form
 
         quantifiers = [x for x in self.get_term() if isinstance(x, Quantifier.Quantifier)]
+        LOGGER.debug("Working TERM: " + repr(self))
 
         if len(quantifiers) == 0:
 
             LOGGER.debug("No Quantifier children: " + repr(self))
-            return self
+            return copy.deepcopy(self)
 
         # Handle trivial case of single quantifier
         if len(quantifiers) == 1:
-            LOGGER.debug("1 Quantifier: " + repr(quantifiers[0]))
-            LOGGER.debug("TACO: " + repr(self))
 
-            # Ensure we handle an accumulated chain of quantifiers properly
-            top_quant = quantifiers.pop()
-            walker = top_quant
+            # Begin by getting the type of soon to be rescoped quantifier
+            quantifier = quantifiers.pop()
 
-            if len(walker.get_term()) >= 1:
-                base = walker
-                walker = walker.get_term()
-            elif len(walker.get_term()) == 1 and isinstance(walker.get_term()[0], Connective):
-                LOGGER.debug("Shouldn't be a quanit: " + repr(walker.get_term()))
-                base = walker
-                walker = walker.get_term()
-            else:
-                # Walker down any prenex to reach a connective
-                LOGGER.debug("?: " + repr(walker.get_term()))
-                while len(walker.get_term()) == 1 and isinstance(walker.get_term()[0], Quantifier.Quantifier):
-                    LOGGER.debug("made it here once")
-                    base = walker
-                    walker = walker.get_term()
-                    if isinstance(walker, Quantifier.Quantifier) is False:
-                        break
+            # Get all the terms held by the quantifier
+            terms = quantifier.get_term()
+            LOGGER.debug("TERMS: " + repr(terms))
 
-            LOGGER.debug("Walker: " + repr(walker))
-            LOGGER.debug("Base: " + repr(base))
-            new_terms = walker
-            new_terms.extend([x for x in self.get_term() if x != top_quant])
-            LOGGER.debug("New TERMS! " + repr(new_terms))
-            new_connective = type(self)(new_terms)
+            # Add the other terms to from this connective to terms
+            terms.extend([x for x in self.get_term() if x != quantifier])
+            LOGGER.debug("EXTENDED TERMS: " + repr(terms))
 
-            base_quant = type(base)(base.variables, new_connective)
-            
-            return copy.deepcopy(top_quant)
+            # Create a new connective using the terms
+            connective = type(self)(copy.deepcopy(terms))
+
+            # Call rescope on the connective to rebuild the prenex chain
+            LOGGER.debug("Original: " + repr(self))
+            LOGGER.debug("++ : " + repr(connective))
+            rescoped_connective = connective.rescope()
+
+            LOGGER.debug("MADE IT OUT")
+            # Copy the quantifier to a new quantifier with the new connective
+            rescoped_quantifier = type(quantifier)(quantifier.variables, rescoped_connective)
+
+            return rescoped_quantifier
 
         # Handle lookahead case where two choices exist
         if parent is None:
@@ -193,12 +186,12 @@ class Connective(Logical.Logical):
         dominant_quantifier = [x for x in self.get_term() if isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
         weaker_quantifier = [x for x in self.get_term() if not isinstance(x, q_type) and isinstance(x, Quantifier.Quantifier)]
 
+        if len(dominant_quantifier) != 1 or len(weaker_quantifier) != 1:
+            raise ValueError("Should only be choosing to promote between two quantifiers")
+
         # Should have only of one of each
         LOGGER.debug('Number of weaker quantifiers: ' + str(len(weaker_quantifier)) + ' are ' + repr(weaker_quantifier[0]))
         LOGGER.debug('Number of dominant quantifiers: ' + str(len(dominant_quantifier)) + ' are ' + repr(dominant_quantifier[0]))
-
-        if len(dominant_quantifier) != 1 or len(weaker_quantifier) != 1:
-            raise ValueError("Should only be choosing to promote between two quantifiers")
 
         # Build the new connective
         new_terms = dominant_quantifier[0].get_term()
@@ -207,7 +200,11 @@ class Connective(Logical.Logical):
         new_connective = type(self)(new_terms)
 
         # Test: Ensure we maintain the connective chain
-        new_term = new_connective.coalesce()
+        while True:
+            new_term = new_connective.coalesce()
+            if repr(new_term) == repr(new_connective):
+                break
+
         LOGGER.debug("Coalesced rescoped subterms: " + repr(new_term))
 
         weaker = type(weaker_quantifier[0])(weaker_quantifier[0].variables, new_term)
@@ -222,7 +219,7 @@ class Connective(Logical.Logical):
 
                 if isinstance(scoped_term, Connective):
                     tmp = scoped_term.rescope(weaker)
-                    if (tmp == scoped_term):
+                    if (repr(tmp) == repr(scoped_term)):
                         break
                     else:
                         scoped_term = tmp
@@ -339,8 +336,8 @@ class Conjunction(Connective):
             # Ensure we rescope the internals of new quantifier
             term = new_universal.get_term()[0]
             
-            if isinstance(term, Connective):
-                term = term.rescope(new_universal)
+            #if isinstance(term, Connective):
+            #    term = term.rescope(new_universal)
 
             new_universal.set_term(term)
 
@@ -351,8 +348,6 @@ class Conjunction(Connective):
                 # Otherwise ensure we don't drop any terms
                 new_terms = [x for x in obj.get_term() if x not in universals]
                 new_terms.append(new_universal)
-                obj.set_term(new_terms)
-                LOGGER.debug(new_terms)
 
                 return type(obj)(new_terms) 
 
@@ -360,7 +355,6 @@ class Conjunction(Connective):
         elif len(existentials) > 1:
 
             LOGGER.debug("Merging nested Existentials")
-
             variables = []
             terms = []
 
@@ -511,13 +505,12 @@ class Disjunction(Connective):
 
             LOGGER.debug("Coalescing existentials")
             new_existential = functools.reduce(lambda x, y: x.coalesce(y), existentials)
-            LOGGER.debug("Coalesced existential: " + repr(new_existential))
 
             # Ensure we rescope the internals of new quantifier
             term = new_existential.get_term()[0]
             
-            if isinstance(term, Connective):
-                term = term.rescope(new_existential)
+            #if isinstance(term, Connective):
+            #    term = term.rescope(new_existential)
 
             new_existential.set_term(term)
 
@@ -545,7 +538,6 @@ class Disjunction(Connective):
 
             uni_terms = [type(self)(terms)]
             new_universal = Quantifier.Universal(variables, uni_terms)
-            LOGGER.debug("New Universal: " + repr(new_universal))
 
             # Ensure we rescope the internals of new quantifier
             term = new_universal.get_term()[0]
@@ -554,6 +546,7 @@ class Disjunction(Connective):
                 term = term.rescope(new_universal)
 
             new_universal.set_term(term)
+            LOGGER.debug("New Universal " + repr(new_universal))
 
             # If the connective only had Universals as children just return the new Universal
             if len(universals) == len(obj.terms):
@@ -562,9 +555,9 @@ class Disjunction(Connective):
                 # Ensure we don't drop any terms
                 leftover_terms = [x for x in obj.get_term() if x not in universals]
                 leftover_terms.append(new_universal)
+
                 new_disjunction = Disjunction(leftover_terms)
                 LOGGER.debug("New Disjunction: " + repr(new_disjunction))
                 return new_disjunction
         else:
-
             return obj
