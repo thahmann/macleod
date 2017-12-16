@@ -8,6 +8,21 @@ import macleod.logical.Symbol as Symbol
 
 class AxiomTest(unittest.TestCase):
 
+    def test_axiom_simple_function_replacement(self):
+        f = Symbol.Function('f', ['x'])
+        t = Symbol.Function('t', ['y'])
+        p = Symbol.Function('p', ['z'])
+        a = Symbol.Predicate('A', [f, t, p])
+        b = Symbol.Predicate('B', [f, t])
+
+
+        axi = Axiom.Axiom(Quantifier.Universal(['x', 'y', 'z'], a ))
+        self.assertEqual(repr(axi.substitute_functions()), '∀(x,y,z)[∀(f2,t3,p4)[(~A(f2,t3,p4) | (f(x,f2) & t(y,t3) & p(z,p4)))]]')
+
+        c = Symbol.Predicate('C', [Symbol.Function('f', [Symbol.Function('g', [Symbol.Function('h', ['x'])])])])
+        axi = Axiom.Axiom(Quantifier.Universal(['x'], c))
+        self.assertEqual(repr(axi.substitute_functions()), '∀(x)[∀(f5,g6,h7)[(~C(f5) | (h(x,h7) & g(h7,g6) & f(g6,f5)))]]')
+
     def test_axiom_function_replacement(self):
         f = Symbol.Function('f', ['x'])
         t = Symbol.Function('t', ['y'])
@@ -60,7 +75,7 @@ class AxiomTest(unittest.TestCase):
         c = Symbol.Predicate('C', ['z', Symbol.Function('F', ['z'])])
         axi_three = Axiom.Axiom(Quantifier.Universal(['x','y','z'], a | b & c))
         axi_three = axi_three.to_pcnf()
-        self.assertEqual('∀(z,y,x,w)[((A(z) | C(x,w)) & (A(z) | F(x,w)) & (A(z) | B(y)))]', repr(axi_three))
+        self.assertEqual('∀(z,y,x,w,v)[((A(z) | ~C(w,v) | F(w,v)) & (A(z) | B(y)))]', repr(axi_three))
 
         
 if __name__ == '__main__':

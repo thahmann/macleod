@@ -48,19 +48,8 @@ class Axiom(object):
 
                 if term.has_functions():
 
-                    #if isinstance(parent, Negation.Negation):
                     clause, axiom = term.substitute_function()
-                    #else:
-                    #    clause, axiom = term.substitute_function()
-
-
                     accumulator.append(axiom)
-
-                    ## TODO: Quick fix for negating the negation issue
-                    #if isinstance(parent, Negation.Negation):
-                    #    double_negated = Negation.Negation(clause)
-                    #    return dfs_functions(double_negated, accumulator, term)
-                    #else:
                     return dfs_functions(clause, accumulator, term)
 
 
@@ -255,25 +244,26 @@ class Axiom(object):
 
                 # Quantifier coalescence
                 p = 1
-                new_term = term.coalesce()
+                coalesced_term = term.coalesce()
                 # Keep rescoping till we push a quantifier outside
-                if isinstance(new_term, Connective.Connective):
-                    i = 1
-                    coalesced_term = new_term.coalesce()
-                    while True:
-                        LOGGER.debug("Coalesce pass #{}: {}".format(p, repr(coalesced_term)))
+                #if isinstance(new_term, Connective.Connective):
+                #    i = 1
+                #    coalesced_term = new_term.coalesce()
+                #    while True:
+                #        LOGGER.debug("Coalesce pass #{}: {}".format(p, repr(coalesced_term)))
 
-                        if isinstance(coalesced_term, Connective.Connective):
-                            tmp = coalesced_term.coalesce()
-                            if (repr(tmp) == repr(coalesced_term)):
-                                break
-                            else:
-                                coalesced_term = tmp
-                            p = p + 1
-                        else:
-                            break
+                #        if isinstance(coalesced_term, Connective.Connective):
+                #            tmp = coalesced_term.coalesce()
+                #            if (repr(tmp) == repr(coalesced_term)):
+                #                break
+                #            else:
+                #                coalesced_term = tmp
+                #            p = p + 1
+                #        else:
+                #            break
 
-                LOGGER.debug("Coalesced: " + repr(new_term))
+                #LOGGER.debug("Coalesced: " + repr(new_term))
+                LOGGER.debug("Coalesced other: " + repr(coalesced_term))
 
                 # Keep rescoping till we push a quantifier outside
                 if isinstance(coalesced_term, Connective.Connective):
@@ -281,18 +271,18 @@ class Axiom(object):
                     LOGGER.debug("here")
                     scoped_term = coalesced_term.rescope(parent)
                     LOGGER.debug("here?")
-                    while True:
-                        LOGGER.debug("Rescoped pass #{}: {}".format(i, repr(scoped_term)))
+                    #while True:
+                    #    LOGGER.debug("Rescoped pass #{}: {}".format(i, repr(scoped_term)))
 
-                        if isinstance(scoped_term, Connective.Connective):
-                            tmp = scoped_term.rescope(parent)
-                            if (repr(tmp) == repr(scoped_term)):
-                                break
-                            else:
-                                scoped_term = tmp
-                            i = i + 1
-                        else:
-                            break
+                    #    if isinstance(scoped_term, Connective.Connective):
+                    #        tmp = scoped_term.rescope(parent)
+                    #        if (repr(tmp) == repr(scoped_term)):
+                    #            break
+                    #        else:
+                    #            scoped_term = tmp
+                    #        i = i + 1
+                    #    else:
+                    #        break
 
                 if not parent is None:
 

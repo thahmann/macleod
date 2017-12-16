@@ -369,8 +369,8 @@ class Conjunction(Connective):
             # Ensure we rescope the internals of new quantifier
             term = new_existential.get_term()[0]
 
-            if isinstance(term, Connective):
-                term = term.rescope(new_existential)
+            #if isinstance(term, Connective):
+            #    term = term.rescope(new_existential)
 
             new_existential.set_term(term)
             LOGGER.debug("New Existential " + repr(new_existential))
@@ -542,8 +542,8 @@ class Disjunction(Connective):
             # Ensure we rescope the internals of new quantifier
             term = new_universal.get_term()[0]
             
-            if isinstance(term, Connective):
-                term = term.rescope(new_universal)
+            #if isinstance(term, Connective):
+            #    term = term.rescope(new_universal)
 
             new_universal.set_term(term)
             LOGGER.debug("New Universal " + repr(new_universal))
