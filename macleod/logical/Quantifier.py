@@ -73,6 +73,31 @@ class Quantifier(Logical.Logical):
         #Only take unique variables -- so assume uniqueness has already been done!
         #self.variables = list(set(self.variables + variables))
 
+    def reduce(self):
+        '''
+        A pass through which either:
+            1. Does nothing if the child is a Symbol or Negation
+            2. Calls reduce if its child is a Quantifier
+            3. Calls a coalesce + rescope operation if its child is a Connective
+        '''
+
+        import macleod.logical.Negation as Negation
+
+        term = self.terms[0]
+
+        if isinstance(term, Symbol.Predicate) or isinstance(term, Negation.Negation):
+            return self
+
+        elif isinstance(term, Quantifier):
+            self.set_term(term.reduce())
+            return self
+
+        else:
+            term = term.coalesce()
+            term = term.rescope()
+            self.set_term(term)
+            return self
+
     def simplify(self):
         '''
         Perform a DFS from a quantifier through it's children to absorb like

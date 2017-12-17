@@ -14,10 +14,14 @@ class AxiomTest(unittest.TestCase):
         p = Symbol.Function('p', ['z'])
         a = Symbol.Predicate('A', [f, t, p])
         b = Symbol.Predicate('B', [f, t])
+        c = Symbol.Predicate('C', [f])
 
 
         axi = Axiom.Axiom(Quantifier.Universal(['x', 'y', 'z'], a ))
         self.assertEqual(repr(axi.substitute_functions()), '∀(x,y,z)[∀(f2,t3,p4)[(~A(f2,t3,p4) | (f(x,f2) & t(y,t3) & p(z,p4)))]]')
+
+        axi = Axiom.Axiom(Quantifier.Universal(['x',], ~c ))
+        self.assertEqual(repr(axi.substitute_functions()), '∀(x)[~~∀(f5)[(C(f5) | f(x,f5))]]')
 
         c = Symbol.Predicate('C', [Symbol.Function('f', [Symbol.Function('g', [Symbol.Function('h', ['x'])])])])
         axi = Axiom.Axiom(Quantifier.Universal(['x'], c))

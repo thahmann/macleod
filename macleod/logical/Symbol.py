@@ -69,7 +69,7 @@ class Predicate(Logical.Logical):
 
         return False
 
-    def substitute_function(self):
+    def substitute_function(self, negated = False):
         '''
         Find a function that's nested and replace it by adding a new variable and term
         '''
@@ -143,7 +143,12 @@ class Predicate(Logical.Logical):
             term = predicate_accumulator.pop()
 
         predicate = Predicate(self.name, variables)
-        universal = Quantifier.Universal(variable_accumulator, ~predicate | term)
+
+        if negated:
+            # The negation cancels out the normal conditional breakdown
+            universal = Quantifier.Universal(variable_accumulator, predicate | term)
+        else:
+            universal = Quantifier.Universal(variable_accumulator, ~predicate | term)
 
         return universal, predicate_accumulator
 

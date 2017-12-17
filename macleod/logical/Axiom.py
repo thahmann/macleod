@@ -48,10 +48,18 @@ class Axiom(object):
 
                 if term.has_functions():
 
-                    clause, axiom = term.substitute_function()
-                    accumulator.append(axiom)
-                    return dfs_functions(clause, accumulator, term)
+                    if isinstance(parent, Negation.Negation):
+                        clause, axiom = term.substitute_function(negated=True)
 
+                        # Hack to workaround having to patch grandparent term link
+                        clause = ~clause
+
+                    else:
+                        clause, axiom = term.substitute_function()
+
+                    accumulator.append(axiom)
+
+                    return dfs_functions(clause, accumulator, term)
 
                 else:
 
@@ -206,83 +214,24 @@ class Axiom(object):
 
         queue = reverse_bfs(obj)
 
-        LOGGER.debug("Beginning reversed BFS!")
         # Technically this is our reverse BFS
         for term, parent in queue:
 
             LOGGER.debug("Current term: " + repr(term))
             LOGGER.debug("Current parent: " + repr(parent))
 
-            if isinstance(term, Quantifier.Quantifier):
-
-                LOGGER.debug("Quantifier detected: " + repr(term))
-
-                # Absorb like-quantifier children, may require multiple passes
-                i = 1
-                simplified = term.simplify()
-                while True:
-                    LOGGER.debug("Simplified pass #{}: {}".format(i, repr(simplified)))
-                    temp = simplified.simplify()
-                    if str(temp) == str(simplified):
-                        break
-                    else:
-                        simplified = temp
-
-                    i = i + 1
-
-
-                if not parent is None:
-
-                    parent.remove_term(term)
-                    parent.set_term(simplified)
-
-                else:
-
-                    obj = simplified
-
-            elif isinstance(term, Connective.Connective):
+            if isinstance(term, Connective.Connective):
 
                 # Quantifier coalescence
-                p = 1
                 coalesced_term = term.coalesce()
-                # Keep rescoping till we push a quantifier outside
-                #if isinstance(new_term, Connective.Connective):
-                #    i = 1
-                #    coalesced_term = new_term.coalesce()
-                #    while True:
-                #        LOGGER.debug("Coalesce pass #{}: {}".format(p, repr(coalesced_term)))
+                LOGGER.debug("Coalesced: " + repr(coalesced_term))
 
-                #        if isinstance(coalesced_term, Connective.Connective):
-                #            tmp = coalesced_term.coalesce()
-                #            if (repr(tmp) == repr(coalesced_term)):
-                #                break
-                #            else:
-                #                coalesced_term = tmp
-                #            p = p + 1
-                #        else:
-                #            break
-
-                #LOGGER.debug("Coalesced: " + repr(new_term))
-                LOGGER.debug("Coalesced other: " + repr(coalesced_term))
-
-                # Keep rescoping till we push a quantifier outside
                 if isinstance(coalesced_term, Connective.Connective):
-                    i = 1
-                    LOGGER.debug("here")
                     scoped_term = coalesced_term.rescope(parent)
-                    LOGGER.debug("here?")
-                    #while True:
-                    #    LOGGER.debug("Rescoped pass #{}: {}".format(i, repr(scoped_term)))
+                    LOGGER.debug("Rescoped: " + repr(scoped_term))
+                else:
+                    scoped_term = coalesced_term
 
-                    #    if isinstance(scoped_term, Connective.Connective):
-                    #        tmp = scoped_term.rescope(parent)
-                    #        if (repr(tmp) == repr(scoped_term)):
-                    #            break
-                    #        else:
-                    #            scoped_term = tmp
-                    #        i = i + 1
-                    #    else:
-                    #        break
 
                 if not parent is None:
 
@@ -292,6 +241,11 @@ class Axiom(object):
                 else:
 
                     obj = scoped_term
+
+
+        if isinstance(obj, Quantifier.Quantifier):
+            LOGGER.debug("Pre Simplified: " + repr(obj))
+            obj = obj.simplify()
 
         LOGGER.debug("Created Prenex: " + repr(obj))
         onf_obj = obj.to_onf()
