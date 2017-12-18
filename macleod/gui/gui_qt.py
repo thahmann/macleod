@@ -4,8 +4,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 import gui_file_helper
 import os
-from bin import check_consistency
+from macleod.logical import Symbol
 from macleod.ClifModuleSet import ClifModuleSet
+from macleod.parsing import Parser
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -111,7 +112,7 @@ class MacleodWindow(QMainWindow):
 
     def saveas_command(self):
         text_widget = self.editor_pane.currentWidget()
-        filename = QFileDialog.getSaveFileName(self, "Open File", str(os.curdir),
+        filename = QFileDialog.getSaveFileName(self, "Save As..", str(os.curdir),
                                                "Common Logic Files (*.clif);; All files (*)")
         path = filename[0]
         if path == "":
@@ -134,7 +135,8 @@ class MacleodWindow(QMainWindow):
 
         self.console.flush()
         try:
-            check_consistency.consistent(path, ClifModuleSet(path))
+            ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path))
+            self.info_bar.populate_from_ontology(ontology)
         except Exception as e:
             print(e)
 
@@ -203,6 +205,53 @@ class ProjectExplorer(QTreeView):
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
         QTreeWidget.__init__(self, parent)
+        self.setHeaderLabel("Information")
+        self.variables = QTreeWidgetItem()
+        self.variables.setText(0, "Variables")
+        self.predicates = QTreeWidgetItem()
+        self.predicates.setText(0, "Predicates")
+        self.functions = QTreeWidgetItem()
+        self.functions.setText(0, "Functions")
+
+        self.insertTopLevelItem(0, self.variables)
+        self.insertTopLevelItem(0, self.predicates)
+        self.insertTopLevelItem(0, self.functions)
+
+    def populate_from_ontology(self, ontology):
+        for axiom in ontology.axioms:
+            self.recursive_search(axiom.sentence)
+
+    def recursive_search(self, logical):
+        for term in logical.terms:
+            if isinstance(term, Symbol.Predicate) or isinstance(term, Symbol.Function):
+                self.add_symbol(term)
+                continue
+            if isinstance(term, str):
+                self.add_variable(term)
+                continue
+            self.recursive_search(term)
+
+    def add_variable(self, var):
+        variable = QTreeWidgetItem()
+        variable.setText(0, var)
+        self.variables.addChild(variable)
+
+    def add_symbol(self, sym):
+        symbol = QTreeWidgetItem()
+        symbol.setText(0, str(sym))
+        if isinstance(sym, Symbol.Function):
+            symbol.setText(1, str(len(sym.variables)))
+            self.functions.addChild(symbol)
+        else:
+            self.predicates.addChild(symbol)
+        for variable in sym.variables:
+            if isinstance(variable, Symbol.Predicate) or isinstance(variable, Symbol.Function):
+                self.add_symbol(variable)
+                continue
+            if isinstance(variable, str):
+                self.add_variable(variable)
+                continue
+            self.recursive_search(variable)
 
 class Console(QTextEdit):
     def __init__(self, parent=None):
