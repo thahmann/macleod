@@ -178,7 +178,32 @@ class Axiom(object):
         LOGGER.debug('NEG ' + repr(neg))
         obj = neg.sentence
 
-        queue = self.reverse_bfs(obj)
+        def reverse_bfs(root):
+            '''
+            Conduct a regular BFS over the tree packing each layer into a list
+            of [[(term, parent), (term, parent)], ...]
+
+            return that list
+            '''
+
+            accumulator = []
+
+            #left = ([(x, root) for x in root.get_term()])
+            left = [(root, None)]
+
+            while left != []:
+
+                current, parent = left.pop(0)
+                accumulator.append((current, parent))
+
+                if not isinstance(current, Symbol.Predicate):
+
+                    # If care about L->R order do reversed(current.get_term())
+                    left.extend([(x, current) for x in current.get_term()])
+
+            return reversed(accumulator)
+
+        queue = reverse_bfs(obj)
         #for thing in queue:
         #    print(repr(thing))
 
@@ -263,28 +288,3 @@ class Axiom(object):
         LOGGER.debug('FF-PCNF ' + repr(onf_obj))
 
         return Axiom(onf_obj)
-
-    def reverse_bfs(self, root):
-        '''
-        Conduct a regular BFS over the tree packing each layer into a list
-        of [[(term, parent), (term, parent)], ...]
-
-        return that list
-        '''
-
-        accumulator = []
-
-        # left = ([(x, root) for x in root.get_term()])
-        left = [(root, None)]
-
-        while left != []:
-
-            current, parent = left.pop(0)
-            accumulator.append((current, parent))
-
-            if not isinstance(current, Symbol.Predicate):
-                # If care about L->R order do reversed(current.get_term())
-                left.extend([(x, current) for x in current.get_term()])
-
-        return reversed(accumulator)
-
