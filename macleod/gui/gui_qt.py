@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
-import gui_file_helper
+from macleod.gui import gui_file_helper, gui_settings
 import os
 from macleod.logical import Symbol
 from macleod.ClifModuleSet import ClifModuleSet
@@ -60,12 +60,16 @@ class MacleodWindow(QMainWindow):
         file_menu.addAction(saveas_action)
         saveas_action.triggered.connect(self.saveas_command)
 
-        run_action = QAction("Run", self)
-        file_menu.addAction(run_action)
-        run_action.triggered.connect(self.run_command)
+        settings_action = QAction("Settings..", self)
+        file_menu.addAction(settings_action)
+        settings_action.triggered.connect(self.settings_command)
 
         # edit menu and associated actions
-        editMenu = main_menu.addMenu('Edit')
+        run_menu = main_menu.addMenu('Run')
+
+        parse_action = QAction("Parse", self)
+        run_menu.addAction(parse_action)
+        parse_action.triggered.connect(self.parse_command)
 
     def setup_layout(self):
         # group the editor with the console
@@ -127,7 +131,7 @@ class MacleodWindow(QMainWindow):
         return path
 
 
-    def run_command(self):
+    def parse_command(self):
         text_widget = self.editor_pane.currentWidget()
         path = self.save_command()
         if path is None:
@@ -139,6 +143,10 @@ class MacleodWindow(QMainWindow):
             self.info_bar.populate_from_ontology(ontology)
         except Exception as e:
             print(e)
+
+    def settings_command(self):
+        settings = gui_settings.MacleodSettings(self)
+        settings.show()
 
 
 class EditorPane(QTabWidget):
