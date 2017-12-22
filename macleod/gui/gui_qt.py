@@ -7,6 +7,7 @@ import os
 from macleod.logical import Symbol
 from macleod.ClifModuleSet import ClifModuleSet
 from macleod.parsing import Parser
+import macleod.Filemgt as filemgt
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -19,6 +20,8 @@ class MacleodApplication(QApplication):
 class MacleodWindow(QMainWindow):
     def __init__(self, parent=None, standard_output=None):
         super(MacleodWindow, self).__init__(parent)
+        # store the project path
+        self.root_path = filemgt.read_config('system', 'path')
         self.setup_widgets()
         self.setup_layout()
 
@@ -27,7 +30,7 @@ class MacleodWindow(QMainWindow):
         self.editor_pane = EditorPane(self)
 
         # project navigation
-        self.project_explorer = ProjectExplorer(self)
+        self.project_explorer = ProjectExplorer(self, self.root_path)
 
         # informational sidebar
         self.info_bar = InformationSidebar(self)
@@ -146,7 +149,7 @@ class MacleodWindow(QMainWindow):
 
     def settings_command(self):
         settings = gui_settings.MacleodSettings(self)
-        settings.show()
+        settings.exec()
 
 
 class EditorPane(QTabWidget):
@@ -190,25 +193,27 @@ class EditorPane(QTabWidget):
 
 
 class ProjectExplorer(QTreeView):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, path=""):
         QTreeWidget.__init__(self, parent)
-        self.model = QFileSystemModel()
-        self.model.setRootPath("")
-        self.setModel(self.model)
+        model = QFileSystemModel(self)
+        model.setRootPath(path)
+        self.setModel(model)
+        self.setRootIndex(model.index(path))
 
         # We don't need the columns other than the file names
-        for i in range(1, self.model.columnCount()):
+        for i in range(1, model.columnCount()):
             self.hideColumn(i)
         self.setHeaderHidden(True)
         self.doubleClicked.connect(self.on_double_click)
 
     def on_double_click(self):
         index = self.selectedIndexes()[0]
-        path = self.model.filePath(index)
-        isdir = os.path.isdir(path)
+        model = self.model()
+        file_path = model.filePath(index)
+        isdir = os.path.isdir(file_path)
         if isdir:
             return
-        window.editor_pane.add_file(path)
+        window.editor_pane.add_file(file_path)
 
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
@@ -276,6 +281,7 @@ class Console(QTextEdit):
 backup = sys.stdout
 
 app = MacleodApplication(sys.argv, backup)
+app.setStyle(QStyleFactory.create('Fusion'))
 window = MacleodWindow()
 sys.stdout = window.console
 window.setWindowTitle("Macleod")

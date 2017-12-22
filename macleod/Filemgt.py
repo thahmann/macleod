@@ -20,7 +20,7 @@ WIN_config_file = 'macleod_win.conf'
 LINUX_config_file = 'macleod_linux.conf'
 MAC_config_file = 'macleod_mac.conf'
 
-config_dir = str(Path.home().joinpath('macleod'))
+config_dir = str(Path.home().joinpath('.macleod'))
 config_file = ''
 
 log_dir = None
