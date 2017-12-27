@@ -143,7 +143,8 @@ class MacleodWindow(QMainWindow):
         self.console.flush()
         try:
             ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path))
-            self.info_bar.populate_from_ontology(ontology)
+            self.info_bar.build_model(ontology)
+            self.info_bar.build_tree()
         except Exception as e:
             print(e)
 
@@ -218,44 +219,92 @@ class ProjectExplorer(QTreeView):
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
         QTreeWidget.__init__(self, parent)
-        self.setHeaderLabel("Information")
-        self.variables = QTreeWidgetItem()
-        self.variables.setText(0, "Variables")
-        self.predicates = QTreeWidgetItem()
-        self.predicates.setText(0, "Predicates")
-        self.functions = QTreeWidgetItem()
-        self.functions.setText(0, "Functions")
+        self.setColumnCount(2)
+        self.setHeaderLabels(["Information", "Arity"])
+        # set of strings
+        self.variables = set()
+        # set of ordered pairs of (string, arity)
+        self.predicates = set()
+        # set of ordered pairs of (string, arity)
+        self.functions = set()
 
-        self.insertTopLevelItem(0, self.variables)
-        self.insertTopLevelItem(0, self.predicates)
-        self.insertTopLevelItem(0, self.functions)
+        self.build_tree()
 
-    def populate_from_ontology(self, ontology):
-        for axiom in ontology.axioms:
-            self.recursive_search(axiom.sentence)
+    def build_tree(self):
+        self.clear()
+        variable_tree = QTreeWidgetItem()
+        variable_tree.setText(0, "Variables")
+        for v in self.variables:
+            child = QTreeWidgetItem()
+            child.setText(0, v)
+            variable_tree.addChild(child)
 
-    def recursive_search(self, logical):
+        predicate_tree = QTreeWidgetItem()
+        predicate_tree.setText(0, "Predicates")
+        for p in self.predicates:
+            child = QTreeWidgetItem()
+            child.setText(0, p[0])
+            child.setText(1, str(p[1]))
+            predicate_tree.addChild(child)
+
+        function_tree = QTreeWidgetItem()
+        function_tree.setText(0, "Functions")
+        for f in self.functions:
+            child = QTreeWidgetItem()
+            child.setText(0, f[0])
+            child.setText(1, str(f[1]))
+            function_tree.addChild(child)
+
+        self.insertTopLevelItem(0, variable_tree)
+        self.insertTopLevelItem(0, predicate_tree)
+        self.insertTopLevelItem(0, function_tree)
+
+    def logical_search(self, logical):
         for term in logical.terms:
-            if isinstance(term, Symbol.Predicate) or isinstance(term, Symbol.Function):
-                self.add_symbol(term)
+            if isinstance(term, Symbol.Predicate):
+                self.predicates.add((term.name, len(term.variables)))
+                self.symbol_search(term)
                 continue
-            if isinstance(term, str):
-                self.add_variable(term)
-                continue
-            self.recursive_search(term)
 
-    def add_variable(self, var):
-        variable = QTreeWidgetItem()
-        variable.setText(0, var)
-        self.variables.addChild(variable)
+            if isinstance(term, Symbol.Function):
+                self.functions.add((term.name, len(term.variables)))
+                self.symbol_search(term)
+                continue
+
+            if isinstance(term, str):
+                self.variables.add(term)
+                continue
+            self.logical_search(term)
+
+    def symbol_search(self, symbol):
+        for var in symbol.variables:
+            if isinstance(var, Symbol.Predicate):
+                self.predicates.add((var.name, len(var.variables)))
+                self.symbol_search(var)
+                continue
+
+            if isinstance(var, Symbol.Function):
+                self.functions.add((var.name, len(var.variables)))
+                self.symbol_search(var)
+                continue
+
+            if isinstance(var, str):
+                self.variables.add(var)
+                continue
+
+            self.logical_search(var)
 
     def add_symbol(self, sym):
         symbol = QTreeWidgetItem()
         symbol.setText(0, str(sym))
         if isinstance(sym, Symbol.Function):
+            if self.is_in_tree(self.functions, str(sym)):
+                return
             symbol.setText(1, str(len(sym.variables)))
             self.functions.addChild(symbol)
         else:
+            if self.is_in_tree(self.predicates, str(sym)):
+                return
             self.predicates.addChild(symbol)
         for variable in sym.variables:
             if isinstance(variable, Symbol.Predicate) or isinstance(variable, Symbol.Function):
@@ -265,6 +314,11 @@ class InformationSidebar(QTreeWidget):
                 self.add_variable(variable)
                 continue
             self.recursive_search(variable)
+
+    def build_model(self, ontology):
+        for axiom in ontology.axioms:
+            self.logical_search(axiom.sentence)
+
 
 class Console(QTextEdit):
     def __init__(self, parent=None):
