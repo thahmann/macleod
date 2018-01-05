@@ -1,8 +1,8 @@
 import sys
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence
-from macleod.gui import gui_file_helper, gui_settings
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from macleod.gui import gui_file_helper, gui_settings, gui_highlighter
 import os
 from macleod.logical import Symbol
 from macleod.ClifModuleSet import ClifModuleSet
@@ -27,7 +27,7 @@ class MacleodWindow(QMainWindow):
 
     def setup_widgets(self):
         # file editing and tabs
-        self.editor_pane = EditorPane(self)
+        self.editor_pane = TabController(self)
 
         # project navigation
         self.project_explorer = ProjectExplorer(self, self.root_path)
@@ -116,7 +116,6 @@ class MacleodWindow(QMainWindow):
         self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
         return path
 
-
     def saveas_command(self):
         text_widget = self.editor_pane.currentWidget()
         filename = QFileDialog.getSaveFileName(self, "Save As..", str(os.curdir),
@@ -132,7 +131,6 @@ class MacleodWindow(QMainWindow):
         self.editor_pane.file_helper.add_path(text_widget, path)
         self.editor_pane.file_helper.update_clean_hash(text_widget, text_widget.toPlainText())
         return path
-
 
     def parse_command(self):
         text_widget = self.editor_pane.currentWidget()
@@ -153,7 +151,7 @@ class MacleodWindow(QMainWindow):
         settings.exec()
 
 
-class EditorPane(QTabWidget):
+class TabController(QTabWidget):
     def __init__(self, parent=None):
         QTabWidget.__init__(self, parent)
         self.setTabsClosable(True)
@@ -175,6 +173,7 @@ class EditorPane(QTabWidget):
                 return
 
         new_tab = QTextEdit()
+        new_highlighter = gui_highlighter.CLIFSyntaxHighlighter(new_tab)
         new_tab.setLineWrapMode(QTextEdit.NoWrap)
         new_tab.setText(file_data)
         self.addTab(new_tab, file_title)
@@ -215,6 +214,7 @@ class ProjectExplorer(QTreeView):
         if isdir:
             return
         window.editor_pane.add_file(file_path)
+
 
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
@@ -259,65 +259,44 @@ class InformationSidebar(QTreeWidget):
         self.insertTopLevelItem(0, predicate_tree)
         self.insertTopLevelItem(0, function_tree)
 
-    def logical_search(self, logical):
+    def __logical_search(self, logical):
         for term in logical.terms:
             if isinstance(term, Symbol.Predicate):
                 self.predicates.add((term.name, len(term.variables)))
-                self.symbol_search(term)
+                self.__symbol_search(term)
                 continue
 
             if isinstance(term, Symbol.Function):
                 self.functions.add((term.name, len(term.variables)))
-                self.symbol_search(term)
+                self.__symbol_search(term)
                 continue
 
             if isinstance(term, str):
                 self.variables.add(term)
                 continue
-            self.logical_search(term)
+            self.__logical_search(term)
 
-    def symbol_search(self, symbol):
+    def __symbol_search(self, symbol):
         for var in symbol.variables:
             if isinstance(var, Symbol.Predicate):
                 self.predicates.add((var.name, len(var.variables)))
-                self.symbol_search(var)
+                self.__symbol_search(var)
                 continue
 
             if isinstance(var, Symbol.Function):
                 self.functions.add((var.name, len(var.variables)))
-                self.symbol_search(var)
+                self.__symbol_search(var)
                 continue
 
             if isinstance(var, str):
                 self.variables.add(var)
                 continue
 
-            self.logical_search(var)
-
-    def add_symbol(self, sym):
-        symbol = QTreeWidgetItem()
-        symbol.setText(0, str(sym))
-        if isinstance(sym, Symbol.Function):
-            if self.is_in_tree(self.functions, str(sym)):
-                return
-            symbol.setText(1, str(len(sym.variables)))
-            self.functions.addChild(symbol)
-        else:
-            if self.is_in_tree(self.predicates, str(sym)):
-                return
-            self.predicates.addChild(symbol)
-        for variable in sym.variables:
-            if isinstance(variable, Symbol.Predicate) or isinstance(variable, Symbol.Function):
-                self.add_symbol(variable)
-                continue
-            if isinstance(variable, str):
-                self.add_variable(variable)
-                continue
-            self.recursive_search(variable)
+            self.__logical_search(var)
 
     def build_model(self, ontology):
         for axiom in ontology.axioms:
-            self.logical_search(axiom.sentence)
+            self.__logical_search(axiom.sentence)
 
 
 class Console(QTextEdit):
