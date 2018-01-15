@@ -3,7 +3,8 @@ from PyQt5.QtCore import QRegularExpression, QRegularExpressionMatchIterator
 from PyQt5.QtGui import QSyntaxHighlighter, QTextCharFormat
 
 COLOR_EQUALS = Qt.red
-COLOR_PRED_FUNC = Qt.cyan
+COLOR_PRED = Qt.cyan
+COLOR_FUNC = Qt.magenta
 COLOR_CONNECTIVE = Qt.green
 COLOR_NOT = Qt.gray
 COLOR_QUANTIFIER = Qt.blue
@@ -11,16 +12,25 @@ COLOR_PARENTHESES = Qt.yellow
 
 
 class CLIFSyntaxHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent):
+    def __init__(self, parent, predicates=None, functions=None):
         super(CLIFSyntaxHighlighter, self).__init__(parent)
+
+        self.predicates = predicates if predicates is not None else []
+        self.functions = functions if functions is not None else []
 
         # define formats and rules
         ignore_case = QRegularExpression.CaseInsensitiveOption
         self.rules = []
 
-        format_pred_func = QTextCharFormat()
-        format_pred_func.setForeground(COLOR_PRED_FUNC)
-        self.rules.append((QRegularExpression("\(\w* "), 1, format_pred_func))
+        # placeholder for comparison
+        self.format_pred_func = QTextCharFormat()
+        self.rules.append((QRegularExpression("\(\w* [\w ]*\)"), 0, self.format_pred_func))
+
+        # real colors for functions and predicates
+        self.format_predicate = QTextCharFormat()
+        self.format_predicate.setForeground(COLOR_PRED)
+        self.format_function = QTextCharFormat()
+        self.format_function.setForeground(COLOR_FUNC)
 
         format_equals = QTextCharFormat()
         format_equals.setForeground(COLOR_EQUALS)
@@ -53,4 +63,19 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
             iterator = exp.globalMatch(p_str)
             while iterator.hasNext():
                 match = iterator.next()
-                self.setFormat(match.capturedStart() + index, match.capturedLength() - index, format)
+                # format_pred_func is a placeholder object,
+                # as the regular expressions for predicates and functions are the same
+                if format == self.format_pred_func:
+                    line = match.captured()
+                    name = line.lstrip("(").split(" ")[0]
+                    offset = line.index(name)
+                    for f in self.functions:
+                        if f[0] == name:
+                            self.setFormat(match.capturedStart() + offset, len(name), self.format_function)
+                            break
+                    for p in self.predicates:
+                        if p[0] == name:
+                            self.setFormat(match.capturedStart() + offset, len(name), self.format_predicate)
+                            break
+                else:
+                    self.setFormat(match.capturedStart() + index, match.capturedLength() - index, format)

@@ -1,13 +1,15 @@
+import os
 import sys
-from PyQt5.QtWidgets import *
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from macleod.gui import gui_file_helper, gui_settings, gui_highlighter
-import os
-from macleod.logical import Symbol
-from macleod.ClifModuleSet import ClifModuleSet
-from macleod.parsing import Parser
+from PyQt5.QtWidgets import *
+
 import macleod.Filemgt as filemgt
+from gui_beta import gui_settings, gui_highlighter, gui_file_helper
+from macleod.logical import Symbol
+from macleod.parsing import Parser
+
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -67,12 +69,16 @@ class MacleodWindow(QMainWindow):
         file_menu.addAction(settings_action)
         settings_action.triggered.connect(self.settings_command)
 
-        # edit menu and associated actions
+        # Run menu and associated actions
         run_menu = main_menu.addMenu('Run')
 
-        parse_action = QAction("Parse", self)
+        parse_action = QAction("Parse (No Imports)", self)
         run_menu.addAction(parse_action)
         parse_action.triggered.connect(self.parse_command)
+
+        parse_imports_action = QAction("Parse (w/ Imports)", self)
+        run_menu.addAction(parse_imports_action)
+        parse_imports_action.triggered.connect(self.parse_imports_command)
 
     def setup_layout(self):
         # group the editor with the console
@@ -133,7 +139,6 @@ class MacleodWindow(QMainWindow):
         return path
 
     def parse_command(self):
-        text_widget = self.editor_pane.currentWidget()
         path = self.save_command()
         if path is None:
             return
@@ -141,14 +146,35 @@ class MacleodWindow(QMainWindow):
         self.console.flush()
         try:
             ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path))
+            self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
+            gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
+                                                  self.info_bar.functions)
+
         except Exception as e:
             print(e)
 
     def settings_command(self):
         settings = gui_settings.MacleodSettings(self)
         settings.exec()
+
+    def parse_imports_command(self):
+        path = self.save_command()
+        if path is None:
+            return
+
+        self.console.flush()
+        try:
+            ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path), True)
+            self.info_bar.flush()
+            self.info_bar.build_model(ontology)
+            self.info_bar.build_tree()
+            gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
+                                                  self.info_bar.functions)
+
+        except Exception as e:
+            print(e)
 
 
 class TabController(QTabWidget):
@@ -173,7 +199,7 @@ class TabController(QTabWidget):
                 return
 
         new_tab = QTextEdit()
-        new_highlighter = gui_highlighter.CLIFSyntaxHighlighter(new_tab)
+        gui_highlighter.CLIFSyntaxHighlighter(new_tab, None, None)
         new_tab.setLineWrapMode(QTextEdit.NoWrap)
         new_tab.setText(file_data)
         self.addTab(new_tab, file_title)
@@ -297,6 +323,18 @@ class InformationSidebar(QTreeWidget):
     def build_model(self, ontology):
         for axiom in ontology.axioms:
             self.__logical_search(axiom.sentence)
+
+    def flush(self):
+        self.variables = set()
+        self.functions = set()
+        self.predicates = set()
+        self.clear()
+
+
+class ImportSidebar(QListWidget):
+    def __init__(self, parent=None):
+        QListWidget.__init__(self, parent)
+
 
 
 class Console(QTextEdit):
