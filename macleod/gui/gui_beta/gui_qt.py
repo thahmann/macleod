@@ -22,14 +22,20 @@ class MacleodApplication(QApplication):
 class MacleodWindow(QMainWindow):
     def __init__(self, parent=None, standard_output=None):
         super(MacleodWindow, self).__init__(parent)
+
         # store the project path
         self.root_path = filemgt.read_config('system', 'path')
         self.setup_widgets()
         self.setup_layout()
 
+        # key: QTextEdit object, value: ontology object
+        self.ontologies = dict()
+
+
     def setup_widgets(self):
         # file editing and tabs
         self.editor_pane = TabController(self)
+        self.editor_pane.currentChanged.connect(self._on_tab_change)
 
         # project navigation
         self.project_explorer = ProjectExplorer(self, self.root_path)
@@ -99,6 +105,11 @@ class MacleodWindow(QMainWindow):
         horizontal_splitter.setStretchFactor(2, 1)
         self.setCentralWidget(horizontal_splitter)
 
+    # stores the created ontology in memory
+    def add_ontology(self, ontology=None):
+        key = self.editor_pane.currentWidget()
+        self.ontologies[key] = ontology
+
     def open_command(self):
         filename = QFileDialog.getOpenFileName(self, "Open File", str(os.curdir),
                                                "Common Logic Files (*.clif);; All files (*)")
@@ -149,6 +160,7 @@ class MacleodWindow(QMainWindow):
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
+            self.add_ontology(ontology)
             gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
                                                   self.info_bar.functions)
 
@@ -170,12 +182,21 @@ class MacleodWindow(QMainWindow):
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
+            self.add_ontology(ontology)
             gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
                                                   self.info_bar.functions)
 
         except Exception as e:
             print(e)
 
+    # event handler for tab changes
+    # Here we attempt to load a matching ontology for the tab
+    def _on_tab_change(self):
+        key = self.editor_pane.currentWidget()
+        self.info_bar.flush()
+        if key in self.ontologies:
+            self.info_bar.build_model(self.ontologies[key])
+            self.info_bar.build_tree()
 
 class TabController(QTabWidget):
     def __init__(self, parent=None):
@@ -216,6 +237,16 @@ class TabController(QTabWidget):
         if widget is not None:
             widget.deleteLater()
         self.removeTab(index)
+        self.file_helper.remove_key(widget)
+
+    # Returns the index if successful, none if failed
+    def focus_tab_from_path(self, path):
+        for tab in self.file_helper.paths:
+            if self.file_helper.paths[tab] == path:
+                index = self.indexOf(tab)
+                self.setCurrentIndex(index)
+                return index
+        return None
 
 
 class ProjectExplorer(QTreeView):
@@ -239,7 +270,8 @@ class ProjectExplorer(QTreeView):
         isdir = os.path.isdir(file_path)
         if isdir:
             return
-        window.editor_pane.add_file(file_path)
+        if window.editor_pane.focus_tab_from_path(file_path) is None:
+            window.editor_pane.add_file(file_path)
 
 
 class InformationSidebar(QTreeWidget):
@@ -347,6 +379,7 @@ class Console(QTextEdit):
 
     def flush(self):
         self.setText("")
+
 
 # just in case anything gets weird, we will save a pointer to the regular console
 backup = sys.stdout

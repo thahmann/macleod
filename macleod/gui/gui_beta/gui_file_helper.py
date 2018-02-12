@@ -9,10 +9,17 @@ class GUI_file_helper():
     def update_path(self, UI_element, path):
         self.paths[UI_element] = path
 
+    def contains_path(self, path):
+        return path in self.paths.values()
+
     def get_path(self, UI_element):
         if not self.paths.__contains__(UI_element):
             return None
         return self.paths[UI_element]
+
+    def remove_key(self, UI_element):
+        self.hashes.pop(UI_element, None)
+        self.paths.pop(UI_element, None)
 
     def add_clean_hash(self, text_element, plain_text):
         self.hashes.update({text_element : hash(plain_text)})
