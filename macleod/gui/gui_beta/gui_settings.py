@@ -146,6 +146,7 @@ class QColorButton(QPushButton):
 
         '''
         dlg = QColorDialog(self)
+        self.setStyleSheet("")
         if self._color:
             dlg.setCurrentColor(QColor(self._color))
 
