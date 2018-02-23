@@ -19,8 +19,9 @@ class MacleodApplication(QApplication):
         sys.stdout = self.output_backup
         super(MacleodApplication, self).closingDown()
 
+
 class MacleodWindow(QMainWindow):
-    def __init__(self, parent=None, standard_output=None):
+    def __init__(self, parent=None):
         super(MacleodWindow, self).__init__(parent)
 
         # store the project path
@@ -34,11 +35,15 @@ class MacleodWindow(QMainWindow):
 
     def setup_widgets(self):
         # file editing and tabs
-        self.editor_pane = TabController(self)
+        self.editor_pane = Editor(self)
         self.editor_pane.currentChanged.connect(self._on_tab_change)
 
         # project navigation
+        self.explorer_tab = QTabWidget(self)
         self.project_explorer = ProjectExplorer(self, self.root_path)
+        self.explorer_tab.addTab(self.project_explorer, "Directory")
+        self.import_explorer = ImportSidebar(self)
+        self.explorer_tab.addTab(self.import_explorer, "Imports")
 
         # informational sidebar
         self.info_bar = InformationSidebar(self)
@@ -97,7 +102,7 @@ class MacleodWindow(QMainWindow):
 
         # group
         horizontal_splitter = QSplitter(self)
-        horizontal_splitter.addWidget(self.project_explorer)
+        horizontal_splitter.addWidget(self.explorer_tab)
         horizontal_splitter.addWidget(vertical_splitter)
         horizontal_splitter.addWidget(self.info_bar)
         horizontal_splitter.setStretchFactor(0, 1)
@@ -156,7 +161,8 @@ class MacleodWindow(QMainWindow):
 
         self.console.flush()
         try:
-            ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path))
+            ontology = Parser.parse_file(path, filemgt.read_config('cl', 'prefix'),
+                                         os.path.abspath(filemgt.read_config('system', 'path')))
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
@@ -178,10 +184,13 @@ class MacleodWindow(QMainWindow):
 
         self.console.flush()
         try:
-            ontology = Parser.parse_file(path, os.path.dirname(path), os.path.basename(path), True)
+            ontology = Parser.parse_file(path, filemgt.read_config('cl', 'prefix'),
+                                         os.path.abspath(filemgt.read_config('system', 'path')), True)
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
+            self.import_explorer.clear()
+            self.import_explorer.build_tree(ontology)
             self.add_ontology(ontology)
             gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
                                                   self.info_bar.functions)
@@ -194,11 +203,13 @@ class MacleodWindow(QMainWindow):
     def _on_tab_change(self):
         key = self.editor_pane.currentWidget()
         self.info_bar.flush()
+        self.import_explorer.clear()
         if key in self.ontologies:
             self.info_bar.build_model(self.ontologies[key])
             self.info_bar.build_tree()
+            self.import_explorer.build_tree(self.ontologies[key])
 
-class TabController(QTabWidget):
+class Editor(QTabWidget):
     def __init__(self, parent=None):
         QTabWidget.__init__(self, parent)
         self.setTabsClosable(True)
@@ -236,13 +247,16 @@ class TabController(QTabWidget):
         widget = self.widget(index)
         if widget is not None:
             widget.deleteLater()
+
         self.removeTab(index)
         self.file_helper.remove_key(widget)
+        if widget in window.ontologies.keys():
+            window.ontologies.pop(widget, None)
 
     # Returns the index if successful, none if failed
     def focus_tab_from_path(self, path):
         for tab in self.file_helper.paths:
-            if self.file_helper.paths[tab] == path:
+            if self.file_helper.paths[tab] == os.path.normpath(path):
                 index = self.indexOf(tab)
                 self.setCurrentIndex(index)
                 return index
@@ -277,16 +291,14 @@ class ProjectExplorer(QTreeView):
 class InformationSidebar(QTreeWidget):
     def __init__(self, parent=None):
         QTreeWidget.__init__(self, parent)
-        self.setColumnCount(2)
-        self.setHeaderLabels(["Information", "Arity"])
+        self.setColumnCount(3)
+        self.setHeaderLabels(["Information", "Arity", "File"])
         # set of strings
         self.variables = set()
-        # set of ordered pairs of (string, arity)
+        # set of ordered pairs of (string, arity, file)
         self.predicates = set()
-        # set of ordered pairs of (string, arity)
+        # set of ordered pairs of (string, arity, file)
         self.functions = set()
-
-        self.build_tree()
 
     def build_tree(self):
         self.clear()
@@ -303,6 +315,7 @@ class InformationSidebar(QTreeWidget):
             child = QTreeWidgetItem()
             child.setText(0, p[0])
             child.setText(1, str(p[1]))
+            child.setText(2, p[2])
             predicate_tree.addChild(child)
 
         function_tree = QTreeWidgetItem()
@@ -311,50 +324,57 @@ class InformationSidebar(QTreeWidget):
             child = QTreeWidgetItem()
             child.setText(0, f[0])
             child.setText(1, str(f[1]))
+            child.setText(2, f[2])
             function_tree.addChild(child)
 
         self.insertTopLevelItem(0, variable_tree)
         self.insertTopLevelItem(0, predicate_tree)
         self.insertTopLevelItem(0, function_tree)
 
-    def __logical_search(self, logical):
+    def __logical_search(self, logical, file_path):
         for term in logical.terms:
             if isinstance(term, Symbol.Predicate):
-                self.predicates.add((term.name, len(term.variables)))
-                self.__symbol_search(term)
+                self.predicates.add((term.name, len(term.variables), file_path))
+                self.__symbol_search(term, file_path)
                 continue
 
             if isinstance(term, Symbol.Function):
-                self.functions.add((term.name, len(term.variables)))
-                self.__symbol_search(term)
+                self.functions.add((term.name, len(term.variables), file_path))
+                self.__symbol_search(term, file_path)
                 continue
 
             if isinstance(term, str):
                 self.variables.add(term)
                 continue
-            self.__logical_search(term)
+            self.__logical_search(term, file_path)
 
-    def __symbol_search(self, symbol):
+    def __symbol_search(self, symbol, file_path):
         for var in symbol.variables:
             if isinstance(var, Symbol.Predicate):
-                self.predicates.add((var.name, len(var.variables)))
-                self.__symbol_search(var)
+                self.predicates.add((var.name, len(var.variables), file_path))
+                self.__symbol_search(var, file_path)
                 continue
 
             if isinstance(var, Symbol.Function):
-                self.functions.add((var.name, len(var.variables)))
-                self.__symbol_search(var)
+                self.functions.add((var.name, len(var.variables), file_path))
+                self.__symbol_search(var, file_path)
                 continue
 
             if isinstance(var, str):
                 self.variables.add(var)
                 continue
 
-            self.__logical_search(var)
+            self.__logical_search(var, file_path)
 
     def build_model(self, ontology):
         for axiom in ontology.axioms:
-            self.__logical_search(axiom.sentence)
+            self.__logical_search(axiom.sentence,
+                                  os.path.relpath(ontology.name, window.root_path))
+        for import_ontology in ontology.imports.values():
+            if import_ontology is None:
+                continue
+
+            self.build_model(import_ontology)
 
     def flush(self):
         self.variables = set()
@@ -362,10 +382,34 @@ class InformationSidebar(QTreeWidget):
         self.predicates = set()
         self.clear()
 
+    # True: display symbols from imports, False: just symbols for open file
+    # show is a boolean value
+    def show_imported_symbols(self, show):
+        pass
 
-class ImportSidebar(QListWidget):
+
+class ImportSidebar(QTreeWidget):
     def __init__(self, parent=None):
-        QListWidget.__init__(self, parent)
+        QTreeWidget.__init__(self, parent)
+        self.setHeaderHidden(True)
+        self.doubleClicked.connect(self.on_double_click)
+
+    def build_tree(self, ontology, parent_item=None):
+        new_item = QTreeWidgetItem(self if parent_item is None else parent_item)
+        new_item.setText(0, os.path.relpath(ontology.name, window.root_path))
+        for imported_ontology in ontology.imports.values():
+            if imported_ontology is None:
+                continue
+
+            self.build_tree(imported_ontology, new_item)
+
+    def on_double_click(self):
+        item = self.selectedItems()[0]
+        file_path = os.path.join(window.root_path, item.text(0))
+        file_path = os.path.normpath(file_path)
+        if window.editor_pane.focus_tab_from_path(file_path) is None:
+            window.editor_pane.add_file(file_path)
+
 
 
 

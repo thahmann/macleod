@@ -1,13 +1,15 @@
+from os import path
+
 class GUI_file_helper():
     def __init__(self):
         self.hashes = dict()
         self.paths = dict()
 
-    def add_path(self, UI_element, path):
-        self.paths.update({UI_element : path})
+    def add_path(self, UI_element, file_path):
+        self.paths.update({UI_element : path.normpath(file_path)})
 
-    def update_path(self, UI_element, path):
-        self.paths[UI_element] = path
+    def update_path(self, UI_element, file_path):
+        self.paths[UI_element] = path.normpath(file_path)
 
     def contains_path(self, path):
         return path in self.paths.values()

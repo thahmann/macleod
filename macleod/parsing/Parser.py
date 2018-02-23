@@ -63,6 +63,7 @@ t_STRING = r"'(.+?)'"
 t_ignore = " \r\t\n"
 
 def p_stater(p):
+
     """
     starter : COMMENT ontology
     starter : ontology
