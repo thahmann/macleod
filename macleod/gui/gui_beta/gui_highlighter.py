@@ -10,6 +10,7 @@ COLOR_HIGHLIGHT_SYMBOL = Qt.yellow
 class CLIFSyntaxHighlighter(QSyntaxHighlighter):
     def __init__(self, parent, predicates=None, functions=None):
         super(CLIFSyntaxHighlighter, self).__init__(parent)
+        self.setDocument(parent.document())
 
         self.predicates = predicates if predicates is not None else []
         self.functions = functions if functions is not None else []

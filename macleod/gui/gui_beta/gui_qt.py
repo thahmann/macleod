@@ -1,20 +1,17 @@
-import os
-import sys
-
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-
+from gui_beta import gui_widgets, gui_settings, gui_highlighter
 import macleod.Filemgt as filemgt
-from gui_beta import gui_settings, gui_highlighter, gui_file_helper
-from macleod.logical import Symbol
+import sys
+import os
 from macleod.parsing import Parser
 
+from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
+from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
         super(MacleodApplication, self).__init__(argv)
         self.output_backup = output_backup
+
     def closingDown(self):
         sys.stdout = self.output_backup
         super(MacleodApplication, self).closingDown()
@@ -26,30 +23,29 @@ class MacleodWindow(QMainWindow):
 
         # store the project path
         self.root_path = filemgt.read_config('system', 'path')
-        self.setup_widgets()
-        self.setup_layout()
 
         # key: QTextEdit object, value: ontology object
         self.ontologies = dict()
-
+        self.setup_widgets()
+        self.setup_layout()
 
     def setup_widgets(self):
         # file editing and tabs
-        self.editor_pane = Editor(self)
+        self.editor_pane = gui_widgets.TabController(self, self.ontologies)
         self.editor_pane.currentChanged.connect(self._on_tab_change)
 
         # project navigation
         self.explorer_tab = QTabWidget(self)
-        self.project_explorer = ProjectExplorer(self, self.root_path)
+        self.project_explorer = gui_widgets.ProjectExplorer(self, self.root_path, self.editor_pane)
         self.explorer_tab.addTab(self.project_explorer, "Directory")
-        self.import_explorer = ImportSidebar(self)
+        self.import_explorer = gui_widgets.ImportSidebar(self, self.root_path, self.editor_pane)
         self.explorer_tab.addTab(self.import_explorer, "Imports")
 
         # informational sidebar
-        self.info_bar = InformationSidebar(self)
+        self.info_bar = gui_widgets.InformationSidebar(self, self.root_path)
 
         # output
-        self.console = Console(self)
+        self.console = gui_widgets.Console(self)
 
         main_menu = self.menuBar()
 
@@ -208,222 +204,6 @@ class MacleodWindow(QMainWindow):
             self.info_bar.build_model(self.ontologies[key])
             self.info_bar.build_tree()
             self.import_explorer.build_tree(self.ontologies[key])
-
-class Editor(QTabWidget):
-    def __init__(self, parent=None):
-        QTabWidget.__init__(self, parent)
-        self.setTabsClosable(True)
-        self.untitled_file_counter = 1
-        self.file_helper = gui_file_helper.GUI_file_helper()
-        self.add_file()
-        self.tabCloseRequested.connect(self.remove_tab)
-
-    def add_file(self, path=None):
-        file_title = "Untitled " + str(self.untitled_file_counter) if path is None else os.path.basename(path)
-        file_data = ""
-        if path is not None:
-            try:
-                f = open(path, 'r')
-                with f:
-                    file_data = f.read()
-            except Exception as e:
-                print(e)
-                return
-
-        new_tab = QTextEdit()
-        gui_highlighter.CLIFSyntaxHighlighter(new_tab, None, None)
-        new_tab.setLineWrapMode(QTextEdit.NoWrap)
-        new_tab.setText(file_data)
-        self.addTab(new_tab, file_title)
-        self.setCurrentWidget(new_tab)
-
-        self.file_helper.add_clean_hash(new_tab, new_tab.toPlainText())
-        self.untitled_file_counter += 1
-        if path is None:
-            return
-        self.file_helper.add_path(new_tab, path)
-
-    def remove_tab(self, index):
-        widget = self.widget(index)
-        if widget is not None:
-            widget.deleteLater()
-
-        self.removeTab(index)
-        self.file_helper.remove_key(widget)
-        if widget in window.ontologies.keys():
-            window.ontologies.pop(widget, None)
-
-    # Returns the index if successful, none if failed
-    def focus_tab_from_path(self, path):
-        for tab in self.file_helper.paths:
-            if self.file_helper.paths[tab] == os.path.normpath(path):
-                index = self.indexOf(tab)
-                self.setCurrentIndex(index)
-                return index
-        return None
-
-
-class ProjectExplorer(QTreeView):
-    def __init__(self, parent=None, path=""):
-        QTreeWidget.__init__(self, parent)
-        model = QFileSystemModel(self)
-        model.setRootPath(path)
-        self.setModel(model)
-        self.setRootIndex(model.index(path))
-
-        # We don't need the columns other than the file names
-        for i in range(1, model.columnCount()):
-            self.hideColumn(i)
-        self.setHeaderHidden(True)
-        self.doubleClicked.connect(self.on_double_click)
-
-    def on_double_click(self):
-        index = self.selectedIndexes()[0]
-        model = self.model()
-        file_path = model.filePath(index)
-        isdir = os.path.isdir(file_path)
-        if isdir:
-            return
-        if window.editor_pane.focus_tab_from_path(file_path) is None:
-            window.editor_pane.add_file(file_path)
-
-
-class InformationSidebar(QTreeWidget):
-    def __init__(self, parent=None):
-        QTreeWidget.__init__(self, parent)
-        self.setColumnCount(3)
-        self.setHeaderLabels(["Information", "Arity", "File"])
-        # set of strings
-        self.variables = set()
-        # set of ordered pairs of (string, arity, file)
-        self.predicates = set()
-        # set of ordered pairs of (string, arity, file)
-        self.functions = set()
-
-    def build_tree(self):
-        self.clear()
-        variable_tree = QTreeWidgetItem()
-        variable_tree.setText(0, "Variables")
-        for v in self.variables:
-            child = QTreeWidgetItem()
-            child.setText(0, v)
-            variable_tree.addChild(child)
-
-        predicate_tree = QTreeWidgetItem()
-        predicate_tree.setText(0, "Predicates")
-        for p in self.predicates:
-            child = QTreeWidgetItem()
-            child.setText(0, p[0])
-            child.setText(1, str(p[1]))
-            child.setText(2, p[2])
-            predicate_tree.addChild(child)
-
-        function_tree = QTreeWidgetItem()
-        function_tree.setText(0, "Functions")
-        for f in self.functions:
-            child = QTreeWidgetItem()
-            child.setText(0, f[0])
-            child.setText(1, str(f[1]))
-            child.setText(2, f[2])
-            function_tree.addChild(child)
-
-        self.insertTopLevelItem(0, variable_tree)
-        self.insertTopLevelItem(0, predicate_tree)
-        self.insertTopLevelItem(0, function_tree)
-
-    def __logical_search(self, logical, file_path):
-        for term in logical.terms:
-            if isinstance(term, Symbol.Predicate):
-                self.predicates.add((term.name, len(term.variables), file_path))
-                self.__symbol_search(term, file_path)
-                continue
-
-            if isinstance(term, Symbol.Function):
-                self.functions.add((term.name, len(term.variables), file_path))
-                self.__symbol_search(term, file_path)
-                continue
-
-            if isinstance(term, str):
-                self.variables.add(term)
-                continue
-            self.__logical_search(term, file_path)
-
-    def __symbol_search(self, symbol, file_path):
-        for var in symbol.variables:
-            if isinstance(var, Symbol.Predicate):
-                self.predicates.add((var.name, len(var.variables), file_path))
-                self.__symbol_search(var, file_path)
-                continue
-
-            if isinstance(var, Symbol.Function):
-                self.functions.add((var.name, len(var.variables), file_path))
-                self.__symbol_search(var, file_path)
-                continue
-
-            if isinstance(var, str):
-                self.variables.add(var)
-                continue
-
-            self.__logical_search(var, file_path)
-
-    def build_model(self, ontology):
-        for axiom in ontology.axioms:
-            self.__logical_search(axiom.sentence,
-                                  os.path.relpath(ontology.name, window.root_path))
-        for import_ontology in ontology.imports.values():
-            if import_ontology is None:
-                continue
-
-            self.build_model(import_ontology)
-
-    def flush(self):
-        self.variables = set()
-        self.functions = set()
-        self.predicates = set()
-        self.clear()
-
-    # True: display symbols from imports, False: just symbols for open file
-    # show is a boolean value
-    def show_imported_symbols(self, show):
-        pass
-
-
-class ImportSidebar(QTreeWidget):
-    def __init__(self, parent=None):
-        QTreeWidget.__init__(self, parent)
-        self.setHeaderHidden(True)
-        self.doubleClicked.connect(self.on_double_click)
-
-    def build_tree(self, ontology, parent_item=None):
-        new_item = QTreeWidgetItem(self if parent_item is None else parent_item)
-        new_item.setText(0, os.path.relpath(ontology.name, window.root_path))
-        for imported_ontology in ontology.imports.values():
-            if imported_ontology is None:
-                continue
-
-            self.build_tree(imported_ontology, new_item)
-
-    def on_double_click(self):
-        item = self.selectedItems()[0]
-        file_path = os.path.join(window.root_path, item.text(0))
-        file_path = os.path.normpath(file_path)
-        if window.editor_pane.focus_tab_from_path(file_path) is None:
-            window.editor_pane.add_file(file_path)
-
-
-
-
-class Console(QTextEdit):
-    def __init__(self, parent=None):
-        QTextEdit.__init__(self, parent)
-        self.setReadOnly(True)
-
-    def write(self, text):
-        self.append(str(text))
-
-    def flush(self):
-        self.setText("")
-
 
 # just in case anything gets weird, we will save a pointer to the regular console
 backup = sys.stdout
