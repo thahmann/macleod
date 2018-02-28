@@ -313,14 +313,19 @@ def parse_file(path, sub, base, resolve=False, name=None):
     with open(path, 'r') as f:
         buff = f.read()
 
+    if not buff:
+        return None
+
     lex.lex(reflags=re.UNICODE)
     yacc.yacc()
 
     parsed_objects = yacc.parse(buff)
 
     ontology = Ontology(path)
+
     if name is not None:
         ontology.name = name
+
     ontology.basepath = (sub, base)
 
     for logical_thing in parsed_objects:

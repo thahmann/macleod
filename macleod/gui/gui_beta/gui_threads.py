@@ -14,6 +14,7 @@ class ParseThread(QThread):
         self.ontology = None
         self.text = None
         self.path = None
+        self.error = None
 
     def __del__(self):
         self.wait()
@@ -31,7 +32,7 @@ class ParseThread(QThread):
                                               self.path)
 
         except Exception as e:
-            print(e)
+            self.error = e
             self.ontology = None
 
         os.close(buffer[0])

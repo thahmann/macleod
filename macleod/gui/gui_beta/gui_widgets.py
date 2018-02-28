@@ -32,14 +32,11 @@ class TabController(QTabWidget):
         gui_highlighter.CLIFSyntaxHighlighter(new_tab, None, None)
         new_tab.setLineWrapMode(QPlainTextEdit.NoWrap)
         new_tab.setPlainText(file_data)
+        self.file_helper.add_path(new_tab, path)
         self.addTab(new_tab, file_title)
         self.setCurrentWidget(new_tab)
-
         self.file_helper.add_clean_hash(new_tab, new_tab.toPlainText())
         self.untitled_file_counter += 1
-        if path is None:
-            return
-        self.file_helper.add_path(new_tab, path)
 
     def remove_tab(self, index):
         widget = self.widget(index)
@@ -167,13 +164,17 @@ class InformationSidebar(QTreeWidget):
             self.__logical_search(var, file_path)
 
     def build_model(self, ontology):
-        for axiom in ontology.axioms:
-            self.__logical_search(axiom.sentence,
-                                  os.path.relpath(ontology.name, self.root_path))
-        for import_ontology in ontology.imports.values():
-            if import_ontology is None:
-                continue
+        if ontology is None:
+            return
 
+        for axiom in ontology.axioms:
+            try:
+                path = os.path.relpath(ontology.name, self.root_path)
+            except ValueError:
+                path = ontology.name
+
+            self.__logical_search(axiom.sentence, path)
+        for import_ontology in ontology.imports.values():
             self.build_model(import_ontology)
 
     def flush(self):
@@ -197,8 +198,16 @@ class ImportSidebar(QTreeWidget):
         self.doubleClicked.connect(self.on_double_click)
 
     def build_tree(self, ontology, parent_item=None):
+        if ontology is None:
+            return
+
         new_item = QTreeWidgetItem(self if parent_item is None else parent_item)
-        new_item.setText(0, os.path.relpath(ontology.name, self.root_path))
+        try:
+            path = os.path.relpath(ontology.name, self.root_path)
+        except ValueError:
+            path = ontology.name
+
+        new_item.setText(0, path)
         for imported_ontology in ontology.imports.values():
             if imported_ontology is None:
                 continue
@@ -241,6 +250,7 @@ class LineNumberArea(QWidget):
 class CodeEditor(QPlainTextEdit):
     def __init__(self, parent=None):
         super(CodeEditor, self).__init__(parent)
+        self.is_open = True
         self.line_number_area = LineNumberArea(self)
         self.blockCountChanged.connect(self.update)
         self.updateRequest.connect(self.updateLineNumberArea)

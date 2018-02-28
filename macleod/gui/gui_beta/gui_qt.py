@@ -116,6 +116,8 @@ class MacleodWindow(QMainWindow):
         self.console.flush()
         self.info_bar.flush()
         self.import_explorer.clear()
+        if self.parse_thread.error is not None:
+            print(self.parse_thread.error)
         self.info_bar.build_model(ontology)
         self.info_bar.build_tree()
         self.import_explorer.build_tree(ontology)
@@ -193,12 +195,18 @@ class MacleodWindow(QMainWindow):
     # Here we attempt to load a matching ontology for the tab
     def _on_tab_change(self):
         key = self.editor_pane.currentWidget()
+        if key is None:
+            return
+
         self.info_bar.flush()
         self.import_explorer.clear()
-        if key in self.ontologies:
-            self.info_bar.build_model(self.ontologies[key])
-            self.info_bar.build_tree()
-            self.import_explorer.build_tree(self.ontologies[key])
+        if self.editor_pane.file_helper.is_dirty(key, key.toPlainText()):
+            self.parse_command()
+        else:
+            if key in self.ontologies:
+                self.info_bar.build_model(self.ontologies[key])
+                self.info_bar.build_tree()
+                self.import_explorer.build_tree(self.ontologies[key])
 
 
 

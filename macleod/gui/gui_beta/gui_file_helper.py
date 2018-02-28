@@ -6,7 +6,7 @@ class GUI_file_helper():
         self.paths = dict()
 
     def add_path(self, UI_element, file_path):
-        self.paths.update({UI_element : path.normpath(file_path)})
+        self.paths.update({UI_element : None if file_path is None else path.normpath(file_path)})
 
     def update_path(self, UI_element, file_path):
         self.paths[UI_element] = path.normpath(file_path)
@@ -31,5 +31,5 @@ class GUI_file_helper():
 
     def is_dirty(self, text_element, plain_text):
         if not self.hashes.__contains__(text_element):
-            return False
+            return True
         return self.hashes[text_element] != hash(plain_text)
