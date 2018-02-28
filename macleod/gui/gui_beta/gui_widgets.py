@@ -210,7 +210,7 @@ class ImportSidebar(QTreeWidget):
         file_path = os.path.join(self.root_path, item.text(0))
         file_path = os.path.normpath(file_path)
         if self.editor.focus_tab_from_path(file_path) is None:
-            self.editor.editor_pane.add_file(file_path)
+            self.editor.add_file(file_path)
 
 
 class Console(QTextEdit):

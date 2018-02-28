@@ -88,6 +88,15 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength, highlightFormat)
             self.currentBlock().next()
 
+    def rehighlight(self, predicates=None, functions=None):
+        if predicates is not None:
+            self.predicates = predicates
+
+        if functions is not None:
+            self.functions = functions
+
+        super(CLIFSyntaxHighlighter, self).rehighlight()
+
 
 def get_color(setting_name):
     try:

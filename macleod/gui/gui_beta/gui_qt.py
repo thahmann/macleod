@@ -2,6 +2,7 @@ from gui_beta import gui_widgets, gui_settings, gui_highlighter
 import macleod.Filemgt as filemgt
 import sys
 import os
+import tempfile
 from macleod.parsing import Parser
 
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
@@ -151,14 +152,17 @@ class MacleodWindow(QMainWindow):
         return path
 
     def parse_command(self):
-        path = self.save_command()
-        if path is None:
-            return
+        text_widget = self.editor_pane.currentWidget()
+        path = self.editor_pane.file_helper.get_path(text_widget)
+        buffer = tempfile.mkstemp(".macleod")
+        with open(buffer[1], 'w') as f:
+            f.write(text_widget.toPlainText())
 
         self.console.flush()
         try:
-            ontology = Parser.parse_file(path, filemgt.read_config('cl', 'prefix'),
-                                         os.path.abspath(filemgt.read_config('system', 'path')))
+            ontology = Parser.parse_file(buffer[1], filemgt.read_config('cl', 'prefix'),
+                                         os.path.abspath(filemgt.read_config('system', 'path')),
+                                         False, path)
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()
@@ -169,19 +173,24 @@ class MacleodWindow(QMainWindow):
         except Exception as e:
             print(e)
 
+        os.close(buffer[0])
+        os.remove(buffer[1])
+
     def settings_command(self):
         settings = gui_settings.MacleodSettings(self)
         settings.exec()
 
     def parse_imports_command(self):
-        path = self.save_command()
-        if path is None:
-            return
-
+        text_widget = self.editor_pane.currentWidget()
+        path = self.editor_pane.file_helper.get_path(text_widget)
+        buffer = tempfile.mkstemp(".macleod")
+        with open(buffer[1], 'w') as f:
+            f.write(text_widget.toPlainText())
         self.console.flush()
         try:
-            ontology = Parser.parse_file(path, filemgt.read_config('cl', 'prefix'),
-                                         os.path.abspath(filemgt.read_config('system', 'path')), True)
+            ontology = Parser.parse_file(buffer[1], filemgt.read_config('cl', 'prefix'),
+                                         os.path.abspath(filemgt.read_config('system', 'path')),
+                                         True, path)
             self.info_bar.flush()
             self.info_bar.build_model(ontology)
             self.info_bar.build_tree()

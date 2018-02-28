@@ -295,11 +295,15 @@ def p_error(p):
     print("Welp this is confusing", p.lineno, p.lexpos)
     raise TypeError("unknown text at %r" % (p.value,))
 
-def parse_file(path, sub, base, resolve=False):
+def parse_file(path, sub, base, resolve=False, name=None):
     """
     Accepts a path to a Common Logic file and parses it to return an Ontology object.
 
-    :param String path, path to common logic file
+    :param path, path to common logic file
+    :param sub, path component to be substituted
+    :param base, new path component
+    :param resolve, resolve imports?
+    :param name, for overriding the default naming
     :return Ontology onto, newly constructed ontology object
     """
 
@@ -315,6 +319,8 @@ def parse_file(path, sub, base, resolve=False):
     parsed_objects = yacc.parse(buff)
 
     ontology = Ontology(path)
+    if name is not None:
+        ontology.name = name
     ontology.basepath = (sub, base)
 
     for logical_thing in parsed_objects:
