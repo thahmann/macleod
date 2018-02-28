@@ -1,12 +1,11 @@
-from gui_beta import gui_widgets, gui_settings, gui_highlighter
+from gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
 import macleod.Filemgt as filemgt
 import sys
 import os
-import tempfile
-from macleod.parsing import Parser
 
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
-from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt
+from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QThread, QObject
+from PyQt5 import QtCore
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -88,6 +87,11 @@ class MacleodWindow(QMainWindow):
         run_menu.addAction(parse_imports_action)
         parse_imports_action.triggered.connect(self.parse_imports_command)
 
+        # Threads
+        self.parse_thread = gui_threads.ParseThread()
+        self.parse_thread.finished.connect(self._on_parse_done)
+
+
     def setup_layout(self):
         # group the editor with the console
         vertical_splitter = QSplitter(self)
@@ -106,6 +110,18 @@ class MacleodWindow(QMainWindow):
         horizontal_splitter.setStretchFactor(1, 4)
         horizontal_splitter.setStretchFactor(2, 1)
         self.setCentralWidget(horizontal_splitter)
+
+    def _on_parse_done(self):
+        ontology = self.parse_thread.ontology
+        self.console.flush()
+        self.info_bar.flush()
+        self.import_explorer.clear()
+        self.info_bar.build_model(ontology)
+        self.info_bar.build_tree()
+        self.import_explorer.build_tree(ontology)
+        self.add_ontology(ontology)
+        gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
+                                              self.info_bar.functions)
 
     # stores the created ontology in memory
     def add_ontology(self, ontology=None):
@@ -152,56 +168,26 @@ class MacleodWindow(QMainWindow):
         return path
 
     def parse_command(self):
-        text_widget = self.editor_pane.currentWidget()
-        path = self.editor_pane.file_helper.get_path(text_widget)
-        buffer = tempfile.mkstemp(".macleod")
-        with open(buffer[1], 'w') as f:
-            f.write(text_widget.toPlainText())
+        if self.editor_pane.currentWidget() is None:
+            return
 
-        self.console.flush()
-        try:
-            ontology = Parser.parse_file(buffer[1], filemgt.read_config('cl', 'prefix'),
-                                         os.path.abspath(filemgt.read_config('system', 'path')),
-                                         False, path)
-            self.info_bar.flush()
-            self.info_bar.build_model(ontology)
-            self.info_bar.build_tree()
-            self.add_ontology(ontology)
-            gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
-                                                  self.info_bar.functions)
-
-        except Exception as e:
-            print(e)
-
-        os.close(buffer[0])
-        os.remove(buffer[1])
+        self.parse_thread.resolve = False
+        self.parse_thread.path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
+        self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()
+        self.parse_thread.start()
 
     def settings_command(self):
         settings = gui_settings.MacleodSettings(self)
         settings.exec()
 
     def parse_imports_command(self):
-        text_widget = self.editor_pane.currentWidget()
-        path = self.editor_pane.file_helper.get_path(text_widget)
-        buffer = tempfile.mkstemp(".macleod")
-        with open(buffer[1], 'w') as f:
-            f.write(text_widget.toPlainText())
-        self.console.flush()
-        try:
-            ontology = Parser.parse_file(buffer[1], filemgt.read_config('cl', 'prefix'),
-                                         os.path.abspath(filemgt.read_config('system', 'path')),
-                                         True, path)
-            self.info_bar.flush()
-            self.info_bar.build_model(ontology)
-            self.info_bar.build_tree()
-            self.import_explorer.clear()
-            self.import_explorer.build_tree(ontology)
-            self.add_ontology(ontology)
-            gui_highlighter.CLIFSyntaxHighlighter(self.editor_pane.currentWidget(), self.info_bar.predicates,
-                                                  self.info_bar.functions)
+        if self.editor_pane.currentWidget() is None:
+            return
 
-        except Exception as e:
-            print(e)
+        self.parse_thread.resolve = True
+        self.parse_thread.path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
+        self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()
+        self.parse_thread.start()
 
     # event handler for tab changes
     # Here we attempt to load a matching ontology for the tab
@@ -213,6 +199,9 @@ class MacleodWindow(QMainWindow):
             self.info_bar.build_model(self.ontologies[key])
             self.info_bar.build_tree()
             self.import_explorer.build_tree(self.ontologies[key])
+
+
+
 
 # just in case anything gets weird, we will save a pointer to the regular console
 backup = sys.stdout
