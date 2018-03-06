@@ -60,7 +60,7 @@ class TabController(QTabWidget):
 
 class ProjectExplorer(QTreeView):
     def __init__(self, parent=None, root_path="", editor=None):
-        QTreeWidget.__init__(self, parent)
+        QTreeView.__init__(self, parent)
         self.editor = editor
         model = QFileSystemModel(self)
         model.setRootPath(root_path)
@@ -84,49 +84,113 @@ class ProjectExplorer(QTreeView):
             self.editor.add_file(file_path)
 
 
-class InformationSidebar(QTreeWidget):
+class InformationSidebar(QWidget):
     def __init__(self, parent=None, root_path=None):
-        QTreeWidget.__init__(self, parent)
-        self.root_path = root_path
-        self.setColumnCount(3)
-        self.setHeaderLabels(["Information", "Arity", "File"])
-        # set of strings
-        self.variables = set()
-        # set of ordered pairs of (string, arity, file)
-        self.predicates = set()
-        # set of ordered pairs of (string, arity, file)
-        self.functions = set()
+        QWidget.__init__(self, parent)
+        self.tree = QTreeWidget(parent)         # the widget for displaying
+        self.root_path = root_path              # the root path of the project
+        self.current_file = None                # the path to the currently open file
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Information", "Arity", "File"])
+        self.variables = set()                  # set of ordered pairs of (name, path to file)
+        self.predicates = set()                 # set of ordered pairs of (name, arity, path to file)
+        self.functions = set()                  # set of ordered pairs of (name, arity, path to file)
+
+        self.hide_imports = QCheckBox(parent)   # The Widget for determining visibility
+        self.hide_imports.setText("Hide Import Info")
+        self.hide_imports.stateChanged.connect(self.__show_imported_symbols)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tree)
+        layout.addWidget(self.hide_imports)
+        self.setLayout(layout)
 
     def build_tree(self):
-        self.clear()
+        self.tree.clear()
+
+        # top level items to group symbols by predicate, function, or variable
+        predicate_tree = QTreeWidgetItem()
+        function_tree = QTreeWidgetItem()
         variable_tree = QTreeWidgetItem()
+
+        self.tree.addTopLevelItem(function_tree)
+        self.tree.addTopLevelItem(predicate_tree)
+        self.tree.addTopLevelItem(variable_tree)
+
         variable_tree.setText(0, "Variables")
         for v in self.variables:
             child = QTreeWidgetItem()
-            child.setText(0, v)
+            child.setText(0, v[0])
+            child.setText(2, v[1])
             variable_tree.addChild(child)
+            self.__change_item_visibility(child)
 
-        predicate_tree = QTreeWidgetItem()
+        # Set up groupings for predicates
         predicate_tree.setText(0, "Predicates")
+        predicate_unary = QTreeWidgetItem()
+        predicate_unary.setText(0, "Unary")
+        predicate_tree.addChild(predicate_unary)
+        predicate_binary = QTreeWidgetItem()
+        predicate_binary.setText(0, "Binary")
+        predicate_tree.addChild(predicate_binary)
+        predicate_nary = QTreeWidgetItem()
+        predicate_nary.setText(0, "N-ary")
+        predicate_tree.addChild(predicate_nary)
+
         for p in self.predicates:
+            arity = p[1]
             child = QTreeWidgetItem()
             child.setText(0, p[0])
-            child.setText(1, str(p[1]))
+            child.setText(1, str(arity))
             child.setText(2, p[2])
-            predicate_tree.addChild(child)
 
-        function_tree = QTreeWidgetItem()
+            if arity == 1:
+                predicate_unary.addChild(child)
+            elif arity == 2:
+                predicate_binary.addChild(child)
+            else:
+                predicate_nary.addChild(child)
+
+            self.__change_item_visibility(child)
+
+        # Hide empty groupings for predicates
+        predicate_unary.setHidden(predicate_unary.childCount() == 0)
+        predicate_binary.setHidden(predicate_binary.childCount() == 0)
+        predicate_nary.setHidden(predicate_nary.childCount() == 0)
+
+        # Set up groupings for functions
         function_tree.setText(0, "Functions")
+        function_unary = QTreeWidgetItem()
+        function_unary.setText(0, "Unary")
+        function_tree.addChild(function_unary)
+        function_binary = QTreeWidgetItem()
+        function_binary.setText(0, "Binary")
+        function_tree.addChild(function_binary)
+        function_nary = QTreeWidgetItem()
+        function_nary.setText(0, "N-ary")
+        function_tree.addChild(function_nary)
+
         for f in self.functions:
+            arity = f[1]
             child = QTreeWidgetItem()
             child.setText(0, f[0])
-            child.setText(1, str(f[1]))
+            child.setText(1, str(arity))
             child.setText(2, f[2])
-            function_tree.addChild(child)
 
-        self.insertTopLevelItem(0, variable_tree)
-        self.insertTopLevelItem(0, predicate_tree)
-        self.insertTopLevelItem(0, function_tree)
+            if arity == 1:
+                function_unary.addChild(child)
+            elif arity == 2:
+                function_binary.addChild(child)
+            else:
+                function_nary.addChild(child)
+
+            self.__change_item_visibility(child)
+
+        # Hide empty groupings for functions
+        function_unary.setHidden(function_unary.childCount() == 0)
+        function_binary.setHidden(function_binary.childCount() == 0)
+        function_nary.setHidden(function_nary.childCount() == 0)
+
 
     def __logical_search(self, logical, file_path):
         for term in logical.terms:
@@ -141,7 +205,7 @@ class InformationSidebar(QTreeWidget):
                 continue
 
             if isinstance(term, str):
-                self.variables.add(term)
+                self.variables.add((term, file_path))
                 continue
             self.__logical_search(term, file_path)
 
@@ -158,12 +222,13 @@ class InformationSidebar(QTreeWidget):
                 continue
 
             if isinstance(var, str):
-                self.variables.add(var)
+                self.variables.add((var, file_path))
                 continue
 
             self.__logical_search(var, file_path)
 
-    def build_model(self, ontology):
+    def build_model(self, ontology, current_file=None):
+        self.current_file = current_file
         if ontology is None:
             return
 
@@ -175,18 +240,42 @@ class InformationSidebar(QTreeWidget):
 
             self.__logical_search(axiom.sentence, path)
         for import_ontology in ontology.imports.values():
-            self.build_model(import_ontology)
+            self.build_model(import_ontology, current_file)
 
     def flush(self):
         self.variables = set()
         self.functions = set()
         self.predicates = set()
-        self.clear()
+        self.tree.clear()
 
     # True: display symbols from imports, False: just symbols for open file
-    # show is a boolean value
-    def show_imported_symbols(self, show):
-        pass
+    def __show_imported_symbols(self):
+        if self.current_file is None:
+            return
+
+        # Here we get the three top level items
+        for i in range(self.tree.invisibleRootItem().childCount()):
+            top_level_item = self.tree.invisibleRootItem().child(i)
+            # Here we get the "arity" groupings
+            for j in range(top_level_item.childCount()):
+                mid_level_item = top_level_item.child(j)
+                count = mid_level_item.childCount()
+
+                # Variables don't have arity groupings, so this is the item we want
+                if count == 0:
+                    self.__change_item_visibility(mid_level_item)
+                else:
+                    # Here we get all the children of the arity grouping and show or hide them
+                    for k in range(count):
+                        child = mid_level_item.child(k)
+                        self.__change_item_visibility(child)
+
+    # Determines whether or not to hide an item
+    def __change_item_visibility(self, item):
+        item_path = item.text(2)
+        current_path = os.path.relpath(self.current_file, self.root_path)
+        is_hidden = self.hide_imports.isChecked() and item_path != current_path
+        item.setHidden(is_hidden)
 
 
 class ImportSidebar(QTreeWidget):
