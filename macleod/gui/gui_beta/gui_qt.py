@@ -24,7 +24,7 @@ class MacleodWindow(QMainWindow):
         # store the project path
         self.root_path = filemgt.read_config('system', 'path')
 
-        # key: QTextEdit object, value: ontology object
+        # key: CodeEditor object, value: ontology object
         self.ontologies = dict()
         self.setup_widgets()
         self.setup_layout()

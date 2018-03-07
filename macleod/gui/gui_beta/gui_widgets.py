@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtWidgets import *
-from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter
+from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFont
 
 from gui_beta import gui_highlighter, gui_file_helper
 from macleod.logical import Symbol
@@ -99,11 +99,20 @@ class InformationSidebar(QWidget):
         self.hide_imports = QCheckBox(parent)   # The Widget for determining visibility
         self.hide_imports.setText("Hide Import Info")
         self.hide_imports.stateChanged.connect(self.__show_imported_symbols)
+        self.hide_imports.setChecked(True)
 
+        # layout our two widgets
         layout = QVBoxLayout()
         layout.addWidget(self.tree)
         layout.addWidget(self.hide_imports)
         self.setLayout(layout)
+
+        # shrink the left and right margins to 1
+        old_margin = layout.getContentsMargins()
+        new_margin = (1, old_margin[1], 1, old_margin[3])
+        layout.setContentsMargins(*new_margin)
+
+        self.tree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     def build_tree(self):
         self.tree.clear()
@@ -123,7 +132,7 @@ class InformationSidebar(QWidget):
             child.setText(0, v[0])
             child.setText(2, v[1])
             variable_tree.addChild(child)
-            self.__change_item_visibility(child)
+            self.__format_item(child)
 
         # Set up groupings for predicates
         predicate_tree.setText(0, "Predicates")
@@ -151,7 +160,7 @@ class InformationSidebar(QWidget):
             else:
                 predicate_nary.addChild(child)
 
-            self.__change_item_visibility(child)
+            self.__format_item(child)
 
         # Hide empty groupings for predicates
         predicate_unary.setHidden(predicate_unary.childCount() == 0)
@@ -184,7 +193,7 @@ class InformationSidebar(QWidget):
             else:
                 function_nary.addChild(child)
 
-            self.__change_item_visibility(child)
+            self.__format_item(child)
 
         # Hide empty groupings for functions
         function_unary.setHidden(function_unary.childCount() == 0)
@@ -263,19 +272,28 @@ class InformationSidebar(QWidget):
 
                 # Variables don't have arity groupings, so this is the item we want
                 if count == 0:
-                    self.__change_item_visibility(mid_level_item)
+                    self.__format_item(mid_level_item)
                 else:
                     # Here we get all the children of the arity grouping and show or hide them
                     for k in range(count):
                         child = mid_level_item.child(k)
-                        self.__change_item_visibility(child)
+                        self.__format_item(child)
 
     # Determines whether or not to hide an item
-    def __change_item_visibility(self, item):
+    def __format_item(self, item):
+        # first, we hide if necessary
         item_path = item.text(2)
         current_path = os.path.relpath(self.current_file, self.root_path)
         is_hidden = self.hide_imports.isChecked() and item_path != current_path
         item.setHidden(is_hidden)
+
+        # next, we bold if necessary
+        item_font = item.font(0)
+        make_bold = (not self.hide_imports.isChecked()) and item_path == current_path
+        item_font.setBold(make_bold)
+        item.setFont(0, item_font)
+        item.setFont(1, item_font)
+        item.setFont(2, item_font)
 
 
 class ImportSidebar(QTreeWidget):
