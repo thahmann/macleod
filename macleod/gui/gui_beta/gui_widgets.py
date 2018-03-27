@@ -96,6 +96,8 @@ class InformationSidebar(QWidget):
         self.predicates = set()                 # set of ordered pairs of (name, arity, path to file)
         self.functions = set()                  # set of ordered pairs of (name, arity, path to file)
 
+        self.error = ""                       # A place to store error messages
+
         self.hide_imports = QCheckBox(parent)   # The Widget for determining visibility
         self.hide_imports.setText("Hide Import Info")
         self.hide_imports.stateChanged.connect(self.__show_imported_symbols)
@@ -251,10 +253,33 @@ class InformationSidebar(QWidget):
         for import_ontology in ontology.imports.values():
             self.build_model(import_ontology, current_file)
 
+        functions_copy = self.functions.copy()
+        predicates_copy = self.predicates.copy()
+
+        for f in self.functions:
+            functions_copy.remove(f)
+            matches = filter(lambda x: x[0] == f[0], functions_copy)
+            for match in matches:
+                # Same name and different arity??
+                if f[1] != match[1]:
+                    self.error += "Function \"{}\" has inconsistent arity\n".format(f[0])
+
+        for p in self.predicates:
+            predicates_copy.remove(p)
+            matches = filter(lambda x: x[0] == p[0], predicates_copy)
+            for match in matches:
+                # Same name and different arity??
+                if p[1] != match[1]:
+                    self.error += "Predicate \"{}\" has inconsistent arity\n".format(p[0])
+
+
+
+
     def flush(self):
         self.variables = set()
         self.functions = set()
         self.predicates = set()
+        self.error = ""
         self.tree.clear()
 
     # True: display symbols from imports, False: just symbols for open file

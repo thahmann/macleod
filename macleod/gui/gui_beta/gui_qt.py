@@ -114,12 +114,13 @@ class MacleodWindow(QMainWindow):
     def _on_parse_done(self):
         path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
         ontology = self.parse_thread.ontology
-        self.console.flush()
         self.info_bar.flush()
         self.import_explorer.clear()
         if self.parse_thread.error is not None:
             print(self.parse_thread.error)
+            self.parse_thread.error = None
         self.info_bar.build_model(ontology, path)
+        print(self.info_bar.error)
         self.info_bar.build_tree()
         self.import_explorer.build_tree(ontology)
         self.add_ontology(ontology)
@@ -173,7 +174,7 @@ class MacleodWindow(QMainWindow):
     def parse_command(self):
         if self.editor_pane.currentWidget() is None:
             return
-
+        self.console.flush()
         self.parse_thread.resolve = False
         self.parse_thread.path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
         self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()

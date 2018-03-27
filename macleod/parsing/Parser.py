@@ -292,7 +292,11 @@ def p_nonlogicals(p):
 
 
 def p_error(p):
-    print("Welp this is confusing", p.lineno, p.lexpos)
+    # Get the true line number
+    string_up_to_error = p.lexer.lexdata[:p.lexpos]
+    line_number = string_up_to_error.count('\n')+1
+    print("Syntax error in line {}".format(line_number))
+
     raise TypeError("unknown text at %r" % (p.value,))
 
 def parse_file(path, sub, base, resolve=False, name=None):
