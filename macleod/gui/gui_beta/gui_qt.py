@@ -4,7 +4,7 @@ import sys
 import os
 
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
-from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QThread, QObject
+from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
 from PyQt5 import QtCore
 
 class MacleodApplication(QApplication):
@@ -178,7 +178,8 @@ class MacleodWindow(QMainWindow):
         self.parse_thread.resolve = False
         self.parse_thread.path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
         self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()
-        self.parse_thread.start()
+        if not self.parse_thread.isRunning():
+            self.parse_thread.start()
 
     def settings_command(self):
         settings = gui_settings.MacleodSettings(self)
@@ -211,11 +212,8 @@ class MacleodWindow(QMainWindow):
                 self.import_explorer.build_tree(self.ontologies[key])
 
 
-
-
 # just in case anything gets weird, we will save a pointer to the regular console
 backup = sys.stdout
-
 app = MacleodApplication(sys.argv, backup)
 app.setStyle(QStyleFactory.create('Fusion'))
 window = MacleodWindow()
@@ -223,4 +221,11 @@ sys.stdout = window.console
 window.setWindowTitle("Macleod")
 window.show()
 
-sys.exit(app.exec_())
+while True:
+    try:
+        sys.exit(app.exec_())
+    except Exception as e:
+        error = QMessageBox()
+        error_text = "An error has occurred:\n{0}".format(e)
+        error.setText(error_text)
+        error.exec()
