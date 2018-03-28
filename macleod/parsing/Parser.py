@@ -59,7 +59,7 @@ def t_error(t):
 t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 t_NONLOGICAL = r'[<>=\w\-=]+'
 t_COMMENT = r'\/\*[\w\W\d*]+?\*\/'
-t_STRING = r"'(.+?)'"
+t_STRING = r"'(.+?)'|\"(.+?)\""
 t_ignore = " \r\t\n"
 
 def p_stater(p):
