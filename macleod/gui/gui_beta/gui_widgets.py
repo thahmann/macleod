@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtWidgets import *
-from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFont
+from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFontDatabase, QMessageBox
 
 from gui_beta import gui_highlighter, gui_file_helper
 from macleod.logical import Symbol
@@ -40,6 +40,17 @@ class TabController(QTabWidget):
 
     def remove_tab(self, index):
         widget = self.widget(index)
+        if self.file_helper.is_dirty(widget, widget.toPlainText()):
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Question)
+            box.setText("If you continue you will lose your changes\n" +
+                        "Would you like to continue?")
+            box.setWindowTitle("Unsaved Changes")
+            box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            val = box.exec()
+            if val == QMessageBox.No:
+                return
+
         if widget is not None:
             widget.deleteLater()
 
@@ -272,9 +283,6 @@ class InformationSidebar(QWidget):
                 if p[1] != match[1]:
                     self.error += "Predicate \"{}\" has inconsistent arity\n".format(p[0])
 
-
-
-
     def flush(self):
         self.variables = set()
         self.functions = set()
@@ -357,10 +365,11 @@ class ImportSidebar(QTreeWidget):
 class Console(QTextEdit):
     def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
+        self.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
         self.setReadOnly(True)
 
     def write(self, text):
-        self.append(str(text))
+        self.insertPlainText(text)
 
     def flush(self):
         self.setText("")
@@ -382,7 +391,7 @@ class LineNumberArea(QWidget):
 class CodeEditor(QPlainTextEdit):
     def __init__(self, parent=None):
         super(CodeEditor, self).__init__(parent)
-        self.is_open = True
+        self.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
         self.line_number_area = LineNumberArea(self)
         self.blockCountChanged.connect(self.update)
         self.updateRequest.connect(self.updateLineNumberArea)

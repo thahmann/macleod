@@ -120,7 +120,8 @@ class MacleodWindow(QMainWindow):
             print(self.parse_thread.error)
             self.parse_thread.error = None
         self.info_bar.build_model(ontology, path)
-        print(self.info_bar.error)
+        if self.info_bar.error:
+            print(self.info_bar.error)
         self.info_bar.build_tree()
         self.import_explorer.build_tree(ontology)
         self.add_ontology(ontology)
@@ -189,10 +190,12 @@ class MacleodWindow(QMainWindow):
         if self.editor_pane.currentWidget() is None:
             return
 
+        self.console.flush()
         self.parse_thread.resolve = True
         self.parse_thread.path = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
         self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()
-        self.parse_thread.start()
+        if not self.parse_thread.isRunning():
+            self.parse_thread.start()
 
     # event handler for tab changes
     # Here we attempt to load a matching ontology for the tab

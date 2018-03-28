@@ -296,7 +296,10 @@ def p_error(p):
     string_up_to_error = p.lexer.lexdata[:p.lexpos]
     line_number = string_up_to_error.count('\n')+1
     print("Syntax error in line {}".format(line_number))
-
+    # count parentheses
+    paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
+    if paren_count != 0:
+        raise TypeError("There may be a mismatched \"{}\" parenthesis".format('(' if paren_count > 0 else ')'))
     raise TypeError("unknown text at %r" % (p.value,))
 
 def parse_file(path, sub, base, resolve=False, name=None):

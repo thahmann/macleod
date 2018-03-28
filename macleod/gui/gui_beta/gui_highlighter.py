@@ -73,20 +73,8 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
                     for p in self.predicates:
                         if p[0] == name:
                             self.setFormat(match.capturedStart() + offset, len(name), self.format_predicate)
-                            break
                 else:
                     self.setFormat(match.capturedStart() + index, match.capturedLength() - index, format)
-
-    def highlightSymbol(self, symbolName):
-        exp = QRegularExpression(symbolName)
-        highlightFormat = QTextCharFormat()
-        highlightFormat.setBackground(COLOR_HIGHLIGHT_SYMBOL)
-        while self.currentBlock().isValid():
-            iterator = exp.globalMatch(self.currentBlock().text())
-            while iterator.hasNext():
-                match = iterator.next()
-                self.setFormat(match.capturedStart(), match.capturedLength, highlightFormat)
-            self.currentBlock().next()
 
     def rehighlight(self, predicates=None, functions=None):
         if predicates is not None:
