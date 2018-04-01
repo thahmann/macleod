@@ -16,7 +16,13 @@ Instructions:
 - Copy the appropriate conf files from the "conf" directory to the new "macleod" directory
     - Make sure you get the appropriate conf for your operating system
     - Update logging.conf to point to where you would like to store the logs.
-- Install ply. The easiest way to do this is to use pip. Run "pip install ply".
+- Install ply. On Linux and Mac, the easiest way to do this is to use pip. Run "pip install ply".
+    - If you're on Windows, the PyCharm IDE makes it easy:
+        - https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-upgrading-packages.html
+    - If you don't want to use an IDE and you're using Python 3.4 or higher:
+        - https://stackoverflow.com/questions/29817447/how-to-run-pip-commands-from-cmd
+    - If you don't want to use an IDE but you're using Python 3.3 or lower:
+        - https://stackoverflow.com/questions/4750806/how-do-i-install-pip-on-windows
 - Install PyQt5. Again using pip, run "pip install PyQt5".
 - Add the "gui" folder in "macleod" to your PYTHONPATH
 - Navigate to macleod/gui/gui_beta
