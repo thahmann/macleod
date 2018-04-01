@@ -1,0 +1,30 @@
+4/1/18
+Evan Sampson
+
+How to Setup The Editor
+=============================
+
+Requirements:
+- Python 3
+- ply (Python Lex & Yacc)
+- PyQt5
+    - Using pip, run "pip install PyQt5"
+
+Instructions:
+- Follow the "Installation" instructions found in README.md to get the Macleod dependencies
+- In your home directory, create a directory called "macleod"
+- Copy the appropriate conf files from the "conf" directory to the new "macleod" directory
+    - Make sure you get the appropriate conf for your operating system
+    - Update logging.conf to point to where you would like to store the logs.
+- Install ply. The easiest way to do this is to use pip. Run "pip install ply".
+- Install PyQt5. Again using pip, run "pip install PyQt5".
+- Add the "gui" folder in "macleod" to your PYTHONPATH
+- Navigate to macleod/gui/gui_beta
+- Run gui_qt.py
+
+Personalization:
+- In the gui, access the file menu
+- Select "Settings"
+- Here you can:
+    - Change the root directory. This will change which files are shown in the "Directory" panel
+    - Change the highlighter colors. By default they are all black.
