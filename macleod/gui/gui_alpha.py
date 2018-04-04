@@ -4,21 +4,13 @@
 
 High-level overview of graphical element to be added to Macleod
 """
-
-from macleod.bin import *
-from macleod import *
-
-# source
-#from macleod.ClifModuleSet import *
-#from macleod.filemgt import *
-
-# visual components
-from gui.Arborist import *
-from gui.summary import *
-from gui.table import *
-
 # task scripts
-import logging
+import os, sys, logging
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../")
+#print(sys.path)
+#from macleod import *
 
 from bin.check_consistency import *
 from bin.check_nontrivial_consistency import *
@@ -30,6 +22,16 @@ from bin.clif_to_tptp_all import *
 from bin.prove_lemma import *
 from bin.prove_lemma_all import *
 from bin.delete_output import *
+# source
+#from macleod.ClifModuleSet import *
+#from macleod.filemgt import *
+
+# visual components
+from gui.Arborist import *
+from gui.summary import *
+from gui.table import *
+
+
 from tkinter import *
 import tkinter.ttk
 import tkinter.messagebox
