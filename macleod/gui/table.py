@@ -6,7 +6,7 @@ Anything relating to how the table is drawn for the 'report' tab, should
 be controlled/implemented here
 """
 import sys
-sys.path.append("../src")
+sys.path.append("../")
 
 from tkinter import *
 from tkinter.ttk import *

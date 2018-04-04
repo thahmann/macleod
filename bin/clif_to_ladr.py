@@ -4,9 +4,10 @@ Created on 2013-03-22
 @author: Torsten Hahmann
 '''
 
-from bin import *
 import sys
-from src.ClifModuleSet import ClifModuleSet
+
+from bin import licence
+from macleod.ClifModuleSet import ClifModuleSet
 
 
 def ladr(filename, m, options=[]):

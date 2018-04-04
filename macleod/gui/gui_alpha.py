@@ -9,8 +9,8 @@ from macleod.bin import *
 from macleod import *
 
 # source
-#from src.ClifModuleSet import *
-#from src.filemgt import *
+#from macleod.ClifModuleSet import *
+#from macleod.filemgt import *
 
 # visual components
 from gui.Arborist import *
@@ -20,16 +20,16 @@ from gui.table import *
 # task scripts
 import logging
 
-from tasks.check_consistency import *
-from tasks.clif_to_ladr import *
-from tasks.clif_to_tptp import *
-from tasks.prove_lemma import *
-from tasks.check_nontrivial_consistency import *
-from tasks.check_consistency_all import *
-from tasks.clif_to_ladr_all import *
-from tasks.clif_to_tptp_all import *
-from tasks.prove_lemma_all import *
-from tasks.delete_output import *
+from bin.check_consistency import *
+from bin.check_nontrivial_consistency import *
+from bin.check_consistency_all import *
+from bin.clif_to_ladr import *
+from bin.clif_to_ladr_all import *
+from bin.clif_to_tptp import *
+from bin.clif_to_tptp_all import *
+from bin.prove_lemma import *
+from bin.prove_lemma_all import *
+from bin.delete_output import *
 from tkinter import *
 import tkinter.ttk
 import tkinter.messagebox

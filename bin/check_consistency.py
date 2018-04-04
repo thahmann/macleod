@@ -5,7 +5,6 @@ Created on 2013-03-19
 '''
 
 import sys
-from bin import *
 from macleod.ClifModuleSet import ClifModuleSet
 
 import logging

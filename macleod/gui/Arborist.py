@@ -7,14 +7,18 @@ more generic tree structure
 """
 
 import sys
-sys.path.append("../src")
+sys.path.append("../")
+
+import macleod.Filemgt as filemgt
 
 from tkinter import *
-from .summary import *
-import src.filemgt
-import logging
 import tkinter.font
 import tkinter.ttk
+
+from .summary import *
+import logging
+
+
 
 LOG = logging.getLogger(__name__)
 
@@ -71,16 +75,16 @@ class Arborist(object):
 
         removes = []
         for name in self.nodes:
-            if src.filemgt.module_is_definition_set(name):
+            if filemgt.module_is_definition_set(name):
                 print(name)
                 removes.append(name)
 
         for name, node in self.nodes.items():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
-                node.children = [c for c in node.children if not src.filemgt.module_is_definition_set(c.name)]
-                node.definitions += [p for p in node.parents if src.filemgt.module_is_definition_set(p.name)]
-                node.parents = [p for p in node.parents if not src.filemgt.module_is_definition_set(p.name)]
+                node.children = [c for c in node.children if not filemgt.module_is_definition_set(c.name)]
+                node.definitions += [p for p in node.parents if filemgt.module_is_definition_set(p.name)]
+                node.parents = [p for p in node.parents if not filemgt.module_is_definition_set(p.name)]
 
                 for c in node.children:
                     if 'definitions' in c.name:

@@ -1,4 +1,5 @@
-from macleod import filemgt, commands
+import macleod.Filemgt as filemgt
+import macleod.Commands as commands
 import logging
 
 class Reasoner (object):

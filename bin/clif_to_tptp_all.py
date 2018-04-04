@@ -1,17 +1,18 @@
-from src import filemgt
-from bin import *
 import os, sys
-from src.ClifModuleSet import ClifModuleSet
-from bin import clif_to_tptp
+
+from bin import licence, clif_to_tptp
+
+import macleod.Filemgt as filemgt
+from macleod.ClifModuleSet import ClifModuleSet
 
 #global variables
 filemgt.start_logging()
 tempfolder = filemgt.read_config('converters', 'tempfolder')
 ignores = [tempfolder]
 ending = filemgt.read_config('cl','ending')
-licence.print_terms()
 
 if __name__ == '__main__':
+	licence.print_terms()
     options = sys.argv
     options.reverse()
     options.pop()

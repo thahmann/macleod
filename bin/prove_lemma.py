@@ -4,7 +4,7 @@ Created on 2013-03-29
 @author: Torsten Hahmann
 '''
 
-from bin import *
+from bin import licence
 import macleod.ClifLemmaSet as ClifLemmaSet
 import macleod.ClifModuleSet as ClifModuleSet
 import logging

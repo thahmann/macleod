@@ -8,13 +8,12 @@ import os, os.path
 import sys
 import calendar
 import locale
-from .ClifModule import ClifModule
-from ColoreFileManager import ColoreFileManager
-from .ProofStatistic import ProofStatistic
-from .LADR import LADR
-from TPTP import TPTP
-from .VAMPIRE import VAMPIRE 
 from datetime import datetime
+
+from macleod.ClifModule import ClifModule
+from macleod.ColoreFileManager import ColoreFileManager
+from macleod.ProofStatistic import ProofStatistic
+from macleod import ladr, tptp, vampire
 
 class ColoreOutputCleaner(object):
 
@@ -57,7 +56,7 @@ class ColoreOutputCleaner(object):
             for f in files:
                 fullpath = os.path.join(root, f)
                 # delete options single_file
-                if fullpath.endswith(LADR.P9_OPTIONS_FILE_NAME):
+                if fullpath.endswith(Ladr.P9_OPTIONS_FILE_NAME):
                     self.removeFile(fullpath)
                 # delete intermediary files
                 if fullpath.endswith('.p9i') or fullpath.endswith('.p9' + ClifModule.CLIF_ENDING):
@@ -95,10 +94,10 @@ class ColoreOutputCleaner(object):
         print(first_filename)
 
         #print os.path.normcase(os.path.join(os.path.dirname(single_file),filename+'.m4.out'))
-        filename_mace4 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ LADR.MACE4_ENDING + '.out'))
-        filename_prover9 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ LADR.PROVER9_ENDING + '.out'))
-        filename_paradox3 = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ TPTP.TPTP_ENDING + '.out'))
-        filename_vampire = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ VAMPIRE.VAMPIRE_ENDING + '.out'))
+        filename_mace4 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ ladr.MACE4_ENDING + '.out'))
+        filename_prover9 = os.path.normcase(os.path.join(os.path.dirname(single_file),filename+ ladr.PROVER9_ENDING + '.out'))
+        filename_paradox3 = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ tptp.TPTP_ENDING + '.out'))
+        filename_vampire = os.path.normcase(os.path.join(os.path.dirname(single_file),first_filename+ vampire.VAMPIRE_ENDING + '.out'))
 
         proof = False
         model = False
