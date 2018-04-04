@@ -62,7 +62,7 @@ t_COMMENT = r'\/\*[\w\W\d*]+?\*\/'
 t_STRING = r"'(.+?)'|\"(.+?)\""
 t_ignore = " \r\t\n"
 
-def p_stater(p):
+def p_starter(p):
 
     """
     starter : COMMENT ontology
@@ -122,6 +122,13 @@ def p_comment(p):
 
     #p[0] = p[3]
     p[0] = None
+
+def p_comment_error(p):
+    """
+    comment : LPAREN CLCOMMENT error RPAREN
+    """
+
+    raise TypeError("Invalid comment")
     
 
 def p_import(p):
@@ -131,21 +138,31 @@ def p_import(p):
 
     p[0] = p[3]
 
+
 def p_axiom(p):
     """
     axiom : negation
           | universal
           | existential
-          | conjunction
-          | disjunction
+          | LPAREN conjunction RPAREN
+          | LPAREN disjunction RPAREN
+          | LPAREN connective_error RPAREN
           | conditional
           | biconditional
           | predicate
     """
 
-    p[0] = p[1]
+    if len(p) == 4:
+        p[0] = p[2]
+    else:
+        p[0] = p[1]
 
+def p_axiom_error(p):
+    """
+    axiom : error
+    """
 
+    raise TypeError("Error in axiom")
 
 def p_negation(p):
     """
@@ -157,17 +174,26 @@ def p_negation(p):
 
 def p_conjunction(p):
     """
-    conjunction : LPAREN AND axiom_list RPAREN
+    conjunction : AND axiom_list
     """
 
-    p[0] = Connective.Conjunction(p[3])
+    p[0] = Connective.Conjunction(p[2])
 
 def p_disjunction(p):
     """
-    disjunction : LPAREN OR axiom_list RPAREN
+    disjunction : OR axiom_list
     """
 
-    p[0] = Connective.Disjunction(p[3])
+    p[0] = Connective.Disjunction(p[2])
+
+def p_connective_error(p):
+    """
+    connective_error : axiom_list
+    """
+
+    p_error(p)
+    raise TypeError("Missing connective")
+
 
 def p_axiom_list(p):
     """
@@ -209,18 +235,31 @@ def p_biconditional(p):
 
 def p_existential(p):
     """
-    existential : LPAREN EXISTS LPAREN nonlogicals RPAREN axiom RPAREN
+    existential : LPAREN EXISTS quantified_nonlogicals axiom RPAREN
     """
 
-    p[0] = Quantifier.Existential(p[4], p[6])
+    p[0] = Quantifier.Existential(p[3], p[4])
 
 def p_universal(p):
     """
-    universal : LPAREN FORALL LPAREN nonlogicals RPAREN axiom RPAREN
+    universal : LPAREN FORALL quantified_nonlogicals axiom RPAREN
     """
 
-    p[0] = Quantifier.Universal(p[4], p[6])
+    p[0] = Quantifier.Universal(p[3], p[4])
 
+def p_quantified_nonlogicals(p):
+    """
+    quantified_nonlogicals : LPAREN nonlogicals RPAREN
+    """
+
+    p[0] = p[2]
+
+def p_quantified_nonlogicals_error(p):
+    """
+    quantified_nonlogicals : error
+    """
+
+    raise TypeError("Quantified nonlogicals must be surrounded by parentheses")
 
 def p_predicate(p):
     """
@@ -293,14 +332,12 @@ def p_nonlogicals(p):
 
 def p_error(p):
     # Get the true line number
-    string_up_to_error = p.lexer.lexdata[:p.lexpos]
-    line_number = string_up_to_error.count('\n')+1
-    print("Syntax error in line {}".format(line_number))
+    num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
+    print("Syntax error in line {}".format(num))
     # count parentheses
     paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
     if paren_count != 0:
-        raise TypeError("There may be a mismatched \"{}\" parenthesis".format('(' if paren_count > 0 else ')'))
-    raise TypeError("unknown text at %r" % (p.value,))
+        raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
 
 def parse_file(path, sub, base, resolve=False, name=None):
     """
@@ -350,6 +387,9 @@ def parse_file(path, sub, base, resolve=False, name=None):
         ontology.resolve_imports(resolve)
 
     return ontology
+
+def get_line_number(string, pos):
+    return string[:pos].count('\n') + 1
 
 if __name__ == '__main__':
 
