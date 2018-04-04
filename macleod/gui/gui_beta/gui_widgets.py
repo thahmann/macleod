@@ -107,7 +107,7 @@ class InformationSidebar(QWidget):
         self.predicates = set()                 # set of ordered pairs of (name, arity, path to file)
         self.functions = set()                  # set of ordered pairs of (name, arity, path to file)
 
-        self.error = ""                       # A place to store error messages
+        self.error = ""                         # A place to store error messages
 
         self.hide_imports = QCheckBox(parent)   # The Widget for determining visibility
         self.hide_imports.setText("Hide Import Info")
@@ -282,6 +282,12 @@ class InformationSidebar(QWidget):
                 # Same name and different arity??
                 if p[1] != match[1]:
                     self.error += "Predicate \"{}\" has inconsistent arity\n".format(p[0])
+
+        # Check for functions and predicates with the same name
+        for f in self.functions:
+            for p in self.predicates:
+                if f[0] == p[0]:
+                    self.error += "\"{}\" is treated as both a predicate and a function\n".format(f[0])
 
     def flush(self):
         self.variables = set()
