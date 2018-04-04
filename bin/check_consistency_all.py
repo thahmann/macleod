@@ -5,8 +5,9 @@ if __name__ == '__main__':
 
     import os, sys
 
-    # Mac-a-Hack again
-    sys.path.append("../")
+	#print(os.path.dirname(os.path.abspath(__file__)))
+	sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 
     #ignores = ["theorems", "generated", "output","consistency"]
     ignores = ["theorems", "generated", "output"]

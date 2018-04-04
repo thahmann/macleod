@@ -1,6 +1,8 @@
-import os, sys
+import os, sys, datetime
 
-#from bin import *
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 from bin import licence, clif_to_ladr
 import macleod.Filemgt as filemgt
 from macleod.ClifModuleSet import ClifModuleSet

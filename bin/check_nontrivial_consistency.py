@@ -4,12 +4,17 @@ Created on 2013-07-22
 @author: Torsten Hahmann
 '''
 
+import os, sys, datetime
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
+
+from bin import licence, check_consistency
+
 import macleod.Filemgt as filemgt
 import macleod.Clif as clif
 from macleod.ClifModuleSet import ClifModuleSet
-from bin import licence, check_consistency
-import datetime
-import sys
 
 
 def nontrivially_consistent(filename, m, options=[]):

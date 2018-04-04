@@ -4,7 +4,11 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
-import sys
+import os, sys
+
+print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 from macleod.ClifModuleSet import ClifModuleSet
 
 import logging

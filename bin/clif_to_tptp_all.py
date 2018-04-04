@@ -1,4 +1,8 @@
-import os, sys
+import os, sys, datetime
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 
 from bin import licence, clif_to_tptp
 

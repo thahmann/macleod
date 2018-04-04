@@ -4,7 +4,11 @@ Created on 2013-03-28
 @author: Torsten Hahmann
 '''
 
-import sys
+import os, sys, datetime
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 
 from bin import licence
 from macleod.ClifModuleSet import ClifModuleSet
