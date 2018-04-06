@@ -6,13 +6,13 @@ Anything that the tree needs to know about the GUI should happen here
 """
 
 import sys
-sys.path.append("../src")
+sys.path.append("../")
 
 from tkinter import *
 from tkinter.ttk import *
 import os
 import platform
-import src.filemgt
+import macleod.filemgt
 
 EDITOR = None
 
@@ -27,7 +27,7 @@ def find_system_editor():
     def edit_file(path):
         """ Launch the system editor on provided file """
 
-        full_path = src.filemgt.get_full_path(path)
+        full_path = macleod.filemgt.get_full_path(path)
         os.system(editor + ' ' + full_path)
 
     return edit_file

@@ -24,8 +24,8 @@ Quick Start
 -----------
 * Install required dependencies
 * Navigate to the gui subfolder
+* Add the macleod/ and bin/ folders to your python path
 * Execute the gui_alpha.py file with python
-* Add the src/ and task/ folders to your python path
 
 To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
 

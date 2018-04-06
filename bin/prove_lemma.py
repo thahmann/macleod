@@ -4,7 +4,13 @@ Created on 2013-03-29
 @author: Torsten Hahmann
 '''
 
-from bin import *
+import os, sys, datetime
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
+
+from bin import licence
 import macleod.ClifLemmaSet as ClifLemmaSet
 import macleod.ClifModuleSet as ClifModuleSet
 import logging

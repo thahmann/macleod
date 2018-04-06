@@ -1,13 +1,21 @@
 
+import os, sys, datetime
+
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
+from bin import licence, prove_lemma
+
+#global variables
+filemgt.start_logging()
+#ignores = ["theorems", "generated", "output", "consistency"]
+ignores = ["generated", "output", "consistency"]
+necessary = "_theorems"
+#necessary = false
+
 if __name__ == '__main__':
-    import os, sys
-    from bin import prove_lemma
-
-    #ignores = ["theorems", "generated", "output", "consistency"]
-    ignores = ["generated", "output", "consistency"]
-    necessary = "_theorems"
-    #necessary = false
-
+	licence.print_terms()
+	
     proofs = 0
     counterexamples = 0
     unknown = 0
