@@ -4,14 +4,12 @@ Created on 2013-03-19
 @author: Torsten Hahmann
 '''
 
-import os, sys
+import os, sys, logging
 
-print(os.path.dirname(os.path.abspath(__file__)))
+#print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
 from macleod.ClifModuleSet import ClifModuleSet
-
-import logging
 
 def consistent(filename, m, options=[]):  
 
