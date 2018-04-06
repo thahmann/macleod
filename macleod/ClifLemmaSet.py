@@ -12,7 +12,6 @@ from macleod.ClifModule import ClifModule
 
 from macleod import clif, ladr
 
-
 class LemmaModule(ClifModule):
 
     '''

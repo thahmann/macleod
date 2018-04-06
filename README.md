@@ -6,6 +6,10 @@ Installation:
 
 ## Dependencies
 
+At the moment, pyparsing is required: <https://pypi.python.org/pypi/pyparsing>
+* As of April 5, 2018, pyparsing is available for Python 3.5 but not yet for Python 3.6
+
+
 For the linux and apple platform only the following dependency is required.
 
 * texttable
@@ -15,7 +19,7 @@ This is most easily obtained with <code>sudo pip install texttable</code>
 ### Windows:
 
 To install on Windows machines the following dependencies are required.
-* PyWin32 <http://sourceforge.net/projects/pywin32/files/>
+* PyWin32 <https://github.com/mhammond/pywin32/releases> Look for the right version that is compatible with your Python version.
 * WMI module <http://timgolden.me.uk/python/wmi/index.html>
 
 

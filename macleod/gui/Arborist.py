@@ -19,9 +19,6 @@ from .summary import *
 import logging
 
 
-
-LOG = logging.getLogger(__name__)
-
 # Width of node as counted for tree spacing usually the same as BASE_BUFFER
 NODE_BASE_WIDTH = 50
 NODE_BASE_HEIGHT = 10
@@ -88,10 +85,10 @@ class Arborist(object):
 
                 for c in node.children:
                     if 'definitions' in c.name:
-                        LOG.debug('Did not remove definition in ' + node.name)
+                        logging.getLogger(__name__).debug('Did not remove definition in ' + node.name)
                 for p in node.parents:
                     if 'definitions' in p.name:
-                        LOG.debug('Did not remove definition in ' + node.name)
+                        logging.getLogger(__name__).debug('Did not remove definition in ' + node.name)
 
         visited = self.traverse(self.tree)
 
@@ -103,7 +100,7 @@ class Arborist(object):
             try:
                 self.nodes.pop(name)
             except KeyError:
-                LOG.debug('Already removed definition ' + name)
+                logging.getLogger(__name__).debug('Already removed definition ' + name)
 
     def traverse(self, rootnode):
         """ Traverse over the tree marking nodes as reachable """
@@ -369,7 +366,7 @@ class VisualNode(Node):
         if self.visual_parent is None and self.depth != 1:
             for parent in self.parents:
                 print(parent.name)
-            LOG.debug('Non-root node without parent ' + self.name)
+            logging.getLogger(__name__).debug('Non-root node without parent ' + self.name)
 
     def set_visual_children(self):
         """ Return a list of children who are directly below the node """

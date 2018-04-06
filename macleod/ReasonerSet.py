@@ -1,6 +1,7 @@
 import macleod.Filemgt as filemgt
 import macleod.Commands as commands
 from macleod.Reasoner import Reasoner
+
 import logging
 
 class ReasonerSet (list):  

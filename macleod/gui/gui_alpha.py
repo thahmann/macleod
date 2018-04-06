@@ -37,7 +37,7 @@ import tkinter.ttk
 import tkinter.messagebox
 import tkinter.filedialog
 
-LOG = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 img_dir = os.path.join(os.path.dirname(__file__), 'img')
 
 def btn_press(event):
@@ -267,7 +267,7 @@ class GUI(Frame):
         #static buttons
         #view_log = Button(self.task_pane, text="View Log", \
         #        command=lambda: .open_macleod_log())
-        #view_log.pack(side=BOTTOM)
+        #view_LOGGER.pack(side=BOTTOM)
         #clear_workspace = Button(self.task_pane, text="Clear Modules", \
         #        command=self.deforestation())
         #clear_workspace.pack(side=BOTTOM)
@@ -319,7 +319,7 @@ class GUI(Frame):
     def askopenfilename(self):
         """ Returns a selected directory name """
 
-        self.selected_file = tkinter.filedialog.askopenfilename()
+        self.selected_file = tkinter.filediaLOGGER.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose Ontology...")
         self.deforestation()
@@ -330,7 +330,7 @@ class GUI(Frame):
     def askdirectory(self):
         """ Returns a selected directory name """
 
-        self.selected_folder = tkinter.filedialog.askdirectory()
+        self.selected_folder = tkinter.filediaLOGGER.askdirectory()
         self.selected_path.set("  Path:\t"+self.selected_folder)
         self.default_dropdown_text.set("Choose Folder...")
         self.deforestation()
