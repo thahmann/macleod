@@ -2,7 +2,7 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFontDatabase, QMessageBox
 
-from gui_beta import gui_highlighter, gui_file_helper
+from macleod.gui.gui_beta import gui_highlighter, gui_file_helper
 from macleod.logical import Symbol
 
 

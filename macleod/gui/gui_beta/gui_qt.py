@@ -1,4 +1,4 @@
-from gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
+from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
 import macleod.Filemgt as filemgt
 import sys
 import os

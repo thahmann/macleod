@@ -37,7 +37,7 @@ tokens = (
     "NONLOGICAL"
 )
 
-precedence = (('left', 'IFF'),
+precedence = (('left', 'IFF', 'NONLOGICAL'),
               ('left', 'IF'))
 
 def t_NOT(t): r'not'; return t
