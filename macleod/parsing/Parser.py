@@ -370,6 +370,7 @@ def p_error(p):
 
     else:
         print("Unexpectedly reached end of file")
+        raise TypeError("There may be a missing \")\" parenthesis")
 
 def parse_file(path, sub, base, resolve=False, name=None):
     """
