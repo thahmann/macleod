@@ -15,6 +15,7 @@ import macleod.logical.Logical as Logical
 import macleod.logical.Negation as Negation
 import macleod.logical.Quantifier as Quantifier
 import macleod.logical.Symbol as Symbol
+import macleod.logical.Axiom as Axiom
 
 LOGGER = logging.getLogger(__name__)
 
@@ -189,32 +190,52 @@ def p_disjunction(p):
 def p_connective_error(p):
     """
     connective_error : axiom_list
+    connective_error : axiom
+    connective_error : OR axiom
+    connective_error : AND axiom
+    connective_error : OR
+    connective_error : AND
     """
 
     p_error(p)
-    raise TypeError("Missing connective")
+
+    # No connective
+    if isinstance(p[1], list) or isinstance(p[1], Logical.Logical):
+        raise TypeError("Missing connective")
+
+    # Not enough terms
+    raise TypeError("Connective requires two or more terms")
 
 
 def p_axiom_list(p):
     """
-    axiom_list : axiom axiom_list
-    axiom_list : axiom
+    axiom_list : axiom more_axioms
+    """
+    axioms = [p[1]]
+
+    if isinstance(p[2], list):
+        axioms += p[2]
+    else:
+        axioms.append(p[2])
+
+    p[0] = axioms
+
+def p_more_axioms(p):
+    """
+    more_axioms : axiom more_axioms
+    more_axioms : axiom
     """
 
+    axioms = [p[1]]
     if len(p) == 3:
-
-        axioms = [p[1]]
-
         if isinstance(p[2], list):
             axioms += p[2]
         else:
             axioms.append(p[2])
 
-        p[0] = axioms
+    p[0] = axioms
 
-    else:
 
-        p[0] = [p[1]]
 
 def p_conditional(p):
     """
@@ -232,6 +253,14 @@ def p_biconditional(p):
     p[0] = Connective.Conjunction([Connective.Disjunction([Negation.Negation(p[3]), p[4]]),
                                    Connective.Disjunction([Negation.Negation(p[4]), p[3]])
                                   ])
+
+def p_conditional_error(p):
+    """
+    conditional : LPAREN IF axiom RPAREN
+    """
+
+    p_error(p)
+    raise TypeError("Error in conditional expression syntax")
 
 def p_existential(p):
     """
@@ -329,15 +358,19 @@ def p_nonlogicals(p):
 
         p[0] = [p[1]]
 
-
 def p_error(p):
-    # Get the true line number
-    num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
-    print("Syntax error in line {}".format(num))
-    # count parentheses
-    paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
-    if paren_count != 0:
-        raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
+    if p is not None:
+        # Get the true line number
+        num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
+        print("Syntax error in line {}".format(num))
+        # count parentheses
+        paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
+        if paren_count != 0:
+            raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
+
+    else:
+        print("Unexpectedly reached end of file")
+        raise TypeError("There may be a missing \")\" parenthesis")
 
 def parse_file(path, sub, base, resolve=False, name=None):
     """
