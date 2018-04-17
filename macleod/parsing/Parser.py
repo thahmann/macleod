@@ -15,6 +15,7 @@ import macleod.logical.Logical as Logical
 import macleod.logical.Negation as Negation
 import macleod.logical.Quantifier as Quantifier
 import macleod.logical.Symbol as Symbol
+import macleod.logical.Axiom as Axiom
 
 LOGGER = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ tokens = (
     "NONLOGICAL"
 )
 
-precedence = (('left', 'IFF'),
+precedence = (('left', 'IFF', 'NONLOGICAL'),
               ('left', 'IF'))
 
 def t_NOT(t): r'not'; return t
@@ -59,10 +60,11 @@ def t_error(t):
 t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 t_NONLOGICAL = r'[<>=\w\-=]+'
 t_COMMENT = r'\/\*[\w\W\d*]+?\*\/'
-t_STRING = r"'(.+?)'"
+t_STRING = r"'(.+?)'|\"(.+?)\""
 t_ignore = " \r\t\n"
 
-def p_stater(p):
+def p_starter(p):
+
     """
     starter : COMMENT ontology
     starter : ontology
@@ -121,6 +123,13 @@ def p_comment(p):
 
     #p[0] = p[3]
     p[0] = None
+
+def p_comment_error(p):
+    """
+    comment : LPAREN CLCOMMENT error RPAREN
+    """
+
+    raise TypeError("Invalid comment")
     
 
 def p_import(p):
@@ -130,21 +139,31 @@ def p_import(p):
 
     p[0] = p[3]
 
+
 def p_axiom(p):
     """
     axiom : negation
           | universal
           | existential
-          | conjunction
-          | disjunction
+          | LPAREN conjunction RPAREN
+          | LPAREN disjunction RPAREN
+          | LPAREN connective_error RPAREN
           | conditional
           | biconditional
           | predicate
     """
 
-    p[0] = p[1]
+    if len(p) == 4:
+        p[0] = p[2]
+    else:
+        p[0] = p[1]
 
+def p_axiom_error(p):
+    """
+    axiom : error
+    """
 
+    raise TypeError("Error in axiom")
 
 def p_negation(p):
     """
@@ -156,38 +175,67 @@ def p_negation(p):
 
 def p_conjunction(p):
     """
-    conjunction : LPAREN AND axiom_list RPAREN
+    conjunction : AND axiom_list
     """
 
-    p[0] = Connective.Conjunction(p[3])
+    p[0] = Connective.Conjunction(p[2])
 
 def p_disjunction(p):
     """
-    disjunction : LPAREN OR axiom_list RPAREN
+    disjunction : OR axiom_list
     """
 
-    p[0] = Connective.Disjunction(p[3])
+    p[0] = Connective.Disjunction(p[2])
+
+def p_connective_error(p):
+    """
+    connective_error : axiom_list
+    connective_error : axiom
+    connective_error : OR axiom
+    connective_error : AND axiom
+    connective_error : OR
+    connective_error : AND
+    """
+
+    p_error(p)
+
+    # No connective
+    if isinstance(p[1], list) or isinstance(p[1], Logical.Logical):
+        raise TypeError("Missing connective")
+
+    # Not enough terms
+    raise TypeError("Connective requires two or more terms")
+
 
 def p_axiom_list(p):
     """
-    axiom_list : axiom axiom_list
-    axiom_list : axiom
+    axiom_list : axiom more_axioms
+    """
+    axioms = [p[1]]
+
+    if isinstance(p[2], list):
+        axioms += p[2]
+    else:
+        axioms.append(p[2])
+
+    p[0] = axioms
+
+def p_more_axioms(p):
+    """
+    more_axioms : axiom more_axioms
+    more_axioms : axiom
     """
 
+    axioms = [p[1]]
     if len(p) == 3:
-
-        axioms = [p[1]]
-
         if isinstance(p[2], list):
             axioms += p[2]
         else:
             axioms.append(p[2])
 
-        p[0] = axioms
+    p[0] = axioms
 
-    else:
 
-        p[0] = [p[1]]
 
 def p_conditional(p):
     """
@@ -206,20 +254,41 @@ def p_biconditional(p):
                                    Connective.Disjunction([Negation.Negation(p[4]), p[3]])
                                   ])
 
-def p_existential(p):
+def p_conditional_error(p):
     """
-    existential : LPAREN EXISTS LPAREN nonlogicals RPAREN axiom RPAREN
+    conditional : LPAREN IF axiom RPAREN
     """
 
-    p[0] = Quantifier.Existential(p[4], p[6])
+    p_error(p)
+    raise TypeError("Error in conditional expression syntax")
+
+def p_existential(p):
+    """
+    existential : LPAREN EXISTS quantified_nonlogicals axiom RPAREN
+    """
+
+    p[0] = Quantifier.Existential(p[3], p[4])
 
 def p_universal(p):
     """
-    universal : LPAREN FORALL LPAREN nonlogicals RPAREN axiom RPAREN
+    universal : LPAREN FORALL quantified_nonlogicals axiom RPAREN
     """
 
-    p[0] = Quantifier.Universal(p[4], p[6])
+    p[0] = Quantifier.Universal(p[3], p[4])
 
+def p_quantified_nonlogicals(p):
+    """
+    quantified_nonlogicals : LPAREN nonlogicals RPAREN
+    """
+
+    p[0] = p[2]
+
+def p_quantified_nonlogicals_error(p):
+    """
+    quantified_nonlogicals : error
+    """
+
+    raise TypeError("Quantified nonlogicals must be surrounded by parentheses")
 
 def p_predicate(p):
     """
@@ -289,16 +358,29 @@ def p_nonlogicals(p):
 
         p[0] = [p[1]]
 
-
 def p_error(p):
-    print("Welp this is confusing", p.lineno, p.lexpos)
-    raise TypeError("unknown text at %r" % (p.value,))
+    if p is not None:
+        # Get the true line number
+        num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
+        print("Syntax error in line {}".format(num))
+        # count parentheses
+        paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
+        if paren_count != 0:
+            raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
 
-def parse_file(path, sub, base, resolve=False):
+    else:
+        print("Unexpectedly reached end of file")
+        raise TypeError("There may be a missing \")\" parenthesis")
+
+def parse_file(path, sub, base, resolve=False, name=None):
     """
     Accepts a path to a Common Logic file and parses it to return an Ontology object.
 
-    :param String path, path to common logic file
+    :param path, path to common logic file
+    :param sub, path component to be substituted
+    :param base, new path component
+    :param resolve, resolve imports?
+    :param name, for overriding the default naming
     :return Ontology onto, newly constructed ontology object
     """
 
@@ -308,12 +390,19 @@ def parse_file(path, sub, base, resolve=False):
     with open(path, 'r') as f:
         buff = f.read()
 
+    if not buff:
+        return None
+
     lex.lex(reflags=re.UNICODE)
     yacc.yacc()
 
     parsed_objects = yacc.parse(buff)
 
     ontology = Ontology(path)
+
+    if name is not None:
+        ontology.name = name
+
     ontology.basepath = (sub, base)
 
     for logical_thing in parsed_objects:
@@ -331,6 +420,9 @@ def parse_file(path, sub, base, resolve=False):
         ontology.resolve_imports(resolve)
 
     return ontology
+
+def get_line_number(string, pos):
+    return string[:pos].count('\n') + 1
 
 if __name__ == '__main__':
 

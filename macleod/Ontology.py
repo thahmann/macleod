@@ -88,6 +88,7 @@ class Ontology(object):
 
                 sub, base = self.basepath
                 subbed_path = path.replace(self.basepath[0], self.basepath[1])
+                subbed_path = os.path.normpath(subbed_path)
                 new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
                 new_ontology.basepath = self.basepath
                 self.imports[path] = new_ontology
