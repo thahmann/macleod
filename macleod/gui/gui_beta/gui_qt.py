@@ -1,7 +1,9 @@
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
+
 from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
 import macleod.Filemgt as filemgt
-import sys
-import os
 
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
 from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
