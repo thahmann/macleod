@@ -40,27 +40,53 @@ tokens = (
 precedence = (('left', 'IFF'),
               ('left', 'IF'))
 
+
 def t_NOT(t): r'not'; return t
+
+
 def t_AND(t): r'and'; return t
-def t_OR(t): r'or'; return t 
+
+
+def t_OR(t): r'or'; return t
+
+
 def t_EXISTS(t): r'exists'; return t
+
+
 def t_FORALL(t): r'forall'; return t
+
+
 def t_IFF(t): r'iff'; return t
+
+
 def t_IF(t): r'if'; return t
+
+
 def t_CLCOMMENT(t): r'cl-comment'; return t
+
+
 def t_START(t): r'cl-text'; return t
+
+
 def t_IMPORT(t): r'cl-imports'; return t
+
+
 def t_LPAREN(t): r'\('; return t
+
+
 def t_RPAREN(t): r'\)'; return t
+
 
 def t_error(t):
     raise TypeError("Unknown text '%s'" % (t.value,))
+
 
 t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 t_NONLOGICAL = r'[<>=\w\-=]+'
 t_COMMENT = r'\/\*[\w\W\d*]+?\*\/'
 t_STRING = r"'(.+?)'"
 t_ignore = " \r\t\n"
+
 
 def p_stater(p):
     """
@@ -76,6 +102,7 @@ def p_stater(p):
 
         p[0] = p[1]
 
+
 def p_ontology(p):
     """
     ontology : LPAREN START URI statement RPAREN
@@ -88,6 +115,7 @@ def p_ontology(p):
     else:
 
         p[0] = p[1]
+
 
 def p_statement(p):
     """
@@ -114,14 +142,15 @@ def p_statement(p):
 
         p[0] = [p[1]]
 
+
 def p_comment(p):
     """
     comment : LPAREN CLCOMMENT STRING RPAREN
     """
 
-    #p[0] = p[3]
+    # p[0] = p[3]
     p[0] = None
-    
+
 
 def p_import(p):
     """
@@ -129,6 +158,7 @@ def p_import(p):
     """
 
     p[0] = p[3]
+
 
 def p_axiom(p):
     """
@@ -143,7 +173,6 @@ def p_axiom(p):
     """
 
     p[0] = p[1]
-
 
 
 def p_negation(p):
@@ -161,12 +190,14 @@ def p_conjunction(p):
 
     p[0] = Connective.Conjunction(p[3])
 
+
 def p_disjunction(p):
     """
     disjunction : LPAREN OR axiom_list RPAREN
     """
 
     p[0] = Connective.Disjunction(p[3])
+
 
 def p_axiom_list(p):
     """
@@ -189,6 +220,7 @@ def p_axiom_list(p):
 
         p[0] = [p[1]]
 
+
 def p_conditional(p):
     """
     conditional : LPAREN IF axiom axiom RPAREN
@@ -204,7 +236,8 @@ def p_biconditional(p):
 
     p[0] = Connective.Conjunction([Connective.Disjunction([Negation.Negation(p[3]), p[4]]),
                                    Connective.Disjunction([Negation.Negation(p[4]), p[3]])
-                                  ])
+                                   ])
+
 
 def p_existential(p):
     """
@@ -212,6 +245,7 @@ def p_existential(p):
     """
 
     p[0] = Quantifier.Existential(p[4], p[6])
+
 
 def p_universal(p):
     """
@@ -227,6 +261,7 @@ def p_predicate(p):
     """
 
     p[0] = Symbol.Predicate(p[2], p[3])
+
 
 def p_parameter(p):
     """
@@ -268,6 +303,7 @@ def p_function(p):
 
     p[0] = Symbol.Function(p[2], p[3])
 
+
 def p_nonlogicals(p):
     """
     nonlogicals : NONLOGICAL nonlogicals
@@ -291,14 +327,28 @@ def p_nonlogicals(p):
 
 
 def p_error(p):
-    print("Welp this is confusing", p.lineno, p.lexpos)
-    raise TypeError("unknown text at %r" % (p.value,))
+    if p is not None:
+        # Get the true line number
+        num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
+        print("Syntax error in line {}".format(num))
+        # count parentheses
+        paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
+        if paren_count != 0:
+            raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
 
-def parse_file(path, sub, base, resolve=False):
+    else:
+        print("Unexpectedly reached end of file")
+        raise TypeError("There may be a missing \")\" parenthesis")
+
+def parse_file(path, sub, base, resolve=False, name=None):
     """
     Accepts a path to a Common Logic file and parses it to return an Ontology object.
 
-    :param String path, path to common logic file
+    :param path, path to common logic file
+    :param sub, path component to be substituted
+    :param base, new path component
+    :param resolve, resolve imports?
+    :param name, for overriding the default naming
     :return Ontology onto, newly constructed ontology object
     """
 
@@ -308,12 +358,19 @@ def parse_file(path, sub, base, resolve=False):
     with open(path, 'r') as f:
         buff = f.read()
 
+    if not buff:
+        return None
+
     lex.lex(reflags=re.UNICODE)
     yacc.yacc()
 
     parsed_objects = yacc.parse(buff)
 
     ontology = Ontology(path)
+
+    if name is not None:
+        ontology.name = name
+
     ontology.basepath = (sub, base)
 
     for logical_thing in parsed_objects:
@@ -331,6 +388,9 @@ def parse_file(path, sub, base, resolve=False):
         ontology.resolve_imports(resolve)
 
     return ontology
+
+def get_line_number(string, pos):
+    return string[:pos].count('\n') + 1
 
 if __name__ == '__main__':
 
