@@ -37,7 +37,6 @@ import tkinter.ttk
 import tkinter.messagebox
 import tkinter.filedialog
 
-LOGGER = logging.getLogger(__name__)
 img_dir = os.path.join(os.path.dirname(__file__), 'img')
 
 def btn_press(event):
