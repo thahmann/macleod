@@ -28,4 +28,5 @@ output/
 provers/
 qs/
 tptp/
-target/ 
+target/
+idea/
