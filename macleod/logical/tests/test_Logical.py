@@ -31,7 +31,7 @@ class LogicalTests(unittest.TestCase):
 
         # Note that is_onf() is not a recursive call, it's a top level feature
         # If will actually if you need an ONF axiom then create a Logical.Axiom and to_onf()
-        self.assertEqual((alpha & (alpha | (beta & delta)) & delta).is_onf(), True)
+        self.assertEqual((alpha & (alpha | (beta & delta)) & delta).is_onf(), False)
 
 
 if __name__ == '__main__':
