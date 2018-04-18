@@ -81,6 +81,7 @@ def get_paradox_cmd (imports,output_stem):
     which is the input for paradox."""
     args = []
     args.append(filemgt.read_config('paradox','command'))
+    args.append(filemgt.read_config('paradox','options'))
     args.append('--time')
     args.append(filemgt.read_config('paradox','timeout'))
     args.append('--verbose')
