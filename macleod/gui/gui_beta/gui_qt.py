@@ -116,9 +116,9 @@ class MacleodWindow(QMainWindow):
         ontology = self.parse_thread.ontology
         self.info_bar.flush()
         self.import_explorer.clear()
-        if self.parse_thread.error is not None:
-            print(self.parse_thread.error)
-            self.parse_thread.error = None
+        if self.parse_thread.error.contents != "":
+            print(self.parse_thread.error.contents)
+            self.parse_thread.error.flush()
         self.info_bar.build_model(ontology, path)
         if self.info_bar.error:
             print(self.info_bar.error)

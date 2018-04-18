@@ -3,6 +3,7 @@ from macleod.parsing import Parser
 import os
 import macleod.Filemgt as filemgt
 import tempfile
+import sys
 
 
 
@@ -14,12 +15,14 @@ class ParseThread(QThread):
         self.ontology = None
         self.text = None
         self.path = None
-        self.error = None
+        self.error = ErrorBuffer()
 
     def __del__(self):
         self.wait()
 
     def run(self):
+        backup = sys.stdout
+        sys.stdout = self.error
         buffer = tempfile.mkstemp(".macleod")
         with open(buffer[1], 'w') as f:
             f.write(self.text)
@@ -32,8 +35,19 @@ class ParseThread(QThread):
                                               self.path)
 
         except Exception as e:
-            self.error = e
+            self.error.write(str(e))
             self.ontology = None
 
+        sys.stdout = backup
         os.close(buffer[0])
         os.remove(buffer[1])
+
+class ErrorBuffer:
+    def __init__(self):
+        self.contents = ""
+
+    def write(self, text):
+        self.contents += text
+
+    def flush(self):
+        self.contents = ""
