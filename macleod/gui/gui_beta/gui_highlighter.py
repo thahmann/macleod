@@ -12,16 +12,12 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
         super(CLIFSyntaxHighlighter, self).__init__(parent)
         self.setDocument(parent.document())
 
-        self.predicates = predicates if predicates is not None else []
-        self.functions = functions if functions is not None else []
+        self.predicates = [] if predicates is None else predicates
+        self.functions = [] if functions is None else functions
 
         # define formats and rules
         ignore_case = QRegularExpression.CaseInsensitiveOption
         self.rules = []
-
-        # placeholder for comparison
-        self.format_pred_func = QTextCharFormat()
-        self.rules.append((QRegularExpression("\(\w* [\w ]*\)"), 0, self.format_pred_func))
 
         # real colors for functions and predicates
         self.format_predicate = QTextCharFormat()
@@ -56,25 +52,31 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
             self.rules.append((QRegularExpression(p), 0, format_parentheses))
 
     def highlightBlock(self, p_str):
+        # Skip comments!
+        if "cl-comment" in p_str:
+            return
+
         for exp, index, format in self.rules:
             iterator = exp.globalMatch(p_str)
             while iterator.hasNext():
                 match = iterator.next()
-                # format_pred_func is a placeholder object,
-                # as the regular expressions for predicates and functions are the same
-                if format == self.format_pred_func:
-                    line = match.captured()
-                    name = line.lstrip("(").split(" ")[0]
-                    offset = line.index(name)
-                    for f in self.functions:
-                        if f[0] == name:
-                            self.setFormat(match.capturedStart() + offset, len(name), self.format_function)
-                            break
-                    for p in self.predicates:
-                        if p[0] == name:
-                            self.setFormat(match.capturedStart() + offset, len(name), self.format_predicate)
-                else:
-                    self.setFormat(match.capturedStart() + index, match.capturedLength() - index, format)
+                self.setFormat(match.capturedStart() + index, match.capturedLength() - index, format)
+
+        for pred in self.predicates:
+            expression = QRegularExpression(pred[0] + " ")
+            iterator = expression.globalMatch(p_str)
+            while iterator.hasNext():
+                match = iterator.next()
+                line = match.captured()
+                self.setFormat(match.capturedStart(), len(line), self.format_predicate)
+
+        for func in self.functions:
+            expression = QRegularExpression(func[0] + " ")
+            iterator = expression.globalMatch(p_str)
+            while iterator.hasNext():
+                match = iterator.next()
+                line = match.captured()
+                self.setFormat(match.capturedStart(), len(line), self.format_function)
 
     def rehighlight(self, predicates=None, functions=None):
         if predicates is not None:
