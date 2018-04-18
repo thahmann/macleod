@@ -7,7 +7,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 from bin import licence, prove_lemma
 
 #global variables
-filemgt.start_logging()
 #ignores = ["theorems", "generated", "output", "consistency"]
 ignores = ["generated", "output", "consistency"]
 necessary = "_theorems"

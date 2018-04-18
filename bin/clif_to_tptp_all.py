@@ -10,7 +10,6 @@ import macleod.Filemgt as filemgt
 from macleod.ClifModuleSet import ClifModuleSet
 
 #global variables
-filemgt.start_logging()
 tempfolder = filemgt.read_config('converters', 'tempfolder')
 ignores = [tempfolder]
 ending = filemgt.read_config('cl','ending')

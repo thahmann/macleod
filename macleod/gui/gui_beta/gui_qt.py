@@ -1,7 +1,9 @@
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
+
 from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
 import macleod.Filemgt as filemgt
-import sys
-import os
 
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
 from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
@@ -116,9 +118,9 @@ class MacleodWindow(QMainWindow):
         ontology = self.parse_thread.ontology
         self.info_bar.flush()
         self.import_explorer.clear()
-        if self.parse_thread.error is not None:
-            print(self.parse_thread.error)
-            self.parse_thread.error = None
+        if self.parse_thread.error.contents != "":
+            print(self.parse_thread.error.contents)
+            self.parse_thread.error.flush()
         self.info_bar.build_model(ontology, path)
         if self.info_bar.error:
             print(self.info_bar.error)

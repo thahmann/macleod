@@ -6,9 +6,21 @@ How to Setup The Editor
 
 Requirements:
 - Python 3
-- ply (Python Lex & Yacc)
+- ply (Python Lex & Yacc): 
+	- On linux/mac, run "pip install ply" (see below if you have multiple versions of Python installed)
+	- On Windows, run "python -m pip install ply"
 - PyQt5
-    - Using pip, run "pip install PyQt5"
+	- On linux/mac, run "pip install PyQt5" (see below if you have multiple versions of Python installed)
+	- On Windows, run "python -m pip install PyQt5"
+	
+	
+If you have multiple versions of Python on Linux:
+-------------------------------------------------
+- make sure you use the right python and the right pip
+- use "pip -V" to determine the version, if it is not 3.5, install pip3:
+"sudo apt-get install python3-pip"
+- then run "pip3 install ply" and "pip3 install PyQt5"
+-------------------------------------------------
 
 Instructions:
 - Follow the "Installation" instructions found in README.md to get the Macleod dependencies

@@ -16,7 +16,6 @@ from macleod.ReasonerSet import ReasonerSet
 
 import os, sys
 import logging
-#import atexit
 
 
 class ClifModuleSet(object):
@@ -32,7 +31,7 @@ class ClifModuleSet(object):
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
 
-        filemgt.start_logging()
+        #filemgt.start_logging()
 
         name = filemgt.get_canonical_relative_path(name)
 
