@@ -103,6 +103,7 @@ class InformationSidebar(QWidget):
         self.current_file = None                # the path to the currently open file
         self.tree.setColumnCount(3)
         self.tree.setHeaderLabels(["Information", "Arity", "File"])
+        self.constants = set()
         self.variables = set()                  # set of ordered pairs of (name, path to file)
         self.predicates = set()                 # set of ordered pairs of (name, arity, path to file)
         self.functions = set()                  # set of ordered pairs of (name, arity, path to file)
@@ -130,14 +131,24 @@ class InformationSidebar(QWidget):
     def build_tree(self):
         self.tree.clear()
 
-        # top level items to group symbols by predicate, function, or variable
+        # top level items to group symbols by predicate, function, constant, variable
         predicate_tree = QTreeWidgetItem()
         function_tree = QTreeWidgetItem()
+        constant_tree = QTreeWidgetItem()
         variable_tree = QTreeWidgetItem()
 
         self.tree.addTopLevelItem(function_tree)
         self.tree.addTopLevelItem(predicate_tree)
         self.tree.addTopLevelItem(variable_tree)
+        self.tree.addTopLevelItem(constant_tree)
+
+        constant_tree.setText(0, "Constants")
+        for c in self.constants:
+            child = QTreeWidgetItem()
+            child.setText(0, c[0])
+            child.setText(2, c[1])
+            constant_tree.addChild(child)
+            self.__format_item(child)
 
         variable_tree.setText(0, "Variables")
         for v in self.variables:
@@ -213,7 +224,6 @@ class InformationSidebar(QWidget):
         function_binary.setHidden(function_binary.childCount() == 0)
         function_nary.setHidden(function_nary.childCount() == 0)
 
-
     def __logical_search(self, logical, file_path):
         for term in logical.terms:
             if isinstance(term, Symbol.Predicate):
@@ -227,6 +237,8 @@ class InformationSidebar(QWidget):
                 continue
 
             if isinstance(term, str):
+                if self.__is_constant(term):
+                    continue
                 self.variables.add((term, file_path))
                 continue
             self.__logical_search(term, file_path)
@@ -244,10 +256,19 @@ class InformationSidebar(QWidget):
                 continue
 
             if isinstance(var, str):
+                if self.__is_constant(var):
+                    continue
                 self.variables.add((var, file_path))
                 continue
 
             self.__logical_search(var, file_path)
+
+    def __is_constant(self, variable):
+        for c in self.constants:
+            if c[0] == str(variable):
+                return True
+
+        return False
 
     def build_model(self, ontology, current_file=None):
         self.current_file = current_file
@@ -259,6 +280,9 @@ class InformationSidebar(QWidget):
                 path = os.path.relpath(ontology.name, self.root_path)
             except ValueError:
                 path = ontology.name
+
+            for const in axiom.constants():
+                self.constants.add((const, path))
 
             self.__logical_search(axiom.sentence, path)
         for import_ontology in ontology.imports.values():
@@ -293,6 +317,7 @@ class InformationSidebar(QWidget):
         self.variables = set()
         self.functions = set()
         self.predicates = set()
+        self.constants = set()
         self.error = ""
         self.tree.clear()
 
