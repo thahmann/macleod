@@ -4,13 +4,13 @@ Created on 2013-03-31
 @author: Torsten Hahmann
 '''
 
-from macleod.ClifModule import ClifModule
-from macleod import clif
-from macleod import filemgt
-from macleod import ladr
+import logging, os
 
-import logging
-import os
+import macleod.Filemgt as filemgt
+
+from macleod.ClifModule import ClifModule
+
+from macleod import clif, ladr
 
 class LemmaModule(ClifModule):
 

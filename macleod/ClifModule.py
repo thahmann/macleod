@@ -56,6 +56,7 @@ class ClifModule(object):
         self.depth = depth
 
         self.set_module_name(name)
+		
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL ending as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):
@@ -74,15 +75,15 @@ class ClifModule(object):
                                                       folder= filemgt.read_config('converters','tempfolder'),
                                                       ending = filemgt.read_config('cl','ending'))
 
-        logging.getLogger(__name__).debug("Clif file name = " + self.clif_file_name)
-        logging.getLogger(__name__).debug("Clif preprocessed file name = " + self.clif_processed_file_name)
+        logging.getLogger(__name__).debug('Clif file name = ' + self.clif_file_name)
+        logging.getLogger(__name__).debug('Clif preprocessed file name = ' + self.clif_processed_file_name)
 
         clif.remove_all_comments(self.clif_file_name, self.clif_processed_file_name)
 
 
         self.imports = clif.get_imports(self.clif_processed_file_name)
 
-        logging.getLogger(__name__).debug("imports detected in " + self.module_name + ": " + str(self.imports))
+        logging.getLogger(__name__).debug('imports detected in ' + self.module_name + ': ' + str(self.imports))
 
         self.nonlogical_symbols = clif.get_all_nonlogical_symbols(self.clif_processed_file_name)
 
@@ -95,12 +96,12 @@ class ClifModule(object):
         if self.module_set is not None:
             return self.module_set
         elif not isinstance(self, LemmaModule):
-            logging.getLogger(__name__).error("Cannot determine ModuleSet for module " + self.module_name + " with imports " + str(imports))
+            logging.getLogger(__name__).error('Cannot determine ModuleSet for module ' + self.module_name + ' with imports ' + str(imports))
         elif imports:
             for i in imports:
                 if not isinstance(i, LemmaModule):
                     return i.module_set
-            logging.getLogger(__name__).error("Cannot determine ModuleSet for lemma module " + self.module_name + " with imports " + str(imports))
+            logging.getLogger(__name__).error('Cannot determine ModuleSet for lemma module ' + self.module_name + ' with imports ' + str(imports))
         return None
 
     def set_module_name (self,name):
@@ -165,7 +166,7 @@ class ClifModule(object):
     """ gets a set of (symbol, arity) tuples for all nonlogical symbols that are used in this module or any of the directly or indirectly imported modules.  This module can only be called once all imports have been processed."""
     def get_import_closure_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
-            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            logging.getLogger(__name__).error('Trying to access nonlogical symbols before completely processing all imports')
             return False
         if not self.import_closure_nonlogical_symbols:
             self.import_closure_nonlogical_symbols = set([])
@@ -179,7 +180,7 @@ class ClifModule(object):
     """ get a set of all nonlogical symbols (without arity) that are used in any of this module's directly or indirectly imported modules."""
     def get_irreflexive_import_closure_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
-            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            logging.getLogger(__name__).error('Trying to access nonlogical symbols before completely processing all imports')
             return False
         import_closure_nonlogical_symbols = set([])
         for i in self.get_imports_as_modules():
@@ -191,7 +192,7 @@ class ClifModule(object):
     """ gets all nonlogical symbols that are used in this module but not in any of the directly or indirectly imported modules."""
     def get_new_nonlogical_symbols (self):
         if not self.module_set.completely_processed:
-            logging.getLogger(__name__).error("Trying to access nonlogical symbols before completely processing all imports")
+            logging.getLogger(__name__).error('Trying to access nonlogical symbols before completely processing all imports')
             return False
         print("Import closure nonlogical symbols: " + str(self.get_import_closure_nonlogical_symbols()))
         print("Import closure nonlogical symbols: " + str(self.get_irreflexive_import_closure_nonlogical_symbols()))
@@ -301,7 +302,7 @@ class ClifModule(object):
                                                        folder=filemgt.read_config('ladr','folder'),
                                                        ending=filemgt.read_config('ladr','ending'))
             self.get_translated_file(self.p9_file_name, "LADR")
-            logging.getLogger(__name__).info("CREATED LADR TRANSLATION: " + self.p9_file_name)
+            logging.getLogger(__name__).info('CREATED LADR TRANSLATION: ' + self.p9_file_name)
         return self.p9_file_name
 
 
@@ -315,7 +316,7 @@ class ClifModule(object):
                                                        ending=filemgt.read_config('tptp','ending'))
 
             self.get_translated_file(self.tptp_file_name, "TPTP")
-            logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + self.tptp_file_name)
+            logging.getLogger(__name__).info('CREATED TPTP TRANSLATION: ' + self.tptp_file_name)
         return self.tptp_file_name
 
     def get_translated_file(self, output_file_name, language):
@@ -325,8 +326,6 @@ class ClifModule(object):
         output_file.writelines([t+"\n" for t in sentences])
         output_file.close()
         return True
-#        except:
-#            logging.getLogger(__name__).error("PROBLEM CREATING TRANSLATION: " + str(output_file_name))
 
 
     """
@@ -346,7 +345,7 @@ class ClifModule(object):
             sentences = clif.get_logical_sentences_from_file(self.clif_processed_file_name)
             if len(sentences)==0:
                 if len(self.imports)==0: 
-                    logging.getLogger(__name__).warn("Empty definition file: " + self.module_name)
+                    logging.getLogger(__name__).warn('Empty definition file: ' + self.module_name)
             else:
                 #print "PARENT's IMPORT CLOSURE SYMBOLS: " + str(self.get_irreflexive_import_closure_nonlogical_symbols())
                 #print "SENTENCE SYMBOLS: " + str(clif.get_nonlogical_symbols(sentences[0]))
@@ -357,7 +356,7 @@ class ClifModule(object):
                 # check for definitions that introduce no new symbols
                 for i in range(0,len(new_symbols)):
                     if len(new_symbols[i])==0:
-                        logging.getLogger(__name__).error("No new symbol seen in definition " + str(i+1) + " in: " + self.module_name)
+                        logging.getLogger(__name__).error('No new symbol seen in definition ' + str(i+1) + ' in: ' + self.module_name)
                         faulty = True
 
                 while True:
@@ -373,7 +372,7 @@ class ClifModule(object):
                 # the remaining ones have two or more newly introduced symbols
                 for i in range(0,len(new_symbols)):
                     if len(new_symbols[i])>0:
-                        logging.getLogger(__name__).error("More than one new symbol (" + str(new_symbols[i]) + ") found in a definition in: " + self.module_name)
+                        logging.getLogger(__name__).error('More than one new symbol (' + str(new_symbols[i]) + ') found in a definition in: ' + self.module_name)
                         faulty = True
                 #print "PROPERLY DEFINED SYMBOLS = " + str(self.properly_defined_symbols)
 

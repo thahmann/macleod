@@ -11,5 +11,5 @@ setup(name='macleod',
       install_requires=['pyparsing==2.1.10',
                         'configparser',
                         'owlready'],
-      classifiers=["Programming Language :: Python :: 2.7"],
+      classifiers=["Programming Language :: Python :: 3.0"],
       zip_safe=False)

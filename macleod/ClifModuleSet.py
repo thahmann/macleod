@@ -5,13 +5,17 @@ Regrouped all methods that pertain to an import hierarchy into the new module Cl
 @author: Torsten Hahmann
 '''
 
-from macleod import filemgt, commands, process, ladr, clif
+import macleod.Filemgt as filemgt
+import macleod.Commands as commands
+import macleod.Process as process
+import macleod.Ladr as ladr
+import macleod.Clif as clif
+
 from macleod.ClifModule import ClifModule
 from macleod.ReasonerSet import ReasonerSet
 
 import os, sys
 import logging
-#import atexit
 
 
 class ClifModuleSet(object):
@@ -27,7 +31,7 @@ class ClifModuleSet(object):
     # initialize with a set of files to be processed (for lemmas)
     def __init__(self, name):
 
-        filemgt.start_logging()
+        #filemgt.start_logging()
 
         name = filemgt.get_canonical_relative_path(name)
 

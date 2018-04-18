@@ -1,4 +1,5 @@
-from macleod import filemgt, commands
+import macleod.Filemgt as filemgt
+import macleod.Commands as commands
 import logging
 
 class Reasoner (object):
@@ -9,6 +10,9 @@ class Reasoner (object):
 
     # initialize
     def __init__(self, name, reasoner_type=None, reasoner_id=None):
+        
+        logging.getLogger(__name__).debug('Initializing ' + name)
+        
         self.identifier = ''
 
         self.type = Reasoner.PROVER
@@ -42,7 +46,13 @@ class Reasoner (object):
         self.unknown_returncodes = commands.get_unknown_returncodes(self.name)
 
         self.timeout = filemgt.read_config(self.name,'timeout')
+        
+        logging.getLogger(__name__).debug('Finished initializing ' + name)
+        
 
+    def getId (self):
+        return self.identifier
+        
     def __eq__ (self, other):
         if not isinstance(other, Reasoner):
             return False
@@ -59,6 +69,7 @@ class Reasoner (object):
         self.modules = modules
         self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
         (self.args, self.input_files) = commands.get_system_command(self.name, modules, self.output_file)
+        logging.getLogger(__name__).debug('Reasoner command: ' + str(self.args))
         return self.args
 
     def getCommand (self, modules=None, outfile_stem=None):
@@ -139,7 +150,7 @@ class Reasoner (object):
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
                 self.output = szs_status(output_lines[0])
-                logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
+                #logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
 
 
             return mapping[self.output]
