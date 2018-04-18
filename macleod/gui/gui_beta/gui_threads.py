@@ -42,6 +42,7 @@ class ParseThread(QThread):
         os.close(buffer[0])
         os.remove(buffer[1])
 
+
 class ErrorBuffer:
     def __init__(self):
         self.contents = ""
