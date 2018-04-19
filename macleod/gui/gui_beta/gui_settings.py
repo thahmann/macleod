@@ -27,14 +27,14 @@ class MacleodSettings(QDialog):
         self.root_dir_edit.setText(root_dir_path)
 
         # color settings
-        self._color_equals = self._create_color_button("color_equals")
-        self._color_predicate = self._create_color_button("color_predicate")
-        self._color_function = self._create_color_button("color_function")
-        self._color_connective = self._create_color_button("color_connective")
-        self._color_not = self._create_color_button("color_not")
-        self._color_quantifier = self._create_color_button("color_quantifier")
-        self._color_parentheses = self._create_color_button("color_parentheses")
-        self._color_find = self._create_color_button("color_find")
+        self._color_equals = self.__create_color_button("color_equals")
+        self._color_predicate = self.__create_color_button("color_predicate")
+        self._color_function = self.__create_color_button("color_function")
+        self._color_connective = self.__create_color_button("color_connective")
+        self._color_not = self.__create_color_button("color_not")
+        self._color_quantifier = self.__create_color_button("color_quantifier")
+        self._color_parentheses = self.__create_color_button("color_parentheses")
+        self._color_find = self.__create_color_button("color_find")
 
         # exit buttons
         exit_buttons = QDialogButtonBox(self)
@@ -71,23 +71,23 @@ class MacleodSettings(QDialog):
         self.setLayout(main_layout)
 
     def ok_event(self):
-        if self._check_and_update_root_path():
-            self._update_colors()
+        if self.__check_and_update_root_path():
+            self.__update_colors()
             self.close()
 
-    def _create_color_button(self, name):
+    def __create_color_button(self, name):
         '''Generate a color button for a particular setting, returns the button.'''
         new_button = QColorButton(name, self)
         try :
-            new_button.setColor(filemgt.read_config("gui", name))
+            new_button.set_color(filemgt.read_config("gui", name))
         except configparser.NoOptionError:
             pass
 
         # This will be a blank color if the setting doesn't exist
         return new_button
 
-    def _check_and_update_root_path(self):
-        '''Attempt to update in the conf file, returns False if the path is invalid'''
+    def __check_and_update_root_path(self):
+        """Attempt to update in the conf file, returns False if the path is invalid"""
         if not os.path.isdir(self.root_dir_edit.text()):
             self.root_dir_edit.clear()
             self.root_dir_edit.setPlaceholderText("Invalid Path")
@@ -95,7 +95,11 @@ class MacleodSettings(QDialog):
         filemgt.edit_config('system', 'path', self.root_dir_edit.text(), filemgt.config_file)
         return True
 
-    def _update_colors(self):
+    def __update_colors(self):
+        """
+        Write every color in the settings to the conf files
+        """
+
         self._color_equals.update_color()
         self._color_predicate.update_color()
         self._color_function.update_color()
@@ -108,12 +112,12 @@ class MacleodSettings(QDialog):
 
 # taken from http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
 class QColorButton(QPushButton):
-    '''
+    """
     Custom Qt Widget to show a chosen color.
 
     Left-clicking the button shows the color-chooser, while
     right-clicking resets the color to None (no-color).
-    '''
+    """
 
     colorChanged = pyqtSignal()
 
@@ -123,9 +127,9 @@ class QColorButton(QPushButton):
         self._color = None
         self._setting_name = setting_name
         self.setMaximumWidth(32)
-        self.pressed.connect(self.onColorPicker)
+        self.pressed.connect(self.on_color_picker)
 
-    def setColor(self, color):
+    def set_color(self, color):
         if color != self._color:
             self._color = color
             self.colorChanged.emit()
@@ -138,26 +142,29 @@ class QColorButton(QPushButton):
     def color(self):
         return self._color
 
-    def onColorPicker(self):
-        '''
+    def on_color_picker(self):
+        """
         Show color-picker dialog to select color.
 
         Qt will use the native dialog by default.
+        """
 
-        '''
         dlg = QColorDialog(self)
         self.setStyleSheet("")
         if self._color:
             dlg.setCurrentColor(QColor(self._color))
 
         if dlg.exec_():
-            self.setColor(dlg.currentColor().name())
+            self.set_color(dlg.currentColor().name())
 
     def mousePressEvent(self, e):
         if e.button() == Qt.RightButton:
-            self.setColor(None)
+            self.set_color(None)
 
         return super(QColorButton, self).mousePressEvent(e)
 
     def update_color(self):
+        """
+        Writes the colors out to the conf file
+        """
         filemgt.edit_config("gui", self._setting_name, self.color(), filemgt.config_file)
