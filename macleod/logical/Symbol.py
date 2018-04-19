@@ -6,6 +6,30 @@
 import macleod.logical.Logical as Logical
 
 import copy
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
+def generator():
+    '''
+    Utility function to ensure that we provide substituted functions
+    unique renamed variables.
+    '''
+
+    start = 1
+
+    def next_term():
+
+        nonlocal start
+
+        start += 1
+
+        return str(start)
+
+    return next_term
+
+global gen 
+gen = generator()
 
 class Predicate(Logical.Logical):
     '''
@@ -30,6 +54,9 @@ class Predicate(Logical.Logical):
         # Make sure you make a COPY of everything, no references!
         self.variables = variables[:]
 
+        self.variable_generator = generator()
+
+
     def has_functions(self):
         '''
         Return true if contains nested functions
@@ -42,35 +69,88 @@ class Predicate(Logical.Logical):
 
         return False
 
-    def substitute_function(self):
+    def substitute_function(self, negated = False):
         '''
         Find a function that's nested and replace it by adding a new variable and term
         '''
 
         # TODO This a dirty hack because cyclic imports are painful
         import macleod.logical.Quantifier as Quantifier
+        import macleod.logical.Negation as Negation
+        import macleod.logical.Connective as Connective
 
-        if not self.has_functions():
-            return self
-        
-        for idx, var in enumerate(self.variables):
+        global gen
 
-            if isinstance(var, Function):
+        def sub_functions(term, predicates, variables):
+            '''
+            Does three things: (1) returns a variable that serves as the placeholder 
+            for the function. (2) adds a minted predicate to the accumulator (3) adds
+            any the newly introduced variable for each function to the accumulator
+            '''
 
-                function = var
-                pos = idx
+            # Singleton used to access an increasing integer sequence
+            global gen
 
-        # TODO Get a global variable singleton
-        n_var = function.name.lower()[0] + '1'
-        f_vars = copy.deepcopy(function.variables)
-        f_vars.append(n_var)
-        n_pred = Predicate(function.name, f_vars)
-        e_vars = copy.deepcopy(self.variables)
-        e_vars[pos] = n_var
-        e_pred = Predicate(self.name, e_vars)
+            # Base Case 0: I'm not event a function, I'm a variable
+            if isinstance(term, str):
+                
+                # I'm a variable so I go in the variable accumulator
+                variables.append(term)
 
-        return Quantifier.Universal([n_var], [e_pred & n_pred]), None
+                return term
 
+            # Base Case 1: I'm a function with no nested functions!
+            if isinstance(term, Function) and term.has_functions() == False:
+
+                # Mint a new variable special
+                new_variable = term.name.lower()[0] + gen()
+                variables.append(new_variable)
+
+
+                # Mint a new predicate with our original variables + the new one
+                predicate_variables = term.variables
+                predicate_variables.append(new_variable)
+
+                predicate = Predicate(term.name, predicate_variables)
+                predicates.append(predicate)
+
+                # Return our fresh variable
+                return new_variable
+
+            # Recursive Case: I'm a function with nested functions!
+            if isinstance(term, Function): #and term.has_functions() == True:
+
+                # Still mint a new variable cuz I'm still a function
+                new_variable = term.name.lower()[0] + gen()
+                variables.append(new_variable)
+
+                # Assemble my variables by a DFS down on my function / atom children
+                predicate_variables = [sub_functions(x, predicates, variables) for x in term.variables]
+                predicate_variables.append(new_variable)
+
+                predicate = Predicate(term.name, predicate_variables)
+                predicates.append(predicate)
+
+                return new_variable
+
+        predicate_accumulator = []
+        variable_accumulator = []
+
+        variables = [sub_functions(x, predicate_accumulator, variable_accumulator) for x in self.variables]
+        if len(predicate_accumulator) > 1:
+            term = Connective.Conjunction(predicate_accumulator)
+        else:
+            term = predicate_accumulator.pop()
+
+        predicate = Predicate(self.name, variables)
+
+        if negated:
+            # The negation cancels out the normal conditional breakdown
+            universal = Quantifier.Universal(variable_accumulator, predicate | term)
+        else:
+            universal = Quantifier.Universal(variable_accumulator, ~predicate | term)
+
+        return universal, predicate_accumulator
 
     def is_onf(self):
         '''
@@ -113,6 +193,18 @@ class Function(Logical.Logical):
         self.name = name
         # Make sure you make a COPY of everything, no references!
         self.variables = variables[:]
+
+    def has_functions(self):
+        '''
+        Return true if contains nested functions
+        '''
+
+        for var in self.variables:
+
+            if isinstance(var, Function):
+                return True
+
+        return False
 
     def __repr__(self):
         '''

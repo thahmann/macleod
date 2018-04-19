@@ -327,18 +327,59 @@ def p_nonlogicals(p):
 
 
 def p_error(p):
-    if p is not None:
-        # Get the true line number
-        num = get_line_number(p.lexer.lexdata, p.lexer.lexpos)
-        print("Syntax error in line {}".format(num))
-        # count parentheses
-        paren_count = p.lexer.lexdata.count('(') - p.lexer.lexdata.count(')')
-        if paren_count != 0:
-            raise TypeError("There may be a missing \"{}\" parenthesis".format('(' if paren_count < 0 else ')'))
+    global parser
 
-    else:
-        print("Unexpectedly reached end of file")
-        raise TypeError("There may be a missing \")\" parenthesis")
+    # Note the location of the error before trying to lookahead
+    error_pos = p.lexpos
+
+    # A little stack manipulation here to get everything we need
+    stack = [symbol for symbol in parser.symstack][1:]
+    length = len(stack)
+    index_current_axiom = next((x for x in stack[::-1] if x.type == 'axiom'), len(stack))
+    pivot = len(stack) - index_current_axiom
+    current_axiom = stack[pivot:]
+    current_axiom.append(p)
+
+    # Use the brace level to figure out how many future tokens we need to complete the error token
+    lparens = len([x for x in current_axiom if x.type == "LPAREN"])
+    lookahead_tokens = []
+    while lparens != 0:
+        lookahead_token = parser.token()
+        if lookahead_token == None:
+            break
+        else:
+            lookahead_tokens.append(lookahead_token)
+            if lookahead_token.type == "RPAREN":
+                lparens -= 1
+            elif lookahead_token.type == "LPAREN":
+                lparens += 1
+
+    # Put together a full list of tokens for the error token
+    current_axiom += lookahead_tokens
+
+    # String manipulation to "underbar" the error token
+    axiom_string = []
+    overbar_error = ''.join([x+'\u0332' for x in p.value])
+    p.value = overbar_error
+
+    for token in current_axiom:
+        raw_token = token.value
+        if isinstance(raw_token, str):
+            axiom_string.append(raw_token + ' ')
+        elif isinstance(raw_token, list):
+            for sub_token in raw_token:
+                axiom_string.append(sub_token + ' ')
+
+    string_up_to_error = p.lexer.lexdata[:error_pos]
+    types = [symbol.type for symbol in stack]
+    print("""Error at line {}! Unexpected Token: '{}' :: "{}"\n\n{}""".format(
+        string_up_to_error.count("\n"),
+        p.value,
+        ''.join(axiom_string),
+        ' '.join(types)))
+
+    return p
+
 
 def parse_file(path, sub, base, resolve=False, name=None):
     """
@@ -362,7 +403,8 @@ def parse_file(path, sub, base, resolve=False, name=None):
         return None
 
     lex.lex(reflags=re.UNICODE)
-    yacc.yacc()
+    global parser
+    parser = yacc.yacc()
 
     parsed_objects = yacc.parse(buff)
 
@@ -389,8 +431,14 @@ def parse_file(path, sub, base, resolve=False, name=None):
 
     return ontology
 
+
 def get_line_number(string, pos):
     return string[:pos].count('\n') + 1
+
+
+def is_error(obj):
+    return isinstance(obj, yacc.YaccSymbol) and obj.type == "error"
+
 
 if __name__ == '__main__':
 
