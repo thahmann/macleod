@@ -36,9 +36,8 @@ Instructions:
     - If you don't want to use an IDE but you're using Python 3.3 or lower:
         - https://stackoverflow.com/questions/4750806/how-do-i-install-pip-on-windows
 - Install PyQt5. Again using pip, run "pip install PyQt5".
-- Add the "gui" folder in "macleod" to your PYTHONPATH
 - Navigate to macleod/gui/gui_beta
-- Run gui_qt.py
+- Run gui_main.py
 
 Personalization:
 - In the gui, access the file menu
