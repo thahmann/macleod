@@ -8,6 +8,7 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 from pathlib import Path
 import os, platform, logging, logging.config
 from configparser import SafeConfigParser
+from configparser import NoOptionError
 
 CONFIG_PARSER = None
 macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..' 
@@ -62,12 +63,18 @@ def read_config(section, key, file=None):
             #print("Read config file from " + config_file)
             CONFIG_PARSER.read(config_file)
             #logging.getLogger(__name__).info('Macleod configuration read from ' + config_file)
-            return CONFIG_PARSER.get(section,key)
+            try:
+                return CONFIG_PARSER.get(section,key)
+            except NoOptionError as e:
+                logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     else:
         CONFIG_PARSER_TEMP = SafeConfigParser()
         if os.path.isfile(file):
             CONFIG_PARSER_TEMP.read(file)
-            return CONFIG_PARSER_TEMP.get(section, key)
+            try:
+                return CONFIG_PARSER_TEMP.get(section,key)
+            except NoOptionError as e:
+                logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     return None
 
 
