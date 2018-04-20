@@ -2,7 +2,7 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFontDatabase, QMessageBox
 
-from macleod.gui.gui_beta import gui_highlighter, gui_file_helper
+from macleod.gui.gui_beta import gui_highlighter, gui_filehelper
 from macleod.logical import Symbol
 
 
@@ -12,7 +12,7 @@ class TabController(QTabWidget):
         self.ontologies = ontologies
         self.setTabsClosable(True)
         self.untitled_file_counter = 1
-        self.file_helper = gui_file_helper.GUI_file_helper()
+        self.file_helper = gui_filehelper.GuiFileHelper()
         self.add_file()
         self.tabCloseRequested.connect(self.remove_tab)
 
