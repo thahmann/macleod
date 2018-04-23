@@ -4,6 +4,7 @@ import os
 import macleod.Filemgt as filemgt
 import tempfile
 import sys
+import traceback
 
 
 class ParseThread(QThread):
@@ -44,7 +45,8 @@ class ParseThread(QThread):
                                               self.path)
 
         except Exception as e:
-            self.error.write(str(e))
+            print(e)
+            traceback.print_exc()
             self.ontology = None
 
         # return to the previous output

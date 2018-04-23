@@ -281,8 +281,9 @@ class InformationSidebar(QWidget):
             except ValueError:
                 path = ontology.name
 
-            for const in axiom.constants():
-                self.constants.add((const, path))
+            if axiom.constants() is not None:
+                for const in axiom.constants():
+                    self.constants.add((const, path))
 
             self.__logical_search(axiom.sentence, path)
         for import_ontology in ontology.imports.values():

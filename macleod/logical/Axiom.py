@@ -51,7 +51,8 @@ class Axiom(object):
         Axiom.axiom_id = Axiom.axiom_id + 1
 
         # Build our cache of useful information
-        self.analyze_logical()
+        # TODO: Functions crash the parse!
+        # self.analyze_logical()
 
     def quantifiers(self):
         """
