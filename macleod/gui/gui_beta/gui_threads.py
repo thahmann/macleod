@@ -46,7 +46,10 @@ class ParseThread(QThread):
 
         except Exception as e:
             print(e)
-            traceback.print_exc()
+            # If it's not a CL error we need to find the problem in Python
+            if not isinstance(e, TypeError):
+                # This prints to the Python console, not to the console in the window
+                traceback.print_exc()
             self.ontology = None
 
         # return to the previous output

@@ -254,6 +254,16 @@ def p_universal(p):
 
     p[0] = Quantifier.Universal(p[4], p[6])
 
+def p_universal_error(p):
+    """
+    universal : LPAREN FORALL LPAREN error
+    universal : LPAREN FORALL LPAREN nonlogicals RPAREN error
+    """
+
+    if is_error(p.slice[4]):
+        raise TypeError("Error in universal: bad nonlogical")
+
+    raise TypeError("Error in universal: bad axiom")
 
 def p_predicate(p):
     """
@@ -327,6 +337,9 @@ def p_nonlogicals(p):
 
 
 def p_error(p):
+    if p is None:
+        raise TypeError("Unexpectedly reached EOF")
+
     global parser
 
     # Note the location of the error before trying to lookahead

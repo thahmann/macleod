@@ -284,8 +284,15 @@ class InformationSidebar(QWidget):
             if axiom.constants() is not None:
                 for const in axiom.constants():
                     self.constants.add((const, path))
+            if isinstance(axiom.sentence, Symbol.Predicate):
+                self.predicates.add((axiom.sentence.name, len(axiom.sentence.variables), path))
+                self.__symbol_search(axiom.sentence, path)
+            elif isinstance(axiom.sentence, Symbol.Function):
+                self.functions.add((axiom.sentence.name, len(axiom.sentence.variables), path))
+                self.__symbol_search(axiom.sentence, path)
+            else:
+                self.__logical_search(axiom.sentence, path)
 
-            self.__logical_search(axiom.sentence, path)
         for import_ontology in ontology.imports.values():
             self.build_model(import_ontology, current_file)
 
