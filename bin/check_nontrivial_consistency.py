@@ -16,6 +16,11 @@ import macleod.Filemgt as filemgt
 import macleod.Clif as clif
 from macleod.ClifModuleSet import ClifModuleSet
 
+# hack to filter out function symbols and treat them differently in the creating of existential sentences
+# this currently is only tailored to the CODI ontology
+# TODO: eventually, these need to be extracted from the parser
+functions = ["intersection","difference","sum"]
+
 
 def nontrivially_consistent(filename, m, options=[]):
     (consistent, m) = check_consistency.consistent(filename, m, options)
@@ -134,6 +139,11 @@ def construct_existential_sentence (symbol, arity, negation=False, all_distinct=
         return term  
 
 
+    # filter out functions
+    # TODO: should probably be doing something special with them
+    if symbol in functions:
+        return ""
+		
     existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
     for i in range(arity):
         existential_sentence += 'X' + str(i) + ' '
