@@ -402,6 +402,8 @@ def get_nonlogical_symbol_arity_from_file(input_file_name, symbol):
 
     sentences = get_logical_sentences_from_file(input_file_name)
     arity = get_nonlogical_symbol_arity(sentences, symbol, None)
+    if arity is None:
+        arity = 0
     logging.getLogger(__name__).debug("Nonlogical symbol: " + symbol + " has arity " + str(arity))
 
     return arity
@@ -424,11 +426,9 @@ def get_nonlogical_symbol_arity(pieces, symbol, arity):
         found_symbol = pieces[0]
         del pieces[0]
         if found_symbol == symbol:
-            if not arity:
-                if len(pieces) > 0:
-                    arity = len(pieces)  # set the arity
-                else:
-                    arity = 0
+            if arity is None:
+                #logging.getLogger(__name__).debug("Nonlogical symbol: " + symbol + " number of pieces =" + str(len(pieces)) )
+                arity = len(pieces)  # set the arity
                 #logging.getLogger(__name__).info("Nonlogical symbol: " + symbol + " has arity " + str(arity))
             elif arity != len(pieces):
                 raise ClifParsingError(
