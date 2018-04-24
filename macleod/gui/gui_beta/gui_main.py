@@ -1,11 +1,13 @@
 import sys, os
-import macleod.Filemgt as filemgt
-from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
-from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence
-from PyQt5.Qt import QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
 
 # Add the root project folder to the python Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
+
+
+import macleod.Filemgt as filemgt
+from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
+from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence, QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
+
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
