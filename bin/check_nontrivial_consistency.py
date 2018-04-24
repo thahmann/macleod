@@ -139,28 +139,40 @@ def construct_existential_sentence (symbol, arity, negation=False, all_distinct=
         return term  
 
 
+    existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
+
     # filter out functions
     # TODO: should probably be doing something special with them
     if symbol in functions:
-        return ""
-		
-    existential_sentence = '(' + clif.CLIF_EXISTENTIAL + ' ('
-    for i in range(arity):
-        existential_sentence += 'X' + str(i) + ' '
-    existential_sentence = existential_sentence[:-1] + ')\n  (and\n' # remove last space which is unnecessary
-    if negation:
-        existential_sentence += '  (not\n' 
-    existential_sentence += '    (' + symbol
-    for i in range(arity):
-        existential_sentence += ' X' + str(i)
-    existential_sentence += ')\n'
-    if negation:
-        existential_sentence += '  )\n'
+        # functions: only one variant: do not add negated existential statements
+        if negation:
+            return ""
+        else:
+            for i in range(arity+1):
+                existential_sentence += 'X' + str(i) + ' '
+            existential_sentence = existential_sentence[:-1] + ')\n  (and\n' # remove last space which is unnecessary
+            existential_sentence += '  (=  (' + symbol
+            for i in range(arity):
+                existential_sentence += ' X' + str(i)
+            existential_sentence += ') X' + str(i+1)  + ')\n'
+            existential_sentence += construct_all_distinct_term(symbol, arity+1)
+    else:
+        for i in range(arity):
+            existential_sentence += 'X' + str(i) + ' '
+        existential_sentence = existential_sentence[:-1] + ')\n  (and\n' # remove last space which is unnecessary
+        if negation:
+            existential_sentence += '  (not\n' 
+        existential_sentence += '    (' + symbol
+        for i in range(arity):
+            existential_sentence += ' X' + str(i)
+        existential_sentence += ')\n'
+        if negation:
+            existential_sentence += '  )\n'
 
-    if all_distinct:
-        existential_sentence += construct_all_distinct_term(symbol, arity)
-    else: 
-        existential_sentence += construct_pairwise_distinct_term(symbol, arity, position)
+        if all_distinct:
+            existential_sentence += construct_all_distinct_term(symbol, arity)
+        else: 
+            existential_sentence += construct_pairwise_distinct_term(symbol, arity, position)
 
     existential_sentence += '  )\n' # closing "and"
     existential_sentence += ')\n' # closing "existential"
