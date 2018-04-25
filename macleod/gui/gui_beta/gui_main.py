@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
 
 
 import macleod.Filemgt as filemgt
-from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads
+from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads, gui_tool
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence, QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
 
 
@@ -102,6 +102,13 @@ class MacleodWindow(QMainWindow):
         parse_imports_action = QAction("Parse (w/ Imports)", self)
         run_menu.addAction(parse_imports_action)
         parse_imports_action.triggered.connect(self.parse_imports_command)
+
+        run_menu.addSeparator()
+
+        # Run the check consistency dialog
+        check_consistency_action = QAction("Check Consistency..", self)
+        run_menu.addAction(check_consistency_action)
+        check_consistency_action.triggered.connect(self.check_consistency_command)
 
         # Threads
         self.parse_thread = gui_threads.ParseThread()
@@ -221,6 +228,10 @@ class MacleodWindow(QMainWindow):
         self.parse_thread.text = self.editor_pane.currentWidget().toPlainText()
         if not self.parse_thread.isRunning():
             self.parse_thread.start()
+
+    def check_consistency_command(self):
+        tool_dialog = gui_tool.MacleodTool(self)
+        tool_dialog.show()
 
     def __on_tab_change(self):
         """
