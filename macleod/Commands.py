@@ -81,7 +81,10 @@ def get_paradox_cmd (imports,output_stem):
     which is the input for paradox."""
     args = []
     args.append(filemgt.read_config('paradox','command'))
-    args.append(filemgt.read_config('paradox','options'))
+    # this option is needed for linux or mac to run paradox using wine, where "wine" is the command, but the path to paradox is the first argument, stored in the key "options"
+    option = filemgt.read_config('paradox','options')
+    if option is not None:
+        args.append(option)
     args.append('--time')
     args.append(filemgt.read_config('paradox','timeout'))
     args.append('--verbose')
