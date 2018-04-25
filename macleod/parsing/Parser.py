@@ -78,7 +78,8 @@ def t_RPAREN(t): r'\)'; return t
 
 
 def t_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    print("Unknown character \"{}\"".format(t.value[0]))
+    t.lexer.skip(1)
 
 
 t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -88,7 +89,7 @@ t_STRING = r"'(.+?)'"
 t_ignore = " \r\t\n"
 
 
-def p_stater(p):
+def p_starter(p):
     """
     starter : COMMENT ontology
     starter : ontology
@@ -115,6 +116,18 @@ def p_ontology(p):
     else:
 
         p[0] = p[1]
+
+
+def p_ontology_error(p):
+    """
+    ontology : LPAREN START error
+    ontology : LPAREN START URI error
+    """
+
+    if is_error(p.slice[3]):
+        raise TypeError("Error in ontology: bad URI")
+
+    raise TypeError("Error in ontology: bad statement")
 
 
 def p_statement(p):
@@ -151,6 +164,16 @@ def p_comment(p):
     # p[0] = p[3]
     p[0] = None
 
+def p_comment_error(p):
+    """
+    comment : LPAREN CLCOMMENT error RPAREN
+    """
+
+    if "'" not in p[3].value:
+        raise TypeError("Error in comment: missing '")
+
+    raise TypeError("Error in comment: bad string")
+
 
 def p_import(p):
     """
@@ -159,6 +182,12 @@ def p_import(p):
 
     p[0] = p[3]
 
+def p_import_error(p):
+    """
+    import : LPAREN IMPORT error
+    """
+
+    raise TypeError("Error in import: bad URI")
 
 def p_axiom(p):
     """
@@ -228,6 +257,17 @@ def p_conditional(p):
 
     p[0] = Connective.Disjunction([Negation.Negation(p[3]), p[4]])
 
+def p_conditional_error(p):
+    """
+    conditional : LPAREN IF error
+    conditional : LPAREN IF axiom error
+    """
+
+    if is_error(p.slice[3]):
+        raise TypeError("Error in conditional: bad first axiom")
+
+    raise TypeError("Error in conditional: bad second axiom")
+
 
 def p_biconditional(p):
     """
@@ -239,12 +279,35 @@ def p_biconditional(p):
                                    ])
 
 
+def p_biconditional_error(p):
+    """
+    biconditional : LPAREN IFF error
+    biconditional : LPAREN IFF axiom error
+    """
+
+    if is_error(p.slice[3]):
+        raise TypeError("Error in biconditional: bad first axiom")
+
+    raise TypeError("Error in biconditional: bad second axiom")
+
+
 def p_existential(p):
     """
     existential : LPAREN EXISTS LPAREN nonlogicals RPAREN axiom RPAREN
     """
 
     p[0] = Quantifier.Existential(p[4], p[6])
+
+def p_existential_error(p):
+    """
+    existential : LPAREN EXISTS LPAREN error
+    existential : LPAREN EXISTS LPAREN nonlogicals RPAREN error
+    """
+
+    if is_error(p.slice[4]):
+        raise TypeError("Error in existential: bad nonlogical")
+
+    raise TypeError("Error in existential: bad axiom")
 
 
 def p_universal(p):
@@ -271,6 +334,13 @@ def p_predicate(p):
     """
 
     p[0] = Symbol.Predicate(p[2], p[3])
+
+def p_predicate_error(p):
+    """
+    predicate : LPAREN NONLOGICAL error
+    """
+
+    raise TypeError("Error in predicate: bad parameter")
 
 
 def p_parameter(p):
@@ -313,6 +383,13 @@ def p_function(p):
 
     p[0] = Symbol.Function(p[2], p[3])
 
+def p_function_error(p):
+    """
+    function : LPAREN NONLOGICAL error
+    """
+
+    raise TypeError("Error in function: bad parameter")
+
 
 def p_nonlogicals(p):
     """
@@ -348,7 +425,8 @@ def p_error(p):
     # A little stack manipulation here to get everything we need
     stack = [symbol for symbol in parser.symstack][1:]
     length = len(stack)
-    index_current_axiom = next((x for x in stack[::-1] if x.type == 'axiom'), len(stack))
+
+    index_current_axiom = next((stack.index(x) for x in stack[::-1] if x.type == 'axiom'), len(stack))
     pivot = len(stack) - index_current_axiom
     current_axiom = stack[pivot:]
     current_axiom.append(p)
@@ -358,7 +436,7 @@ def p_error(p):
     lookahead_tokens = []
     while lparens != 0:
         lookahead_token = parser.token()
-        if lookahead_token == None:
+        if lookahead_token is None:
             break
         else:
             lookahead_tokens.append(lookahead_token)
