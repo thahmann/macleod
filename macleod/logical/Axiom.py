@@ -294,19 +294,22 @@ class Axiom(object):
             :return None
             """
 
-            if isinstance(term, Symbol.Predicate):
+            if isinstance(term, Symbol.Predicate) or isinstance(term, Symbol.Function):
 
-                if isinstance(parent, Negation.Negation):
-                    accumulator[5].append(term)
-                else:
-                    accumulator[6].append(term)
+                # Don't count negations or binary, unary, n-ary with functions
+                if not isinstance(term, Symbol.Function):
 
-                if len(term.variables) == 1:
-                    accumulator[2].append(term)
-                elif len(term.variables) == 2:
-                    accumulator[3].append(term)
-                else:
-                    accumulator[4].append(term)
+                    if isinstance(parent, Negation.Negation):
+                        accumulator[5].append(term)
+                    else:
+                        accumulator[6].append(term)
+
+                    if len(term.variables) == 1:
+                        accumulator[2].append(term)
+                    elif len(term.variables) == 2:
+                        accumulator[3].append(term)
+                    else:
+                        accumulator[4].append(term)
 
                 for var in term.variables:
 
