@@ -155,7 +155,17 @@ class InformationSidebar(QWidget):
             child = QTreeWidgetItem()
             child.setText(0, v[0])
             child.setText(2, v[1])
-            variable_tree.addChild(child)
+            child.text(2)
+            if v[1] in self.current_file:
+                variable_tree.addChild(child)
+            else:
+                children = [variable_tree.child(j) for j in range(variable_tree.childCount())]
+                filtered_list = list(filter(lambda x: x.text(0) == v[0], children))
+                if filtered_list:
+                    filtered_list[0].addChild(child)
+                else:
+                    variable_tree.addChild(child)
+
             self.__format_item(child)
 
         # Set up groupings for predicates
@@ -178,11 +188,21 @@ class InformationSidebar(QWidget):
             child.setText(2, p[2])
 
             if arity == 1:
-                predicate_unary.addChild(child)
+                current_tree = predicate_unary
             elif arity == 2:
-                predicate_binary.addChild(child)
+                current_tree = predicate_binary
             else:
-                predicate_nary.addChild(child)
+                current_tree = predicate_nary
+
+            if p[2] in self.current_file:
+                current_tree.addChild(child)
+            else:
+                children = [current_tree.child(j) for j in range(current_tree.childCount())]
+                filtered_list = list(filter(lambda x: x.text(0) == p[0], children))
+                if filtered_list:
+                    filtered_list[0].addChild(child)
+                else:
+                    current_tree.addChild(child)
 
             self.__format_item(child)
 
@@ -211,11 +231,21 @@ class InformationSidebar(QWidget):
             child.setText(2, f[2])
 
             if arity == 1:
-                function_unary.addChild(child)
+                current_tree = function_unary
             elif arity == 2:
-                function_binary.addChild(child)
+                current_tree = function_binary
             else:
-                function_nary.addChild(child)
+                current_tree = function_nary
+
+            if f[2] in self.current_file:
+                current_tree.addChild(child)
+            else:
+                children = [current_tree.child(j) for j in range(current_tree.childCount())]
+                filtered_list = list(filter(lambda x: x.text(0) == f[0], children))
+                if filtered_list:
+                    filtered_list[0].addChild(child)
+                else:
+                    current_tree.addChild(child)
 
             self.__format_item(child)
 
@@ -223,6 +253,16 @@ class InformationSidebar(QWidget):
         function_unary.setHidden(function_unary.childCount() == 0)
         function_binary.setHidden(function_binary.childCount() == 0)
         function_nary.setHidden(function_nary.childCount() == 0)
+
+        # sort trees
+        for i in range(variable_tree.childCount()):
+            function_unary.sortChildren(0, 0)
+            function_binary.sortChildren(0, 0)
+            function_nary.sortChildren(0, 0)
+            predicate_unary.sortChildren(0, 0)
+            predicate_binary.sortChildren(0, 0)
+            predicate_nary.sortChildren(0, 0)
+            variable_tree.sortChildren(0, 0)
 
     def __logical_search(self, logical, file_path):
         for term in logical.terms:
@@ -334,38 +374,19 @@ class InformationSidebar(QWidget):
         if self.current_file is None:
             return
 
-        # Here we get the three top level items
+        # Here we get the four top level items
         for i in range(self.tree.invisibleRootItem().childCount()):
-            top_level_item = self.tree.invisibleRootItem().child(i)
-            # Here we get the "arity" groupings
-            for j in range(top_level_item.childCount()):
-                mid_level_item = top_level_item.child(j)
-                count = mid_level_item.childCount()
+            self.__format_item(self.tree.invisibleRootItem().child(i))
 
-                # Variables don't have arity groupings, so this is the item we want
-                if count == 0:
-                    self.__format_item(mid_level_item)
-                else:
-                    # Here we get all the children of the arity grouping and show or hide them
-                    for k in range(count):
-                        child = mid_level_item.child(k)
-                        self.__format_item(child)
-
-    # Determines whether or not to hide an item
+    # Determines whether or not to hide an item and its children
     def __format_item(self, item):
         # first, we hide if necessary
         item_path = item.text(2)
-        current_path = os.path.relpath(self.current_file, self.root_path)
-        is_hidden = self.hide_imports.isChecked() and item_path != current_path
+        is_hidden = self.hide_imports.isChecked() and item_path not in self.current_file
         item.setHidden(is_hidden)
 
-        # next, we bold if necessary
-        item_font = item.font(0)
-        make_bold = (not self.hide_imports.isChecked()) and item_path == current_path
-        item_font.setBold(make_bold)
-        item.setFont(0, item_font)
-        item.setFont(1, item_font)
-        item.setFont(2, item_font)
+        for i in range(item.childCount()):
+            self.__format_item(item.child(i))
 
 
 class ImportSidebar(QTreeWidget):

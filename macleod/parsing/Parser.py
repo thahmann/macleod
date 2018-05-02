@@ -219,6 +219,12 @@ def p_conjunction(p):
 
     p[0] = Connective.Conjunction(p[3])
 
+def p_conjunction_error(p):
+    """
+    conjunction : LPAREN AND error
+    """
+
+    raise TypeError("Error in conjunction: bad axiom")
 
 def p_disjunction(p):
     """
@@ -227,6 +233,12 @@ def p_disjunction(p):
 
     p[0] = Connective.Disjunction(p[3])
 
+def p_disjunction_error(p):
+    """
+    disjunction : LPAREN OR error
+    """
+
+    raise TypeError("Error in disjunction: bad axiom")
 
 def p_axiom_list(p):
     """
@@ -337,7 +349,7 @@ def p_predicate(p):
 
 def p_predicate_error(p):
     """
-    predicate : LPAREN NONLOGICAL error
+    predicate : LPAREN NONLOGICAL error RPAREN
     """
 
     raise TypeError("Error in predicate: bad parameter")
@@ -385,7 +397,7 @@ def p_function(p):
 
 def p_function_error(p):
     """
-    function : LPAREN NONLOGICAL error
+    function : LPAREN NONLOGICAL error RPAREN
     """
 
     raise TypeError("Error in function: bad parameter")
@@ -414,10 +426,10 @@ def p_nonlogicals(p):
 
 
 def p_error(p):
+    global parser
+
     if p is None:
         raise TypeError("Unexpectedly reached EOF")
-
-    global parser
 
     # Note the location of the error before trying to lookahead
     error_pos = p.lexpos
@@ -427,12 +439,13 @@ def p_error(p):
     length = len(stack)
 
     index_current_axiom = next((stack.index(x) for x in stack[::-1] if x.type == 'axiom'), len(stack))
-    pivot = len(stack) - index_current_axiom
-    current_axiom = stack[pivot:]
+    current_axiom = stack[index_current_axiom:]
     current_axiom.append(p)
 
     # Use the brace level to figure out how many future tokens we need to complete the error token
     lparens = len([x for x in current_axiom if x.type == "LPAREN"])
+
+
     lookahead_tokens = []
     while lparens != 0:
         lookahead_token = parser.token()
