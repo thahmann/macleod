@@ -5,6 +5,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
 
 
 import macleod.Filemgt as filemgt
+from bin import check_consistency, check_nontrivial_consistency
+from macleod import ClifModuleSet
 from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads, gui_tool
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence, QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
 
@@ -89,6 +91,11 @@ class MacleodWindow(QMainWindow):
         settings_action = QAction("Settings..", self)
         file_menu.addAction(settings_action)
         settings_action.triggered.connect(self.settings_command)
+
+        # Open Export dialog
+        export_action = QAction("Export.. ", self)
+        file_menu.addAction(export_action)
+        export_action.triggered.connect(self.export_command)
 
         # Run menu and associated actions
         run_menu = main_menu.addMenu('Run')
@@ -218,6 +225,16 @@ class MacleodWindow(QMainWindow):
         settings = gui_settings.MacleodSettings(self)
         settings.exec()
 
+    def export_command(self):
+        path_to_file = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
+        if path_to_file is None:
+            current_directory = self.root_path
+        else:
+            current_directory = os.path.dirname(path_to_file)
+
+        export = gui_tool.Export(self, current_directory)
+        export.exec()
+
     def parse_imports_command(self):
         if self.editor_pane.currentWidget() is None:
             return
@@ -230,8 +247,12 @@ class MacleodWindow(QMainWindow):
             self.parse_thread.start()
 
     def check_consistency_command(self):
-        tool_dialog = gui_tool.MacleodTool(self)
-        tool_dialog.show()
+        filename = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
+        options = ""
+        if filename is None:
+            filename = self.saveas_command()
+        m = ClifModuleSet(filename)
+        derp, clif = check_consistency.consistent(filename, m, options)
 
     def __on_tab_change(self):
         """
