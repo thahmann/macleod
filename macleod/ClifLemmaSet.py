@@ -74,7 +74,7 @@ class ClifLemmaSet(object):
         # translate to tptp as goal
         tptp_sentences = clif.translate_sentences([self.module.clif_processed_file_name], "TPTP", axiom=False)
 
-        print("Goal created with " + str(len(tptp_sentences))+ " sentences")
+        logging.getLogger(__name__).debug("Goal created with " + str(len(tptp_sentences))+ " sentences")
 
 #        for t in tptp_sentences:
 #            print t

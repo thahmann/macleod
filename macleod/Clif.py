@@ -714,7 +714,7 @@ def sentence_to_tptp(sentence, variables, nonlogical_symbols, sentence_number, a
         axiom_print = "Axiom"
     else:
         axiom_print = "Conjecture"
-    print("Translating: " + str(sentence) + " into " + axiom_print)
+    logging.getLogger(__name__).debug("Translating: " + str(sentence) + " into " + axiom_print)
 
     if axiom:
         tptp_sentence = "fof(sos"
