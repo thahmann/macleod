@@ -53,7 +53,7 @@ class ReasonerProcess(multiprocessing.Process):
         #print "total CPU time of " + self.args[0] + " = " + str(self.cputime)
 
     def enforce_limits (self, pid):
-        limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
+        limit = int(filemgt.read_config('system', 'memory_limit')) # each reasoning process is not allowed to use up more than 1.5GB of memory
         memory = get_memory(pid)
         #enforce memory limit
         if memory>limit:
@@ -94,7 +94,7 @@ class ReasonerProcess(multiprocessing.Process):
         # finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
         self.update_cputime(sp.pid)
         self.result_queue.put((self.args[0], sp.returncode, None))
-        logging.getLogger(__name__).info("REASONER FINISHED: "  + self.name + ", command = " + self.args[0])
+        logging.getLogger(__name__).info("REASONER FINISHED: "  + self.name + ", exit code " + str(sp.returncode) + ", command = " + self.args[0])
         out_file.flush()
         out_file.close()
         self.writeHeader()

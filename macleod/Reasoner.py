@@ -93,14 +93,29 @@ class Reasoner (object):
     def terminatedSuccessfully (self):
         from macleod.ClifModuleSet import ClifModuleSet
         mapping = {
+            ClifModuleSet.PROOF: True,
+            ClifModuleSet.COUNTEREXAMPLE: True,
             ClifModuleSet.CONSISTENT: True,
             ClifModuleSet.INCONSISTENT : True,
             ClifModuleSet.UNKNOWN : False,
             None: False
         }
 
-        def szs_status(line):
+        def paradox_status(line):
             if 'Theorem' in line:
+                #print "PARADOX SZS status found: THEOREM"
+                return ClifModuleSet.PROOF
+            elif 'Unsatisfiable' in line:
+                return ClifModuleSet.INCONSISTENT
+            elif 'CounterSatisfiable' in line:
+                return ClifModuleSet.COUNTEREXAMPLE
+            elif 'Satisfiable' in line:
+                return ClifModuleSet.CONSISTENT
+            else: # Timeout, GaveUp, Error
+                return ClifModuleSet.UNKNOWN
+
+        def vampire_status(line):
+            if 'Refutation' in line:
                 #print "VAMPIRE SZS status found: THEOREM"
                 return ClifModuleSet.PROOF
             elif 'Unsatisfiable' in line:
@@ -126,14 +141,15 @@ class Reasoner (object):
             out_file = open(self.output_file, 'r')
             lines = out_file.readlines()
             out_file.close()
-            output_lines = [x for x in lines if x.startswith('% SZS status')]
-            if len(output_lines)!=1:
+            output_lines = [x for x in lines if x.startswith('Termination reason:')]
+            l = len(output_lines)
+            if l==0:
                 if not self.return_code:
                     self.output = None
                 else:
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
-                self.output = szs_status(output_lines[0])
+                self.output = vampire_status(output_lines[l-1])
 
             return mapping[self.output]
 
@@ -149,7 +165,7 @@ class Reasoner (object):
                 else:
                     self.output = ClifModuleSet.UNKNOWN                    
             else:
-                self.output = szs_status(output_lines[0])
+                self.output = paradox_status(output_lines[0])
                 #logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
 
 
