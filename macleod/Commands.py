@@ -41,7 +41,7 @@ def get_returncodes (name,type="positive_returncode"):
 def get_empty_cmd():
     return ""
 
-def get_p9_cmd (imports,output_stem, option_files = None):
+def get_p9_cmd (imports,output_stem):
     """get a formatted command to run Prover9 with options (timeout, etc.) set in the class instance."""
 
     args = []
@@ -51,9 +51,12 @@ def get_p9_cmd (imports,output_stem, option_files = None):
     # append all ladr input files
     for m in imports:
         args.append(m.get_p9_file_name())
-    if option_files:
-        for f in option_files:
-            args.append(f)
+
+    # check for possible options file (to change predicate order or other parameters)
+    options_file = filemgt.read_config('prover9', 'options_file')
+    if options_file is not None:
+        options_file = os.path.abspath(options_file)
+        args.append(options_file)
 
     return (args, [])
 
