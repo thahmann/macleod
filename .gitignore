@@ -30,3 +30,8 @@ qs/
 tptp/
 target/
 idea/
+*.iml
+.idea/modules.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/workspace.xml

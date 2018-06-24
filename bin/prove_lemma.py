@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 from bin import licence
 import macleod.ClifLemmaSet as ClifLemmaSet
 import macleod.ClifModuleSet as ClifModuleSet
+import macleod.Filemgt as filemgt
 import logging
 
 
@@ -41,7 +42,7 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
     lemma_modules = lemmas.get_lemmas()
 
     for l in lemma_modules:
-        logging.getLogger(__name__).debug("LEMMA MODULE: " + l.module_name + " TPTP_SENTENCE " + l.tptp_sentence)
+        logging.getLogger(__name__).info("LEMMA MODULE: " + l.module_name + " TPTP_SENTENCE " + l.tptp_sentence)
 
     for l in lemma_modules:
         m.add_lemma_module(l)
@@ -86,8 +87,10 @@ def prove (lemmas_filename, summary_file, axioms_filename=None, options=[]):
     counterexamples = 0
     unknown = 0
 
+    summary_file = os.path.normpath(os.path.join(os.path.abspath(filemgt.config_dir),summary_file))
+
     # write results to summary single_file
-    single_file = open(summary_file, "a")
+    single_file = open(summary_file, "a+")
     for l in lemma_modules:
         if l.output == ClifModuleSet.PROOF: proofs += 1
         elif l.output == ClifModuleSet.COUNTEREXAMPLE: counterexamples += 1
@@ -123,5 +126,5 @@ if __name__ == '__main__':
     else:
         axioms_filename = options.pop()
         lemmas_filename = options.pop()
-    prove (lemmas_filename, 'log/lemma_summary.log', axioms_filename=axioms_filename, options=options)
+    prove (lemmas_filename, 'lemma_summary.log', axioms_filename=axioms_filename, options=options)
 

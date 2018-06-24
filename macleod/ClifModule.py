@@ -25,7 +25,8 @@ class ClifModule(object):
         '''
         self.module_set = None
 
-        self.module_name = ''
+        #self.module_name = ''
+        self.set_module_name(name)
 
         self.hierarchy_name = ''
 
@@ -55,8 +56,6 @@ class ClifModule(object):
         # stores the depth of the import hierarchy
         self.depth = depth
 
-        self.set_module_name(name)
-		
         logging.getLogger(__name__).info('processing module: ' + self.module_name)
         # remove any obsolete URL ending as specified in the configuration file
         if self.module_name.endswith(filemgt.read_config('cl','ending')):

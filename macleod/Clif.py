@@ -262,6 +262,7 @@ def get_all_nonlogical_symbols(filename):
 
 def get_sentences_from_file(input_file_name):
     """ extract all Clif sentences from a Clif input single_file and returns the sentences as a list of strings. This set of sentences includes, e.g., import declarations."""
+    #print("NAME = " + input_file_name)
     cl_file = open(input_file_name, 'r')
     text = cl_file.readlines()
     text = reformat_urls(text)
@@ -458,13 +459,16 @@ def translate_sentences(input_file_names, language, axiom=True):
     language is the output format, currently only "TPTP" and "LADR" are supported
     """
 
-    def comment_imports(sentences):
+    def comment_imports(sentences,axiom):
 
         result_sentences = []
 
         for s in sentences:
             if len(s) == 2 and s[0] == CLIF_IMPORT:
-                s.insert(0, "%")
+                if (not axiom):
+                    continue # delete imports if creating theorems rather than axioms
+                else:
+                    s.insert(0, "%")
             result_sentences.append(s)
         return result_sentences
 
@@ -483,7 +487,7 @@ def translate_sentences(input_file_names, language, axiom=True):
     for file_name in input_file_names:
         sentences.extend(get_sentences_from_file(file_name))
 
-    sentences = comment_imports(sentences)
+    sentences = comment_imports(sentences,axiom)
 
     variables_list = []
     nonlogical_list = []
@@ -705,6 +709,12 @@ def sentence_to_tptp(sentence, variables, nonlogical_symbols, sentence_number, a
     axiom -- indicates whether this is an axiom (True) or a lemma (or conjecture, False)   
     assume nonlogical_symbols are sorted by length in decreasing order
     """
+
+    if axiom:
+        axiom_print = "Axiom"
+    else:
+        axiom_print = "Conjecture"
+    print("Translating: " + str(sentence) + " into " + axiom_print)
 
     if axiom:
         tptp_sentence = "fof(sos"

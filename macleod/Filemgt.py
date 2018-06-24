@@ -7,11 +7,11 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 
 from pathlib import Path
 import os, platform, logging, logging.config
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 from configparser import NoOptionError
 
 CONFIG_PARSER = None
-macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..' 
+#macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..'
 
 WIN_config_file = 'macleod_win.conf'
 LINUX_config_file = 'macleod_linux.conf'
@@ -37,7 +37,6 @@ def find_config (filename):
 def find_macleod_config():
     """tries to find the Macleod configuration file."""
     global config_file
-    #config_file = macleod_dir
     config_file = config_dir
     if str(platform.system()) == 'Windows':
         config_file = os.path.join(config_file, WIN_config_file)
@@ -57,7 +56,7 @@ def read_config(section, key, file=None):
     if file is None:
         if CONFIG_PARSER is None:
             logging.getLogger(__name__).debug('CONFIG_PARSER missing') 
-            CONFIG_PARSER = SafeConfigParser()
+            CONFIG_PARSER = ConfigParser()
             find_macleod_config()
         if len(config_file)>0:
             #print("Read config file from " + config_file)
@@ -68,7 +67,7 @@ def read_config(section, key, file=None):
             except NoOptionError as e:
                 logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     else:
-        CONFIG_PARSER_TEMP = SafeConfigParser()
+        CONFIG_PARSER_TEMP = ConfigParser()
         if os.path.isfile(file):
             CONFIG_PARSER_TEMP.read(file)
             try:
