@@ -53,7 +53,8 @@ def get_p9_cmd (imports,output_stem):
         args.append(m.get_p9_file_name())
 
     # check for possible options file (to change predicate order or other parameters)
-    options_file = filemgt.read_config('prover9', 'options_file')
+    options_file = filemgt.read_config('prover9', 'options')
+
     if options_file is not None:
         options_file = os.path.abspath(options_file)
         args.append(options_file)
@@ -144,7 +145,7 @@ def get_p9_empty_optionsfile (p9_file_name, verbose=True):
 
     # currently one option file for all!!
     #print 'OPTIONS FILE - P9 file name = ' + p9_file_name
-    options_file_name = os.path.join(os.path.dirname(p9_file_name), 
+    options_file_name = os.path.join(os.path.dirname(p9_file_name),
                                      os.path.splitext(os.path.basename(p9_file_name))[0] + filemgt.read_config('prover9','options_ending'))
 
     #print 'OPTIONS FILE = ' + options_file_name
