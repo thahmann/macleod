@@ -42,3 +42,8 @@ While the program primarily targets first-order ontologies specified in the Comm
 Moreover, the tool exploits the modularity of ontologies, which manifests itself in its file CL imports structure. 
 
 In the near future it will be integrated with COLORE to provide design, verification, and other reasoning support for all ontologies in the repository.
+
+Troubleshooting:
+----------------
+
+certain errors (for example "bad magic number in 'macleod': b'\x03\xf3\r\n': ImportError") that appear after updating the repository locally can be fixed by deleting the Python cache for the macleod directory. This can be accomplished with the command "find . -name \*.pyc -delete"
