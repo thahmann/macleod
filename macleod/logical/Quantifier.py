@@ -121,11 +121,16 @@ class Quantifier(Logical.Logical):
 
                         if isinstance(current, type(root)):
 
+                            LOGGER.debug("Found a matching quantifier")
+
                             # Absorb like children
                             root.add_variables(current.variables)
                             parent.remove_term(current)
                             terms = current.get_term()
                             parent.set_term(terms)
+
+                            for term in [x for x in parent.get_term() if not isinstance(x, Symbol.Predicate)]:
+                                dfs_simplify(term, parent, root)
 
                         else:
                             # Reset our root
@@ -135,6 +140,7 @@ class Quantifier(Logical.Logical):
                 dfs_simplify(term, current, root)
 
         dfs_simplify(ret_object, None, ret_object)
+
         return ret_object
 
     def rescope(self):

@@ -143,7 +143,7 @@ class Axiom(object):
 
         return self.nary_predicates
 
-    def postive(self):
+    def positive(self):
         """
         Returns a list of all non-negated predicates
 
@@ -383,5 +383,5 @@ class Axiom(object):
 
     def __repr__(self):
 
-        return self.to_tptp() 
-        #return repr(self.sentence)
+        #return self.to_tptp() 
+        return repr(self.sentence)

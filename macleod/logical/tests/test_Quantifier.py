@@ -124,13 +124,13 @@ class QuantifierTest(unittest.TestCase):
         existential = Quantifier.Existential(['y'], b)
         existential_two = Quantifier.Existential(['x'], a)
 
-        # Coalescence over conjunction should merge Universals
+        # Reduce over conjunction should coalesce Universals and merge existentials
         conjunction = universal & universal_two & existential & existential_two
-        self.assertEqual(repr(conjunction.coalesce()), '(∃(y)[B(y)] & ∃(x)[A(x)] & ∀(x)[(B(x) & A(x))])')
+        self.assertEqual(repr(conjunction.coalesce()), '(∀(x)[(B(x) & A(x))] & ∃(y,x)[(B(y) & A(x))])')
 
-        # Coalescence over disjunction should merge Existentials
+        # Reduce over disjunction should coealesce Existentials and merge Universals
         disjunction = universal | universal_two | existential | existential_two
-        self.assertEqual(repr(disjunction.coalesce()), '(∀(x)[A(x)] | ∀(y)[B(y)] | ∃(y)[(A(y) | B(y))])')
+        self.assertEqual(repr(disjunction.coalesce()), '(∃(y)[(A(y) | B(y))] | ∀(x,y)[(A(x) | B(y))])')
 
 
 if __name__ == '__main__':

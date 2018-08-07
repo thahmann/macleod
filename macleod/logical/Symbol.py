@@ -94,9 +94,7 @@ class Predicate(Logical.Logical):
             # Base Case 0: I'm not event a function, I'm a variable
             if isinstance(term, str):
                 
-                # I'm a variable so I go in the variable accumulator
-                variables.append(term)
-
+                # Already existing variables should be quantified don't rescope them
                 return term
 
             # Base Case 1: I'm a function with no nested functions!
@@ -146,9 +144,9 @@ class Predicate(Logical.Logical):
 
         if negated:
             # The negation cancels out the normal conditional breakdown
-            universal = Quantifier.Universal(variable_accumulator, predicate | term)
+            universal = Quantifier.Universal(variable_accumulator, predicate | ~term)
         else:
-            universal = Quantifier.Universal(variable_accumulator, ~predicate | term)
+            universal = Quantifier.Universal(variable_accumulator, predicate | ~term)
 
         return universal, predicate_accumulator
 
@@ -172,6 +170,16 @@ class Predicate(Logical.Logical):
         '''
 
         return "{}({})".format(self.name, ",".join([(v if isinstance(v, str) else repr(v)) for v in self.variables]))
+
+    def __eq__(self, other):
+        """
+        Test if two predicates are equal to each other
+
+        :param Predicate other, the predicate we compare against
+        :return Boolean result
+        """
+
+        return repr(self) == repr(other)
 
 class Function(Logical.Logical):
     '''
@@ -215,7 +223,4 @@ class Function(Logical.Logical):
 
         return "{}({})".format(self.name.lower(), 
                 ",".join([v if isinstance(v, str) else repr(v) for v in self.variables]))
-
-
-
 

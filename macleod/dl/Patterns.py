@@ -5,29 +5,67 @@ Collection of functions that accept an Axiom and attempt to identify
 any description logic construct that it may contain.
 """
 
-def extract_subclass_relation(axiom, _quantifiers):
+def subclass_relation(axiom):
+    """
+    Identifies a subclass relation axiom. Expects a single variable and all
+    variables to be universally quantified and all predicates unary. There must
+    exist at least two predicates and at least one negated predicate.
+
+    :param Axiom axiom, the axiom to search for a subclass relation in
+    :return tuple pattern, if pattern applicable return a tuple otherwise None
+    """
+
+    subset = [e for e in axiom.unary() if e in axiom.negated()]
+    superset = [x for x in axiom.unary() if x not in subset]
+
+    if subset and superset:
+        return ('subclass', subset, superset)
+
+    return None
+
+def all_values(axiom, quantifiers):
     '''
-    Assumes that all predicates are unary, it's a disjunction, and there exists
-    at least one negative term and one positive term. Only a single universally
-    quantified variable.
+    Assumes that the setence is both universally and existentially quantified.
+    Contains a binary and two unary predicates, detect the placement of the variable
+    to see if it's R^(-1).C or Regular R.C.
+
+    U(a) ^ B(a, b) --> U2(b)
+
+    -U(a) | -B(a, b) | U2(b)
+
+    forall [U subclass B.U2]
     '''
 
-    # More than one means intersection of terms
-    subset = []
-    Translation.find_negated_predicates(axiom, subset)
-    subset = [Translation.negate_negation(x) for x in subset]
+    # This extraction requires three clauses -- could be another level of filtering
+    if count_clauses(axiom) != 3:
+        return None
 
-    # More than one means union of terms
-    unary = []
-    Translation.find_unary_predicates(axiom, unary)
-    superset = [x for x in unary if x not in subset]
+    negated_binary = compose(single_predicate, binary_predicates, negative_predicates)(axiom)
 
-    subset = list(map(get_predicate_name, subset))
-    superset = list(map(get_predicate_name, superset))
+    negated_unary = compose(single_predicate,
+                            functools.partial(all_universal, q=quantifiers),
+                            unary_predicates,
+                            negative_predicates)(axiom)
 
-    return ('subclass', subset, superset)
+    positive_unary = compose(single_predicate,
+                             functools.partial(all_universal, q=quantifiers),
+                             unary_predicates, positive_predicates)(axiom)
 
-def extract_functional_relation(axiom, _quantifier):
+    # They all should be assigned, if not then we don't match
+    if not all([negated_binary, negated_unary, positive_unary]):
+        return None
+
+    property_type = "allValues_A"
+
+    # See if it's an inverse relation or not
+    if variable_position(negated_unary, negated_binary) == 2:
+        property_type = "allValues_A_Inverted"
+
+    return (property_type, get_predicate_name(negated_unary),
+            get_predicate_name(negated_binary))
+
+
+def functional_relation(axiom, _quantifier):
     '''
     Assumes two predicates, one of which is the Equality predicate. The
     non-equality predicate is negated and appears twice. Both instances will
@@ -78,7 +116,7 @@ def extract_functional_relation(axiom, _quantifier):
 
     return ('functional_property', get_predicate_name(negated[0]))
 
-def extract_inverse_functional_relation(axiom, _quantifier):
+def inverse_functional_relation(axiom, _quantifier):
     '''
     Assumes two predicates, one of which is the Equality predicate. The
     non-equality predicate is negated and appears twice. Both instances will
@@ -129,7 +167,7 @@ def extract_inverse_functional_relation(axiom, _quantifier):
 
     return ('inverse_functional_property', get_predicate_name(negated[0]))
 
-def extract_property_domain_restriction(axiom, _quantifier):
+def domain_restriction(axiom, _quantifier):
     '''
     Assumes a single negated binary predicate, then an arbitrary of positive
     unary predicates. Only universally quantified predicates are used.
@@ -161,7 +199,7 @@ def extract_property_domain_restriction(axiom, _quantifier):
 
     return ('property_domain_restriction', prop, classes)
 
-def extract_property_range_restriction(axiom, _quantifier):
+def range_restriction(axiom, _quantifier):
     '''
     Assumes a single negated binary predicate, then an arbitrary of positive
     unary predicates. Only universally quantified predicates are used.
@@ -190,7 +228,7 @@ def extract_property_range_restriction(axiom, _quantifier):
 
     return ('property_range_restriction', prop, classes)
 
-def extract_symmetric_relation(axiom, _quantifiers):
+def symmetric_relation(axiom, _quantifiers):
     '''
     Assume single binary predicate appearing twice, one negated and one not negated. Variables
     should be in reversed positions in each predicate.
@@ -213,7 +251,7 @@ def extract_symmetric_relation(axiom, _quantifiers):
 
     return ('symmetric_relation', get_predicate_name(prop[0]))
 
-def extract_asymmetric_relation(axiom, _quantifier):
+def asymmetric_relation(axiom, _quantifier):
     '''
     Assume single binary predicate appearing twice, both negated. Variables
     should be in reversed positions in each predicate.
@@ -233,7 +271,7 @@ def extract_asymmetric_relation(axiom, _quantifier):
 
     return ('asymmetric_relation', get_predicate_name(prop[0]))
 
-def extract_disjoint_relation(axiom, _quantifiers):
+def disjoint_relation(axiom, _quantifiers):
     '''
     Assumes that all predicates are unary, it's a disjunction, and there exists
     at least two negative terms. Only a single universally quantified variable.
@@ -248,7 +286,7 @@ def extract_disjoint_relation(axiom, _quantifiers):
 
     return ('disjoint_classes', classes[0], classes[1])
 
-def extract_disjoint_properties(axiom, _quantifiers):
+def disjoint_properties(axiom, _quantifiers):
     '''
     Assumes that all predicates are binary, it's a disjunction, and there exists
     at least two negative terms. Only a single universally quantified variable.
@@ -266,7 +304,7 @@ def extract_disjoint_properties(axiom, _quantifiers):
 
     return ('disjoint_properties', props[0], props[1])
 
-def extract_domain_restriction(axiom, _quantifiers):
+def universe_restriction(axiom, _quantifiers):
     '''
     Assumes that all predicates are unary, it's a disjunction, and there exists
     at least one negative term and one positive term. Only a single universally
@@ -277,7 +315,7 @@ def extract_domain_restriction(axiom, _quantifiers):
 
     return ('universe_restriction', restriction)
 
-def extract_subproperty_relation(axiom, _quantifiers):
+def subproperty_relation(axiom, _quantifiers):
     '''
     Assumes that all predicates are unary, it's a disjunction, and there exists
     at least one negative term and one positive term. Only a single universally
@@ -304,7 +342,7 @@ def extract_subproperty_relation(axiom, _quantifiers):
 
     return ('subproperty', subset, superset)
 
-def extract_inverted_subproperty_relation(axiom, _quantifiers):
+def inverse_subproperty_relation(axiom, _quantifiers):
     '''
     Assumes that all predicates are binary, it's a disjunction, and there exists
     one negative term and one positive term. Only a single universally
@@ -340,10 +378,10 @@ def extract_inverted_subproperty_relation(axiom, _quantifiers):
     return ('inverted_subproperty', subset, superset)
 
 # TODO Find an object inverse relation with two inverted subproperties
-def extract_inverse_relation(a, q):
+def inverse_relation(a, q):
     pass
 
-def extract_reflexive_relation(axiom, _quantifiers):
+def reflexive_relation(axiom, _quantifiers):
     '''
     Assumes that the predicate is binary and only a single universally
     quantified variable is used.
@@ -353,7 +391,7 @@ def extract_reflexive_relation(axiom, _quantifiers):
 
     return ('reflexive', reflexive_property)
 
-def extract_irreflexive_relation(axiom, _quantifiers):
+def irreflexive_relation(axiom, _quantifiers):
     '''
     Assumes that the predicate is negated, binary, and only a single universally
     quantified variable is used.
@@ -363,7 +401,7 @@ def extract_irreflexive_relation(axiom, _quantifiers):
 
     return ('reflexive', reflexive_property)
 
-def extract_some_partA(axiom, quantifiers):
+def some_values(axiom, quantifiers):
     '''
     Assumes that the setence is both universally and existentially quantified.
     Contains a binary and unary predicate, detect the placement of the variable
@@ -411,7 +449,7 @@ def extract_some_partA(axiom, quantifiers):
     return (property_type, get_predicate_name(unary[0]),
             get_predicate_name(binary[0]))
 
-def extract_some_partB(axiom, quantifiers):
+def some_values(axiom, quantifiers):
     '''
     Assumes that the setence is both universally and existentially quantified.
     Contains two and unary predicates, .
@@ -448,3 +486,5 @@ def extract_some_partB(axiom, quantifiers):
 
     return (property_type, get_predicate_name(Translation.is_negated(negated[0])),
             get_predicate_name(restriction[0]))
+
+PATTERNS = frozenset([subclass_relation])

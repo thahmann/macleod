@@ -296,9 +296,9 @@ class Connective(Logical.Logical):
             # This only happens when the parsed axioms has a Connective with > 2 axioms at the leaf level
             return self.rescope(self.coalesce())
 
-
             LOGGER.error("Shouldn't be rescoping unless we have coalesced!")
             exit(1)
+
 
 class Conjunction(Connective):
     '''

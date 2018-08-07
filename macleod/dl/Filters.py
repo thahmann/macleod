@@ -1,177 +1,128 @@
-#!/usr/bin/env python
-
 """
-A collection of functions to help refine a collection of 
-LogicalObjects against a number of possible translations
+Collection of functions that filter a set of appliable Patterns down based on an
+axiom.
 """
 
 import macleod.dl.Patterns as Pattern
 
+def filter_axiom(axiom):
+    """
+    Returns a set of applicable patterns based on numbers of quantifiers, number of
+    variables, types of predicates, and the signs of predicates.
 
-def filter_on_quantifiers(sentence, patterns):
-    '''
-    Reduce the set of possible extractions based on the number of
-    quantifiers that a sentence has.
+    :param Axiom, axiom to be filtered
+    :return Set patterns, set of applicable patterns
+    """
 
-    :param Axiom sentence, axiom to identify patterns in
-    :param Set patterns, set of possible patterns
-    :return Set patterns, possible set of matching patterns
-    '''
+    patterns = set(Pattern.PATTERNS)
+    patterns &= (filter_on_quantifiers(axiom))
+    patterns &= (filter_on_variables(axiom))
+    patterns &= (filter_on_predicates(axiom))
+    patterns &= (filter_on_sign(axiom))
 
-    valid_patterns
+    return patterns
 
-    # Copy the array of extractions to be whittled down
-    extractions = EXTRACTIONS.copy()
+def filter_on_quantifiers(axiom):
+    """
+    Return a set of applicable patterns based on the number of quantifiers in
+    the Logical.
 
-    num_of_quantifiers = count_quantifiers(quantifiers)
+    :param Axiom, axiom to filtered
+    :return Set patterns, set of applicable patterns
+    """
 
-    # --- Begin Single Var Only ---
-    # Extractions =
-    # Universal Domain Restriction
-    # Disjoint Classes
-    # Subclass
-    # Equivalent Classes
-    # Disjoint Union
-    # Reflexive Property
-    # Irreflexive Property
+    if len(axiom.quantifiers()) == 1:
 
-    # --- Begin Double Var Only ---
-    # Universal Property Restriction
-    # Disjoint Properties
-    # Asymmetric Property
-    # Sub-Property
-    # Equivalent Properties
-    # Inverted Sub-Property
-    # Inverse Property
-    # Symmetric Property
-    # Property Domain Restriction
-    # Property Range Restriction
-
-    # --- Begin Triple Var Only ---
-    # Functional Property
-    # Inverse Functional Property
-
-    if num_of_quantifiers == 1:
-
-        return filter_on_variables(sentence, quantifiers, extractions)
+        return {Pattern.inverse_functional_relation, Pattern.subclass_relation,
+                Pattern.subproperty_relation, Pattern.functional_relation,
+                Pattern.irreflexive_relation, Pattern.reflexive_relation,
+                Pattern.inverse_subproperty_relation, Pattern.all_values,
+                Pattern.disjoint_properties, Pattern.symmetric_relation,
+                Pattern.disjoint_relation, Pattern.universe_restriction,
+                Pattern.asymmetric_relation, Pattern.range_restriction}
     else:
 
-        local_set = {extract_some_partA, extract_some_partB}
-        extractions = extractions & local_set
+        return {Pattern.some_values}
 
-        return filter_on_variables(sentence, quantifiers, extractions)
+def filter_on_variables(axiom):
+    """
+    Return a set of applicable patterns based on the number of variables in
+    the Axiom.
 
-# SECOND
-def filter_on_variables(sentence, quantifiers, extractions):
-    '''
-    Filter the number of possible extractions from an axiom based on number of
-    variables.
-    '''
+    :param Axiom, axiom to filtered
+    :return Set patterns, set of applicable patterns
+    """
 
-    num_of_variables = count_variables(sentence)
 
-    if num_of_variables == 1:
+    if len(axiom.variables()) == 1:
 
-        local_set = {extract_domain_restriction, extract_disjoint_relation,
-                     extract_subclass_relation,
-                     extract_reflexive_relation,
-                     extract_irreflexive_relation}
+        return {Pattern.universe_restriction, Pattern.disjoint_relation,
+                Pattern.subclass_relation, Pattern.reflexive_relation,
+                Pattern.irreflexive_relation}
 
-        extractions = extractions & local_set
-        return filter_on_predicates(sentence, quantifiers, extractions)
+    elif len(axiom.variables()) == 2:
 
-    elif num_of_variables == 2:
+        return {Pattern.asymmetric_relation, Pattern.subproperty_relation,
+                Pattern.inverse_subproperty_relation, Pattern.all_values,
+                Pattern.symmetric_relation, Pattern.range_restriction,
+                Pattern.domain_restriction, Pattern.inverse_relation,
+                Pattern.some_values}
 
-        local_set = {extract_asymmetric_relation, extract_subproperty_relation,
-                     extract_inverse_relation,
-                     extract_inverted_subproperty_relation,
-                     extract_symmetric_relation,
-                     extract_property_domain_restriction,
-                     extract_property_range_restriction,
-                     extract_some_partA, extract_some_partB,
-                     extract_all_values}
+    elif len(axiom.variables()) == 3:
 
-        extractions = extractions & local_set
-        return filter_on_predicates(sentence, quantifiers, extractions)
-
-    elif num_of_variables == 3:
-
-        local_set = {extract_functional_relation,
-                     extract_inverse_functional_relation}
-
-        extractions = extractions & local_set
-        return extractions
-    else:
-        return []
-
-# THIRD
-def filter_on_predicates(sentence, quantifiers, extractions):
-    '''
-    Filter the number of possible extractions from an axiom based on types of
-    predicates.
-    '''
-
-    if Translation.is_all_unary(sentence):
-
-        local_set = {extract_domain_restriction, extract_disjoint_relation,
-                     extract_subclass_relation, extract_some_partB}
-
-        extractions = extractions & local_set
-        return filter_on_sign(sentence, quantifiers, extractions)
-
-    elif Translation.is_all_binary(sentence):
-
-        local_set = {extract_disjoint_properties, extract_asymmetric_relation,
-                     extract_subproperty_relation,
-                     extract_inverted_subproperty_relation,
-                     extract_inverse_relation, extract_symmetric_relation,
-                     extract_reflexive_relation}
-
-        extractions = extractions & local_set
-        return filter_on_sign(sentence, quantifiers, extractions)
+        return {Pattern.functional_relation, Pattern.inverse_functional_relation}
 
     else:
 
-        local_set = {extract_property_domain_restriction,
-                     extract_property_range_restriction,
-                     extract_some_partA, extract_all_values}
+        return {}
 
-        extractions = extractions & local_set
-        return filter_on_sign(sentence, quantifiers, extractions)
+def filter_on_predicates(axiom):
+    """
+    Return a set of applicable patterns based on the number of predicates in
+    the Axiom.
 
-# FOURTH
-def filter_on_sign(sentence, _quantifiers, extractions):
-    '''
-    Filter the number of possible extractions from an axiom based on types of
-    predicates signs
-    '''
+    :param Axiom, axiom to filtered
+    :return Set patterns, set of applicable patterns
+    """
 
-    if Translation.is_all_positive(sentence):
+    if len(axiom.unary()) != 0 and len(axiom.binary()) == 0 and len(axiom.nary()) == 0:
 
-        local_set = {extract_domain_restriction, extract_reflexive_relation}
+        return {Pattern.universe_restriction, Pattern.disjoint_relation,
+                Pattern.subclass_relation, Pattern.some_values}
 
-        extractions = extractions & local_set
-        return extractions
+    elif len(axiom.unary()) == 0 and len(axiom.binary()) != 0 and len(axiom.nary()) == 0:
 
-    elif Translation.is_all_negative(sentence):
+        return {Pattern.disjoint_properties, Pattern.asymmetric_relation,
+                Pattern.subproperty_relation, Pattern.reflexive_relation,
+                Pattern.inverse_relation, Pattern.symmetric_relation,
+                Pattern.inverse_subproperty_relation}
+    else:
 
-        local_set = {extract_disjoint_relation, extract_disjoint_properties,
-                     extract_irreflexive_relation, extract_asymmetric_relation}
+        return {Pattern.domain_restriction, Pattern.range_restriction,
+                Pattern.some_values, Pattern.all_values}
 
-        extractions = extractions & local_set
-        return extractions
+def filter_on_sign(axiom):
+    """
+    Return a set of applicable patterns based on the sign of predicates in
+    the Axiom.
+
+    :param Axiom, axiom to filtered
+    :return Set patterns, set of applicable patterns
+    """
+
+    if len(axiom.negated()) == 0 and len(axiom.positive()) != 0:
+
+        return {Pattern.universe_restriction, Pattern.reflexive_relation}
+
+    elif len(axiom.negated()) != 0 and len(axiom.positive()) == 0:
+
+        return {Pattern.irreflexive_relation, Pattern.asymmetric_relation,
+                Pattern.disjoint_relation, Pattern.disjoint_properties}
 
     else:
 
-        local_set = {extract_subclass_relation,
-                     extract_subproperty_relation,
-                     extract_inverted_subproperty_relation,
-                     extract_inverse_relation,
-                     extract_symmetric_relation,
-                     extract_property_domain_restriction,
-                     extract_property_range_restriction,
-                     extract_some_partA, extract_some_partB,
-                     extract_all_values}
-
-        extractions = extractions & local_set
-        return extractions
+        return {Pattern.subclass_relation, Pattern.subproperty_relation,
+                Pattern.domain_restriction, Pattern.range_restriction,
+                Pattern.inverse_relation, Pattern.symmetric_relation,
+                Pattern.some_values, Pattern.all_values,
+                Pattern.inverse_subproperty_relation}

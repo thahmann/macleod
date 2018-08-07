@@ -3,7 +3,11 @@ Top level container for an ontology parsed into the object structure
 """
 
 import os
-import macleod.logical.Axiom as Axiom 
+import owlready
+import macleod.dl.OWL as Owl
+import macleod.logical.Axiom as Axiom
+import macleod.dl.Utilities as Util
+import macleod.dl.Filters as Filter
 
 def pretty_print(ontology, pcnf=False):
     '''
@@ -69,13 +73,13 @@ class Ontology(object):
         temp_axioms = []
 
         for axiom in self.axioms:
-            temp_axioms.append(axiom.to_pcnf())
+            temp_axioms.append(axiom.ff_pcnf())
 
         self.axioms = temp_axioms
 
     def resolve_imports(self, resolve=False):
         """
-        Look over our list of imports and tokenize / parse any that haven't
+        Look over our list of imports and tokenize and parse any that haven't
         already been parsed
         """
 
@@ -106,13 +110,42 @@ class Ontology(object):
     def add_import(self, path):
         """
         Accepts a path to another .clif file in this case we defer tokenization
-        / parsing for later
+        and parsing for later
 
         :param String path, path to a referenced .clif file
         :return None
         """
 
         self.imports[path] = None
+
+    def to_owl(self):
+        """
+        Return a string representation of this ontology in OWL format. If this ontology
+        contains imports will translate those as well and concatenate all the axioms.
+
+        :return String onto, this ontology in OWL format
+        """
+
+        # Create new OWL ontology instance
+        onto = owlready.Ontology("http://junk/junk.owl")
+
+        # Must convert to FF-PCNF first
+        self.to_ffpcnf()
+
+        # Loop over each Axiom and filter applicable patterns
+        for axiom in self.axioms:
+
+            pattern_set = Filter.filter_axiom(axiom)
+
+            #Collector for extracted patterns
+            for pattern in pattern_set:
+
+                extraction = pattern(axiom)
+
+                if extraction is not None:
+                    Owl.produce_construct(extraction, onto)
+
+        print(owlready.to_owl(onto))
 
     def __repr__(self):
         """
@@ -124,7 +157,7 @@ class Ontology(object):
         rep += self.name + '\n'
         rep += '\n'
 
-        rep += '+' * (len(self.name) // 2 - 4) + ' IMPORT ' + '+' * (len(self.name) // 2 - 4) + '\n'
+        rep += '-' * (len(self.name) // 2 - 4) + ' IMPORT ' + '-' * (len(self.name) // 2 - 4) + '\n'
         for key in self.imports:
             rep += key + '\n'
         rep += '\n'
@@ -133,8 +166,6 @@ class Ontology(object):
         for axiom in self.axioms:
             rep += repr(axiom) + '\n'
 
-        rep += '_' * len(self.name) + '\n'
+        rep += '+' * len(self.name) + '\n'
 
         return rep
-
-            
