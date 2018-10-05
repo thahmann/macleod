@@ -359,29 +359,33 @@ class Axiom(object):
         :return str tptp, tptp formatted version of this axiom
         """
 
+        # For printing to TPTP add Axiom identifier to each variable to keep it unique
+        variable_map = {}
+        for var in self.variables():
+            variable_map[var.upper()] = var.upper() + str(self.id)
+
         def tptp_logical(logical):
 
             if isinstance(logical, Symbol.Predicate):
                 # TODO Does TPTP let you nest functions in predicates?
-                return "({}({}))".format(logical.name, ",".join(logical.variables))
+                return "({}({}))".format(logical.name, ",".join([variable_map[x.upper()] for x in logical.variables]))
             elif isinstance(logical, Symbol.Function):
-                return "({}({}))".format(logical.name, ",".join(logical.variables))
+                return "({}({}))".format(logical.name, ",".join([variable_map[x.upper()] for x in logical.variables]))
             elif isinstance(logical, Negation.Negation):
-                return "~ {}".format(tptp_logical(logical.terms[0]))
+                return "~({})".format(tptp_logical(logical.terms[0]))
             elif isinstance(logical, Connective.Conjunction):
                 return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
             elif isinstance(logical, Connective.Disjunction):
                 return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
             elif isinstance(logical, Quantifier.Universal):
-                return "{} {}".format(("! [{}] : " * len(logical.variables)).format(*logical.variables), tptp_logical(logical.terms[0]))
+                return "{} {}".format(("! [{}] : " * len(logical.variables)).format(*[variable_map[x.upper()] for x in logical.variables]), tptp_logical(logical.terms[0]))
             elif isinstance(logical, Quantifier.Existential):
-                return "{} {}".format(("? [{}] : " * len(logical.variables)).format(*logical.variables), tptp_logical(logical.terms[0]))
+                return "{} {}".format(("? [{}] : " * len(logical.variables)).format(*[variable_map[x.upper()] for x in logical.variables]), tptp_logical(logical.terms[0]))
             else:
                 raise ValueError("Not a valid type for TPTP output")
 
-        return "fof(axiom{}, axiom, ( {} ).".format(str(self.id*10),tptp_logical(self.sentence))
+        return "fof(axiom{}, axiom, ( {} )).".format(str(self.id*10), tptp_logical(self.sentence))
 
     def __repr__(self):
 
-        #return self.to_tptp() 
         return repr(self.sentence)
