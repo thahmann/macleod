@@ -2,7 +2,7 @@
 
 import unittest
 
-import macleod.logical.Symbol as Symbol
+from macleod.logical.symbol import (Function, Predicate)
 
 class NegationTest(unittest.TestCase):
 
@@ -11,9 +11,9 @@ class NegationTest(unittest.TestCase):
         Ensure we can get into conjunctive normal form
         '''
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['y'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['y'])
+        delta = Predicate('D', ['z'])
 
         s = alpha | beta
         self.assertEqual(repr(~s), "~(A(x) | B(y))")

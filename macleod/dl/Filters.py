@@ -1,6 +1,8 @@
 """
-Collection of functions that filter a set of appliable Patterns down based on an
-axiom.
+Contains several utility methods which serve to quickly filter a set of
+possibly applicable Patterns based on the composition of a provided Axiom.
+
+The function you're most likely looking for is the filter_axiom(axiom) method.
 """
 
 import macleod.dl.Patterns as Pattern
@@ -33,16 +35,31 @@ def filter_on_quantifiers(axiom):
 
     if len(axiom.quantifiers()) == 1:
 
-        return {Pattern.inverse_functional_relation, Pattern.subclass_relation,
-                Pattern.subproperty_relation, Pattern.functional_relation,
-                Pattern.irreflexive_relation, Pattern.reflexive_relation,
-                Pattern.inverse_subproperty_relation, Pattern.all_values,
-                Pattern.disjoint_properties, Pattern.symmetric_relation,
-                Pattern.disjoint_relation, Pattern.universe_restriction,
-                Pattern.asymmetric_relation, Pattern.range_restriction}
-    else:
+        return {Pattern.asymmetric_relation,
+                Pattern.disjoint_properties,
+                Pattern.disjoint_classes,
+                Pattern.domain_restriction,
+                Pattern.functional_relation,
+                Pattern.inverse_functional_relation,
+                Pattern.inverse_subproperty_relation,
+                Pattern.irreflexive_relation,
+                Pattern.range_restriction,
+                Pattern.reflexive_relation,
+                Pattern.subclass_relation,
+                Pattern.subproperty_relation,
+                Pattern.symmetric_relation,
+                Pattern.transitive_relation,
+                Pattern.universe_restriction,
+                Pattern.all_values}
 
+    elif len(axiom.quantifiers()) == 2:
         return {Pattern.some_values}
+
+    elif len(axiom.quantifiers()) == 0:
+        return {Pattern.class_assertion,
+                Pattern.property_assertion}
+
+    return set()
 
 def filter_on_variables(axiom):
     """
@@ -53,53 +70,81 @@ def filter_on_variables(axiom):
     :return Set patterns, set of applicable patterns
     """
 
+    if len(axiom.variables()) == 0:
+
+        return {Pattern.class_assertion,
+                Pattern.property_assertion}
+
 
     if len(axiom.variables()) == 1:
 
-        return {Pattern.universe_restriction, Pattern.disjoint_relation,
-                Pattern.subclass_relation, Pattern.reflexive_relation,
-                Pattern.irreflexive_relation}
+        return {Pattern.disjoint_classes,
+                Pattern.irreflexive_relation,
+                Pattern.reflexive_relation,
+                Pattern.subclass_relation,
+                Pattern.universe_restriction}
 
-    elif len(axiom.variables()) == 2:
+    if len(axiom.variables()) == 2:
 
-        return {Pattern.asymmetric_relation, Pattern.subproperty_relation,
-                Pattern.inverse_subproperty_relation, Pattern.all_values,
-                Pattern.symmetric_relation, Pattern.range_restriction,
-                Pattern.domain_restriction, Pattern.inverse_relation,
+        return {Pattern.asymmetric_relation,
+                Pattern.disjoint_properties,
+                Pattern.domain_restriction,
+                Pattern.inverse_subproperty_relation,
+                Pattern.range_restriction,
+                Pattern.subproperty_relation,
+                Pattern.symmetric_relation,
+                Pattern.all_values,
                 Pattern.some_values}
 
-    elif len(axiom.variables()) == 3:
+    if len(axiom.variables()) == 3:
 
-        return {Pattern.functional_relation, Pattern.inverse_functional_relation}
+        return {Pattern.functional_relation,
+                Pattern.inverse_functional_relation,
+                Pattern.transitive_relation}
 
-    else:
 
-        return {}
+    return set()
 
 def filter_on_predicates(axiom):
     """
-    Return a set of applicable patterns based on the number of predicates in
-    the Axiom.
+    Returns a set of applicable patterns dependent on the composition of predicate arity
+    in the supplied axiom.
 
     :param Axiom, axiom to filtered
     :return Set patterns, set of applicable patterns
     """
 
-    if len(axiom.unary()) != 0 and len(axiom.binary()) == 0 and len(axiom.nary()) == 0:
+    # Axiom is composed of only unary predicates
+    if axiom.unary() and not axiom.binary() and not axiom.nary():
 
-        return {Pattern.universe_restriction, Pattern.disjoint_relation,
-                Pattern.subclass_relation, Pattern.some_values}
+        return {Pattern.disjoint_classes,
+                Pattern.subclass_relation,
+                Pattern.universe_restriction,
+                Pattern.class_assertion}
 
-    elif len(axiom.unary()) == 0 and len(axiom.binary()) != 0 and len(axiom.nary()) == 0:
+    # Axiom is composed of only binary predicates
+    if axiom.binary() and not axiom.unary() and not axiom.nary():
 
-        return {Pattern.disjoint_properties, Pattern.asymmetric_relation,
-                Pattern.subproperty_relation, Pattern.reflexive_relation,
-                Pattern.inverse_relation, Pattern.symmetric_relation,
-                Pattern.inverse_subproperty_relation}
-    else:
+        return {Pattern.asymmetric_relation,
+                Pattern.disjoint_properties,
+                Pattern.functional_relation,
+                Pattern.inverse_functional_relation,
+                Pattern.inverse_subproperty_relation,
+                Pattern.irreflexive_relation,
+                Pattern.reflexive_relation,
+                Pattern.subproperty_relation,
+                Pattern.symmetric_relation,
+                Pattern.transitive_relation,
+                Pattern.property_assertion}
 
-        return {Pattern.domain_restriction, Pattern.range_restriction,
-                Pattern.some_values, Pattern.all_values}
+    # Axiom is composed of a mixture of unary and binary predicates
+    if axiom.binary() and axiom.unary() and not axiom.nary():
+        return {Pattern.domain_restriction,
+                Pattern.range_restriction,
+                Pattern.all_values,
+                Pattern.some_values}
+
+    return set()
 
 def filter_on_sign(axiom):
     """
@@ -110,19 +155,34 @@ def filter_on_sign(axiom):
     :return Set patterns, set of applicable patterns
     """
 
-    if len(axiom.negated()) == 0 and len(axiom.positive()) != 0:
+    # Only positive axioms
+    if not axiom.negated() and axiom.positive() != 0:
 
-        return {Pattern.universe_restriction, Pattern.reflexive_relation}
+        return {Pattern.reflexive_relation,
+                Pattern.universe_restriction,
+                Pattern.class_assertion,
+                Pattern.property_assertion}
 
-    elif len(axiom.negated()) != 0 and len(axiom.positive()) == 0:
+    # Only negative axioms
+    if axiom.negated() and not axiom.positive():
 
-        return {Pattern.irreflexive_relation, Pattern.asymmetric_relation,
-                Pattern.disjoint_relation, Pattern.disjoint_properties}
+        return {Pattern.asymmetric_relation,
+                Pattern.domain_restriction,
+                Pattern.disjoint_properties,
+                Pattern.disjoint_classes,
+                Pattern.irreflexive_relation,
+                Pattern.range_restriction,
+                Pattern.property_assertion}
 
-    else:
-
-        return {Pattern.subclass_relation, Pattern.subproperty_relation,
-                Pattern.domain_restriction, Pattern.range_restriction,
-                Pattern.inverse_relation, Pattern.symmetric_relation,
-                Pattern.some_values, Pattern.all_values,
-                Pattern.inverse_subproperty_relation}
+    # A mixture of axioms
+    return {Pattern.domain_restriction,
+            Pattern.functional_relation,
+            Pattern.inverse_functional_relation,
+            Pattern.inverse_subproperty_relation,
+            Pattern.range_restriction,
+            Pattern.subclass_relation,
+            Pattern.subproperty_relation,
+            Pattern.symmetric_relation,
+            Pattern.transitive_relation,
+            Pattern.all_values,
+            Pattern.some_values}

@@ -1,9 +1,16 @@
-#!/usr/bin/env python
+"""
+Contains Pattern functions which evaluate and break down Axioms
+into the needed parts to construct OWL constructs.
+"""
 
-"""
-Collection of functions that accept an Axiom and attempt to identify
-any description logic construct that it may contain.
-"""
+from macleod.logical.connective import Conjunction
+from macleod.logical.quantifier import Universal
+from macleod.logical.symbol import Predicate
+from macleod.logical.negation import Negation
+
+
+EQUALITY = '='
+
 
 def subclass_relation(axiom):
     """
@@ -23,7 +30,272 @@ def subclass_relation(axiom):
 
     return None
 
-def all_values(axiom, quantifiers):
+def inverse_subproperty_relation(axiom):
+    '''
+    Pass through for subproperty_relation
+    '''
+
+    return subproperty_relation(axiom)
+
+def subproperty_relation(axiom):
+    '''
+    Assumes that all predicates are unary, it's a disjunction, and there exists
+    at least one negative term and one positive term. Only a single universally
+    quantified variable.
+    '''
+
+    # Filter conflict symmetric, need to ensure at least two unique predicates
+    if len({p.name for p in axiom.predicates()}) < 2:
+        return None
+
+    base = axiom.negated()[0]
+    subset = [(s, base.compare(s)) for s in axiom.negated()]
+    superset = [(x, base.compare(x)) for x in axiom.binary() if x not in [y[0] for y in subset]]
+
+    return ('subproperty', subset, superset)
+
+def disjoint_classes(axiom):
+    '''
+    Assumes that all predicates are unary, it's a disjunction, and there exists
+    only two negated terms. Only a single universally quantified variable.
+    '''
+
+    # TODO: Need to handle inverse cases
+
+    # Filter conflict irreflexive, need to ensure at least two unique predicates
+    if len({p.name for p in axiom.predicates()}) < 2:
+        return None
+
+    # More than one means intersection of terms
+    disjoint_classes = [c for c in axiom.unary() if c in axiom.negated()]
+
+    return ('disjoint_classes', disjoint_classes)
+
+def disjoint_properties(axiom):
+    '''
+    Assumes that all predicates are binary, it's a disjunction, and there exists
+    at least two negative terms. Only a single universally quantified variable.
+    '''
+
+    # TODO: Need to handle inverse cases
+
+    # Filter conflict asymmetric, need to ensure at least two unique predicates
+    if len({p.name for p in axiom.predicates()}) < 2:
+        return None
+
+    # More than one means intersection of terms
+    base = axiom.negated()[0]
+    disjoint_props = [(p, base.compare(p)) for p in axiom.binary() if p in axiom.negated()]
+
+    return ('disjoint_properties', disjoint_props)
+
+def reflexive_relation(axiom):
+    '''
+    Assumes that the predicate is binary and only a single universally
+    quantified variable is used.
+    '''
+
+    # TODO: Add extra check to ensure only reflexive
+    reflexive_property = [p for p in axiom.binary()]
+
+    return ('reflexive', reflexive_property)
+
+def irreflexive_relation(axiom):
+    '''
+    Assumes that the predicate is binary and only a single universally
+    quantified variable is used.
+    '''
+
+    # Filter conflict disjoint, need a single predicate
+    if len({p.name for p in axiom.predicates()}) == 1:
+        return None
+
+    # TODO: Add extra check to ensure only reflexive
+    irreflexive_property = [p for p in axiom.binary()]
+
+    return ('irreflexive', irreflexive_property)
+
+def symmetric_relation(axiom):
+    '''
+    Assume single binary predicate appearing twice, one negated and one not negated. Variables
+    should be in reversed positions in each predicate.
+    '''
+
+    # TODO: Check for inverse
+
+    # Filter conflict disjoint subproperty, need a single predicate
+    if len({p.name for p in axiom.predicates()}) != 1:
+        return None
+
+    return ('symmetric', axiom.binary())
+
+def asymmetric_relation(axiom):
+    '''
+    Assume single binary predicate appearing twice, both negated. Variables
+    should be in reversed positions in each predicate.
+    '''
+
+    # TODO: Check for inverse
+
+    # Filter conflict disjoint property, need a single predicate
+    if len({p.name for p in axiom.predicates()}) != 1:
+        return None
+
+    return ('asymmetric', axiom.binary())
+
+def transitive_relation(axiom):
+    '''
+    Assume three universally quantified variable and one predicate appearing 
+    three times twice negated.
+    '''
+
+    # Filter conflict functional property, need a three predicates
+    if len({p.name for p in axiom.predicates()}) != 3:
+        return None
+
+    # Ensure we have three properties to define transitive
+    properties = [p for p in axiom.binary()]
+    if len(properties) != 3:
+        return None
+
+    # Ensure the two negated forms appear
+    negated = [p for p in axiom.negated()]
+    if len(negated) != 2:
+        return None
+
+    # Ensure the three properties are all the same
+    name = properties[0].name
+    if not all([x.name == name for x in properties]):
+        return None
+
+    # Follow the rainbow for the transitive
+    x_one, y_one = negated[0].variables
+    x_two, y_two = negated[1].variables
+
+    if y_one == x_two:
+        x = x_one
+        z = y_two
+    elif x_two == y_one:
+        x = x_two
+        z = y_one
+    else:
+        return None
+
+    positive_x, positive_z = axiom.positive()[0].variables
+    if positive_x != x or positive_z != z:
+        return None
+
+    return ('transitive', [axiom.positive()[0]])
+
+def range_restriction(axiom):
+    '''
+    Assumes a single negated binary predicate, then an arbitrary of positive
+    unary predicates. Only universally quantified predicates are used.
+    '''
+    
+    prop = [p for p in axiom.binary()]
+    range_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
+    range_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
+
+    if len(prop) > 1:
+        return None
+
+    #if len([c for c in axiom.unary() if c in axiom.negated()]) > 1:
+    #    return None
+
+    range_var = prop[0].variables[1]
+    if not all(map(lambda x: x.variables[0] == range_var, range_classes_positive + range_classes_negative)):
+        return None
+
+    return ('range_restriction', prop, range_classes_positive, range_classes_negative)
+
+def domain_restriction(axiom):
+    '''
+    Assumes a single negated binary predicate, then an arbitrary of positive
+    unary predicates. Only universally quantified predicates are used.
+    '''
+    
+    prop = [p for p in axiom.binary()]
+    domain_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
+    domain_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
+
+    if len(prop) > 1:
+        return None
+
+    #if len([c for c in axiom.unary() if c in axiom.negated()]) > 1:
+    #    return None
+
+    domain_var = prop[0].variables[0]
+    if not all(map(lambda x: x.variables[0] == domain_var, domain_classes_positive + domain_classes_negative)):
+        return None
+
+    return ('domain_restriction', prop, domain_classes_positive, domain_classes_negative)
+
+def inverse_functional_relation(axiom):
+    '''
+    Pass through for functional relation
+    '''
+
+    result = functional(axiom)
+    return result if result and result[0] == 'inverse-functional' else None
+
+def functional_relation(axiom):
+    '''
+    Pass through for functional tester
+    '''
+
+    result = functional(axiom)
+    return result if result and result[0] == 'functional' else None
+
+def functional(axiom):
+    '''
+    Assumes two predicates, one of which is the Equality predicate. The
+    non-equality predicate is negated and appears twice. Both instances will
+    share the same variable for domain, but different variable for range. One
+    predicate will share domain with equality, the other will share range with
+    equality.
+    '''
+
+    # Filter conflict transitive property, need two unique predicates including equality
+    if len({p.name for p in axiom.predicates()}) != 2:
+        return None
+
+    # Need exactly three predicates
+    if len([p for p in axiom.predicates()]) != 3:
+        return None
+
+    # Functional relation must contain single non-negated equality
+    if all([p.name != EQUALITY for p in axiom.predicates() if p not in axiom.negated()]):
+        return None
+
+    equality = [p for p in axiom.binary() if p not in axiom.negated()].pop()
+    negated_one, negated_two = axiom.negated()
+    if negated_one.variables[0] == negated_two.variables[0]:
+        inverse = False
+    elif negated_one.variables[1] == negated_two.variables[1]:
+        inverse = True
+    else:
+        return None
+
+    # TODO: Find a more concise way to express this
+    if not inverse:
+        if equality.variables[0] == negated_one.variables[1] and equality.variables[1] == negated_two.variables[1]:
+            pass
+        elif equality.variables[0] == negated_two.variables[1] and equality.variables[1] == negated_one.variables[1]:
+            pass
+        else:
+            return None
+        return ('functional', [e for e in axiom.negated()])
+    else:
+        if equality.variables[0] == negated_one.variables[0] and equality.variables[1] == negated_two.variables[0]:
+            pass
+        elif equality.variables[0] == negated_two.variables[0] and equality.variables[1] == negated_one.variables[0]:
+            pass
+        else:
+            return None
+        return ('inverse-functional', [e for e in axiom.negated()])
+
+def all_values(axiom):
     '''
     Assumes that the setence is both universally and existentially quantified.
     Contains a binary and two unary predicates, detect the placement of the variable
@@ -36,455 +308,139 @@ def all_values(axiom, quantifiers):
     forall [U subclass B.U2]
     '''
 
-    # This extraction requires three clauses -- could be another level of filtering
-    if count_clauses(axiom) != 3:
+    relation = axiom.binary()
+    subclass = [s for s in axiom.unary() if s in axiom.negated()]
+    limit = [s for s in axiom.unary() if s not in axiom.negated()]
+
+    # Should be a single binary
+    if not relation or len(relation) > 1:
         return None
 
-    negated_binary = compose(single_predicate, binary_predicates, negative_predicates)(axiom)
-
-    negated_unary = compose(single_predicate,
-                            functools.partial(all_universal, q=quantifiers),
-                            unary_predicates,
-                            negative_predicates)(axiom)
-
-    positive_unary = compose(single_predicate,
-                             functools.partial(all_universal, q=quantifiers),
-                             unary_predicates, positive_predicates)(axiom)
-
-    # They all should be assigned, if not then we don't match
-    if not all([negated_binary, negated_unary, positive_unary]):
+    # Should be at least one subclass
+    if not subclass:
         return None
 
-    property_type = "allValues_A"
+    # Every subclass predicate must be over the same variables
+    if not all([s.variables == subclass[0].variables for s in subclass]):
+        return None
 
-    # See if it's an inverse relation or not
-    if variable_position(negated_unary, negated_binary) == 2:
-        property_type = "allValues_A_Inverted"
+    # Should be at least one limiting class
+    if not limit:
+        return None
 
-    return (property_type, get_predicate_name(negated_unary),
-            get_predicate_name(negated_binary))
+    # Every limit class must be over the same variables
+    if not all([l.variables == limit[0].variables for l in limit]):
+        return None
 
+    return ('all_values', relation, subclass, limit)
 
-def functional_relation(axiom, _quantifier):
-    '''
-    Assumes two predicates, one of which is the Equality predicate. The
-    non-equality predicate is negated and appears twice. Both instances will
-    share the same variable for domain, but different variable for range. One
-    predicate will share domain with equality, the other will share range with
-    equality.
-    '''
-
-    if count_clauses(axiom) != 3:
-        return
-
-    clauses = []
-    Translation.find_binary_predicates(axiom, clauses)
-
-    if len(clauses) != 3:
-        return
-
-    equality = [x for x in clauses if get_predicate_name(x) == EQ]
-
-    if len(equality) != 1:
-        return
-
-    negated = []
-    Translation.find_negated_predicates(axiom, negated)
-    negated = [Translation.negate_negation(x) for x in negated]
-
-
-    if len(negated) != 2:
-        return
-
-    if any([x[0] == EQ for x in negated]):
-        return
-
-    if get_predicate_name(negated[0]) != get_predicate_name(negated[1]):
-        return
-
-    if same_variables(negated[0], negated[1]):
-        return
-
-    if negated[0][1] != negated[1][1]:
-        return
-
-    if (negated[0][2] != equality[0][2]) and (negated[1][2] != equality[0][2]):
-        return
-
-    if (negated[0][2] != equality[0][1]) and (negated[1][2] != equality[0][1]):
-        return
-
-    return ('functional_property', get_predicate_name(negated[0]))
-
-def inverse_functional_relation(axiom, _quantifier):
-    '''
-    Assumes two predicates, one of which is the Equality predicate. The
-    non-equality predicate is negated and appears twice. Both instances will
-    share the same variable for domain, but different variable for range. One
-    predicate will share domain with equality, the other will share range with
-    equality.
-    '''
-
-    if count_clauses(axiom) != 3:
-        return
-
-    clauses = []
-    Translation.find_binary_predicates(axiom, clauses)
-
-    if len(clauses) != 3:
-        return
-
-    equality = [x for x in clauses if get_predicate_name(x) == EQ]
-
-    if len(equality) != 1:
-        return
-
-    negated = []
-    Translation.find_negated_predicates(axiom, negated)
-    negated = [Translation.negate_negation(x) for x in negated]
-
-
-    if len(negated) != 2:
-        return
-
-    if any([x[0] == EQ for x in negated]):
-        return
-
-    if get_predicate_name(negated[0]) != get_predicate_name(negated[1]):
-        return
-
-    if same_variables(negated[0], negated[1]):
-        return
-
-    if negated[0][2] != negated[1][2]:
-        return
-
-    if (negated[0][1] != equality[0][2]) and (negated[1][1] != equality[0][2]):
-        return
-
-    if (negated[0][1] != equality[0][1]) and (negated[1][1] != equality[0][1]):
-        return
-
-    return ('inverse_functional_property', get_predicate_name(negated[0]))
-
-def domain_restriction(axiom, _quantifier):
-    '''
-    Assumes a single negated binary predicate, then an arbitrary of positive
-    unary predicates. Only universally quantified predicates are used.
-    '''
-
-    prop = []
-    Translation.find_binary_predicates(axiom, prop)
-
-    classes = []
-    Translation.find_unary_predicates(axiom, classes)
-
-    if any([Translation.is_negated(x) for x in classes]):
-        return
-
-    if not all([Translation.is_negated(x) for x in prop]):
-        return
-
-    if len(prop) != 1:
-        return
-
-    if any([not same_variables(classes[0], x) for x in classes]):
-        return
-
-    if classes[0][1] != prop[0][1]:
-        return
-
-    prop = [get_predicate_name(x) for x in prop]
-    classes = [get_predicate_name(y) for y in classes]
-
-    return ('property_domain_restriction', prop, classes)
-
-def range_restriction(axiom, _quantifier):
-    '''
-    Assumes a single negated binary predicate, then an arbitrary of positive
-    unary predicates. Only universally quantified predicates are used.
-    '''
-
-    prop = []
-    Translation.find_binary_predicates(axiom, prop)
-
-    classes = []
-    Translation.find_unary_predicates(axiom, classes)
-
-    if any([Translation.is_negated(x) for x in classes]):
-        return
-
-    if len(prop) != 1:
-        return
-
-    if any([not same_variables(classes[0], x) for x in classes]):
-        return
-
-    if classes[0][1] != prop[0][2]:
-        return
-
-    prop = [get_predicate_name(x) for x in prop]
-    classes = [get_predicate_name(y) for y in classes]
-
-    return ('property_range_restriction', prop, classes)
-
-def symmetric_relation(axiom, _quantifiers):
-    '''
-    Assume single binary predicate appearing twice, one negated and one not negated. Variables
-    should be in reversed positions in each predicate.
-    '''
-
-    prop = []
-    Translation.find_binary_predicates(axiom, prop)
-
-    if len(prop) != 2:
-        return
-
-    if prop[0][0] != prop[1][0]:
-        return
-
-    if not any([Translation.is_negated(x) for x in prop]):
-        return
-
-    if same_variables(prop[0], prop[1]):
-        return
-
-    return ('symmetric_relation', get_predicate_name(prop[0]))
-
-def asymmetric_relation(axiom, _quantifier):
-    '''
-    Assume single binary predicate appearing twice, both negated. Variables
-    should be in reversed positions in each predicate.
-    '''
-
-    prop = []
-    Translation.find_binary_predicates(axiom, prop)
-
-    if len(prop) != 2:
-        return
-
-    if prop[0][0] != prop[1][0]:
-        return
-
-    if same_variables(prop[0], prop[1]):
-        return
-
-    return ('asymmetric_relation', get_predicate_name(prop[0]))
-
-def disjoint_relation(axiom, _quantifiers):
-    '''
-    Assumes that all predicates are unary, it's a disjunction, and there exists
-    at least two negative terms. Only a single universally quantified variable.
-    '''
-
-    # More than one means intersection of terms
-    classes = []
-    Translation.find_negated_predicates(axiom, classes)
-    classes = [Translation.negate_negation(x) for x in classes]
-
-    classes = list(map(get_predicate_name, classes))
-
-    return ('disjoint_classes', classes[0], classes[1])
-
-def disjoint_properties(axiom, _quantifiers):
-    '''
-    Assumes that all predicates are binary, it's a disjunction, and there exists
-    at least two negative terms. Only a single universally quantified variable.
-    '''
-
-    # More than one means intersection of terms
-    props = []
-    Translation.find_negated_predicates(axiom, props)
-    props = [Translation.negate_negation(x) for x in props]
-
-    if not all([same_variables(props[0], x) for x in props]):
-        return
-
-    props = list(map(get_predicate_name, props))
-
-    return ('disjoint_properties', props[0], props[1])
-
-def universe_restriction(axiom, _quantifiers):
-    '''
-    Assumes that all predicates are unary, it's a disjunction, and there exists
-    at least one negative term and one positive term. Only a single universally
-    quantified variable.
-    '''
-
-    restriction = list(map(get_predicate_name, axiom[1:]))
-
-    return ('universe_restriction', restriction)
-
-def subproperty_relation(axiom, _quantifiers):
-    '''
-    Assumes that all predicates are unary, it's a disjunction, and there exists
-    at least one negative term and one positive term. Only a single universally
-    quantified variable.
-    '''
-
-    # More than one means intersection of terms
-    subset = []
-    Translation.find_negated_predicates(axiom, subset)
-    subset = [Translation.negate_negation(x) for x in subset]
-
-    # More than one means union of terms
-    binary = []
-    Translation.find_binary_predicates(axiom, binary)
-    superset = [x for x in binary if x not in subset]
-
-    for predicate in subset[:] + superset[:]:
-
-        if not same_variables(subset[0], predicate):
-            return
-
-    subset = list(map(get_predicate_name, subset))
-    superset = list(map(get_predicate_name, superset))
-
-    return ('subproperty', subset, superset)
-
-def inverse_subproperty_relation(axiom, _quantifiers):
-    '''
-    Assumes that all predicates are binary, it's a disjunction, and there exists
-    one negative term and one positive term. Only a single universally
-    quantified variable. This is a partial to the inverse object property, two
-    of these over the same predicates but reversed will be detected as the
-    former.
-    '''
-
-    # More than one means intersection of terms
-    subset = []
-    Translation.find_negated_predicates(axiom, subset)
-    subset = [Translation.negate_negation(x) for x in subset]
-
-    if len(subset) != 1:
-        return
-
-    # More than one means union of terms
-    binary = []
-    Translation.find_binary_predicates(axiom, binary)
-    superset = [x for x in binary if x not in subset]
-
-    if len(superset) != 1:
-        return
-
-    for predicate in subset[:] + superset[:]:
-
-        if same_variables(subset[0], predicate):
-            return
-
-    subset = list(map(get_predicate_name, subset))
-    superset = list(map(get_predicate_name, superset))
-
-    return ('inverted_subproperty', subset, superset)
-
-# TODO Find an object inverse relation with two inverted subproperties
-def inverse_relation(a, q):
-    pass
-
-def reflexive_relation(axiom, _quantifiers):
-    '''
-    Assumes that the predicate is binary and only a single universally
-    quantified variable is used.
-    '''
-
-    reflexive_property = get_predicate_name(axiom[0])
-
-    return ('reflexive', reflexive_property)
-
-def irreflexive_relation(axiom, _quantifiers):
-    '''
-    Assumes that the predicate is negated, binary, and only a single universally
-    quantified variable is used.
-    '''
-
-    reflexive_property = list(map(get_predicate_name, axiom[1:]))
-
-    return ('reflexive', reflexive_property)
-
-def some_values(axiom, quantifiers):
+def some_values(axiom):
     '''
     Assumes that the setence is both universally and existentially quantified.
     Contains a binary and unary predicate, detect the placement of the variable
     to see if it's R^(-1).C or Regular R.C.
     '''
 
-    binary = []
-    Translation.find_binary_predicates(axiom, binary)
+    if not isinstance(axiom.sentence.terms[0], Conjunction):
+        return None
 
-    unary = []
-    Translation.find_unary_predicates(axiom, unary)
+    relation = axiom.binary()
+    subclass = [s for s in axiom.unary() if s in axiom.negated()]
+    limit = [s for s in axiom.unary() if s not in axiom.negated()]
 
-    negated = []
-    Translation.find_negated_predicates(axiom, negated)
+    # Should be a single binary
+    if not relation or len(relation) > 1:
+        return None
 
-    # Simplified for now
-    # TODO: OWL allows for chained somevalues/allValues from
-    if count_clauses(axiom) != 2:
-        return
+    # Should be at least one subclass
+    if not subclass:
+        return None
 
-    if Translation.is_negated(negated[0]) != unary[0]:
-        return
+    # Every subclass predicate must be over the same variables
+    if not all([s.variables == subclass[0].variables for s in subclass]):
+        return None
 
-    universal = []
-    existential = []
+    # Should be at least one limiting class
+    if not limit:
+        return None
 
-    for quantifier in quantifiers:
-        Translation.get_existentially_quantified(quantifier, existential)
-        Translation.get_universally_quantified(quantifier, universal)
+    # Every limit class must be over the same variables
+    if not all([l.variables == limit[0].variables for l in limit]):
+        return None
 
-    # Need to unary to be universally quantified
-    if unary[0][1] not in universal:
-        return
+    return ('some_values', relation, [subclass[0]], [limit[0]])
 
-    # Need the binary term to be existentially quantified
-    if binary[0][1] not in existential and binary[0][2] not in existential:
-        return
 
-    property_type = "someValues_A"
-
-    # See if it's an inverse relation or not
-    if unary[0][1] == binary[0][2]:
-        property_type = "someValues_A_Inverted"
-
-    return (property_type, get_predicate_name(unary[0]),
-            get_predicate_name(binary[0]))
-
-def some_values(axiom, quantifiers):
+def universe_restriction(axiom):
     '''
-    Assumes that the setence is both universally and existentially quantified.
-    Contains two and unary predicates, .
+    Assumes that all predicates are unary, it's a disjunction, and there exists
+    at least one negative term and one positive term. Only a single universally
+    quantified variable.
     '''
 
-    unary = []
-    Translation.find_unary_predicates(axiom, unary)
+    if not isinstance(axiom.quantifiers()[0], Universal):
+        return None
 
-    negated = []
-    Translation.find_negated_predicates(axiom, negated)
+    return ('universe', axiom.unary())
 
-    # Simplified for now
-    # TODO: OWL allows for chained somevalues/allValues from
-    if count_clauses(axiom) != 2:
-        return
+def class_assertion(axiom):
+    '''
+    Expects an axiom with no quantifiers, single unary predicate, and constant.
 
-    universal = []
-    existential = []
+    :param logical.Axiom axiom, axiom containing the class assertion
+    :returns Axiom, l
+    '''
 
-    for quantifier in quantifiers:
-        Translation.get_existentially_quantified(quantifier, existential)
-        Translation.get_universally_quantified(quantifier, universal)
+    if axiom.quantifiers() or axiom.binary() or axiom.nary():
+        return None
 
-    # Need the subclass to be universal
-    if Translation.is_negated(negated[0])[1] not in universal:
-        return
+    if not isinstance(axiom.sentence, Predicate):
+        return None
 
-    restriction = [x for x in unary if Translation.to_negation(x) not in negated]
-    # Need the other to be existential
-    if restriction[0][1] not in existential:
-        return
+    if len(axiom.unary()) != 1:
+        return None
 
-    property_type = "someValues_B"
+    return ('class-assertion', axiom.unary())
 
-    return (property_type, get_predicate_name(Translation.is_negated(negated[0])),
-            get_predicate_name(restriction[0]))
+def property_assertion(axiom):
+    '''
+    Expects an axiom with no quantifiers, single binary predicate, and two constants.
 
-PATTERNS = frozenset([subclass_relation])
+    :param logical.Axiom axiom, axiom containing the class assertion
+    :returns Axiom, l
+    '''
+
+    if axiom.quantifiers() or axiom.unary() or axiom.nary():
+        return None
+
+    if len(axiom.binary()) != 1:
+        return None
+
+    if not isinstance(axiom.sentence, Predicate):
+        if not isinstance(axiom.sentence, Negation):
+            return None
+
+        return ('negative-property-assertion', axiom.binary())
+
+
+    return ('property-assertion', axiom.binary())
+
+
+PATTERNS = frozenset([all_values,
+                      asymmetric_relation,
+                      disjoint_classes,
+                      disjoint_properties,
+                      domain_restriction,
+                      functional_relation,
+                      inverse_functional_relation,
+                      irreflexive_relation,
+                      range_restriction,
+                      reflexive_relation,
+                      some_values,
+                      subclass_relation,
+                      subproperty_relation, # Also covers inverse subproperty
+                      symmetric_relation,
+                      transitive_relation,
+                      universe_restriction,
+                      class_assertion,
+                      property_assertion])

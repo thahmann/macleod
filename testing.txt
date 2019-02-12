@@ -1,0 +1,12 @@
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_ped/ped.clif
+/Users/rpskillet/thesis/colore/ontologies/dolce_taxonomy/dolce_taxonomy.clif
+/Users/rpskillet/thesis/colore/ontologies/mapsee/mapsee.clif
+/Users/rpskillet/thesis/colore/ontologies/inch/inch_calculus_extended_full.clif
+/Users/rpskillet/thesis/colore/ontologies/owltime/owltime.clif
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_voids/definitions/voids_defs.clif
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_physcont/fullphyscont_full.clif
+/Users/rpskillet/thesis/colore/ontologies/sumo/sumo_time.clif
+/Users/rpskillet/thesis/colore/ontologies/sumo/sumo_temporalPart.clif
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_codib/codib.clif
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_voids/voids_full.clif
+/Users/rpskillet/thesis/colore/ontologies/multidim_space_voids/voids_extended.clif

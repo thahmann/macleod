@@ -2,7 +2,7 @@
 
 import unittest
 
-import macleod.logical.Symbol as Symbol
+from macleod.logical.symbol import (Function, Predicate)
 
 class SymbolTest(unittest.TestCase):
 
@@ -11,10 +11,10 @@ class SymbolTest(unittest.TestCase):
         Ensure that predicates take the correct repr form
         '''
 
-        alpha = Symbol.Predicate('A', ['x'])
+        alpha = Predicate('A', ['x'])
         self.assertEqual(repr(alpha), 'A(x)')
 
-        beta = Symbol.Predicate('B', ['x', 'y'])
+        beta = Predicate('B', ['x', 'y'])
         self.assertEqual(repr(beta), 'B(x,y)')
 
 

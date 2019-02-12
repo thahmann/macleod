@@ -3,13 +3,14 @@ Top level container for an ontology parsed into the object structure
 """
 
 import os
-import owlready
-import macleod.dl.OWL as Owl
-import macleod.logical.Axiom as Axiom
+from macleod.dl.owl import Owl
+import macleod.dl.Translation as Translation
 import macleod.dl.Utilities as Util
 import macleod.dl.Filters as Filter
 
-def pretty_print(ontology, pcnf=False):
+from macleod.logical.axiom import Axiom
+
+def pretty_print(ontology, pcnf=False, tptp=False):
     '''
     Utility function to nicely print out an ontology and linked imports.
     Optionally will transform any axioms to their function-free prenex conjunctive 
@@ -30,14 +31,13 @@ def pretty_print(ontology, pcnf=False):
 
         if new is not None:
 
+            for onto in new.imports.keys():
+                if onto.name not in ontologies:
+                    ontologies.add(onto.name)
+                    processing.append(new.imports[onto])
+
             if pcnf:
                 new.to_ffpcnf()
-
-            for onto in new.imports.keys():
-
-                if onto not in ontologies:
-                    ontologies.add(onto)
-                    processing.append(new.imports[onto])
 
             print(repr(new) + '\n')
 
@@ -46,6 +46,8 @@ class Ontology(object):
     """
     The object to rule them all
     """
+
+    imported = {}
 
     def __init__(self, name, basepath=None):
 
@@ -73,9 +75,11 @@ class Ontology(object):
         temp_axioms = []
 
         for axiom in self.axioms:
+            print(axiom)
             temp_axioms.append(axiom.ff_pcnf())
 
         self.axioms = temp_axioms
+        print(self.axioms)
 
     def resolve_imports(self, resolve=False):
         """
@@ -83,29 +87,35 @@ class Ontology(object):
         already been parsed
         """
 
-        # Cyclic imports are kind of painful in Python
-        import macleod.parsing.Parser as Parser
+        # TODO: At some point need to do some kind of deduping on the import hierarchy 
+        # to save on processing time. This may have an impact on translation later on
+        import macleod.parsing.parser as Parser
 
         for path in self.imports:
 
             if self.imports[path] is None:
 
-                sub, base = self.basepath
-                subbed_path = path.replace(self.basepath[0], self.basepath[1])
-                new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
-                new_ontology.basepath = self.basepath
-                self.imports[path] = new_ontology
+                if path in Ontology.imported:
+                    print("Cyclic import found: {} imports {}".format(self.name, path))
+                    self.imports[path] = Ontology.imported[path]
+                else:
+                    sub, base = self.basepath
+                    subbed_path = path.replace(self.basepath[0], self.basepath[1])
+                    new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
+                    new_ontology.basepath = self.basepath
+                    self.imports[path] = new_ontology
+                    Ontology.imported[path] = new_ontology
 
     def add_axiom(self, logical):
         """
         Accepts a logical object and creates an accompanying Axiom object out
-        of it
+        of it and stores it in this ontology
 
         :param Logical logical, a parsed logical object
         :return None
         """
 
-        self.axioms.append(Axiom.Axiom(logical))
+        self.axioms.append(Axiom(logical))
 
     def add_import(self, path):
         """
@@ -127,25 +137,58 @@ class Ontology(object):
         """
 
         # Create new OWL ontology instance
-        onto = owlready.Ontology("http://junk/junk.owl")
+        onto = Owl(self.name.replace(self.basepath[1], self.basepath[0]).replace('.clif', '.owl'))
 
-        # Must convert to FF-PCNF first
-        self.to_ffpcnf()
+        # Create a nice long list of all axioms first
+        seen_paths = []
+        axioms = [(x, self.name) for x in self.axioms[:]]
+
+        unprocessed = [x for x in self.imports.items()]
+        while unprocessed:
+            path, ontology = unprocessed.pop()
+            if path not in seen_paths and ontology is not None:
+                axioms += [(a, path) for a in ontology.axioms]
+                seen_paths.append(path)
+                unprocessed += ontology.imports.items()
 
         # Loop over each Axiom and filter applicable patterns
-        for axiom in self.axioms:
+        for axiom, path in axioms:
 
-            pattern_set = Filter.filter_axiom(axiom)
+            print('Axiom: {} from {}'.format(axiom, path))
+            pcnf = axiom.ff_pcnf()
+            print('FF-PCNF: {}'.format(pcnf))
 
-            #Collector for extracted patterns
-            for pattern in pattern_set:
+            for pruned in Translation.translate_owl(pcnf):
 
-                extraction = pattern(axiom)
+                tmp_axiom = Axiom(pruned)
+                pattern_set = Filter.filter_axiom(tmp_axiom)
 
-                if extraction is not None:
-                    Owl.produce_construct(extraction, onto)
+                #Collector for extracted patterns
+                for pattern in pattern_set:
 
-        print(owlready.to_owl(onto))
+                    extraction = pattern(tmp_axiom)
+                    if extraction is not None:
+                        print('     - pattern', extraction[0])
+                        Translation.produce_construct(extraction, onto)
+
+            for extra in pcnf.extra_sentences:
+                for extra_pruned in Translation.translate_owl(extra):
+                    tmp_axiom = Axiom(extra_pruned)
+                    pattern_set = Filter.filter_axiom(tmp_axiom)
+
+                    #Collector for extracted patterns
+                    for pattern in pattern_set:
+
+                        extraction = pattern(tmp_axiom)
+                        if extraction is not None:
+                            print('     - (extra) pattern', extraction[0])
+                            Translation.produce_construct(extraction, onto)
+
+            print()
+
+        # TODO: Find another way to do this instead of case by case
+        # etree.ElementTree html encodes special characters. Protege does not like this.
+        return onto.tostring()
 
     def __repr__(self):
         """

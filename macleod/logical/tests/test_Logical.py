@@ -1,8 +1,8 @@
 
 import unittest
 
-import macleod.logical.Symbol as Symbol
-import macleod.logical.Quantifier as Quantifier
+from macleod.logical.symbol import (Function, Predicate)
+from macleod.logical.quantifier import (Universal, Existential, Quantifier)
 
 class LogicalTests(unittest.TestCase):
     '''
@@ -11,12 +11,12 @@ class LogicalTests(unittest.TestCase):
 
     def test_onf_detection(self):
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['y'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['y'])
+        delta = Predicate('D', ['z'])
 
-        uni = Quantifier.Universal(['x', 'y', 'z'], alpha | beta | delta)
-        exi = Quantifier.Existential(['x','y','z'], alpha & beta | delta)
+        uni = Universal(['x', 'y', 'z'], alpha | beta | delta)
+        exi = Existential(['x','y','z'], alpha & beta | delta)
 
         self.assertEqual(alpha.is_onf(), True)
         self.assertEqual((alpha | beta).is_onf(), True)

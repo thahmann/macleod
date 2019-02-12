@@ -2,15 +2,10 @@ import argparse
 import logging
 import sys
 
-from macleod.Ontology import pretty_print
-import macleod.logical.Connective as Connective
-import macleod.logical.Logical as Logical
-import macleod.logical.Negation as Negation
-import macleod.logical.Quantifier as Quantifier
-import macleod.logical.Symbol as Symbol
-import macleod.parsing.Parser as Parser
-
 LOGGER = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.DEBUG)
+
+import macleod.parsing.parser as Parser
 
 if __name__ == '__main__':
 
@@ -21,6 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--tptp', action='store_true', help='Convert the read axioms into TPTP format', default=False)
     parser.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
     parser.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    parser.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
     parser.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files')
     parser.add_argument('-s', '--sub', required='--resolve' in sys.argv, type=str, help='String to replace with basepath found in imports')
 
@@ -30,9 +26,22 @@ if __name__ == '__main__':
     # Parse out the ontology object then print it nicely
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
+    if args.owl:
+        onto = ontology.to_owl()
+        print("\n-- Translation --\n")
+        print(onto)
+        exit(0)
+
+
+    if args.ffpcnf:
+        ontology.to_ffpcnf()
+
     for axiom in ontology.axioms:
 
         if args.tptp:
             print (axiom.to_tptp())
         else:
             print (axiom)
+
+
+

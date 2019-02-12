@@ -2,8 +2,8 @@
 
 import unittest
 
-import macleod.logical.Connective as Connective
-import macleod.logical.Symbol as Symbol
+from macleod.logical.connective import (Conjunction, Disjunction, Connective)
+from macleod.logical.symbol import (Function, Predicate)
 
 class ConnectiveTest(unittest.TestCase):
 
@@ -12,9 +12,9 @@ class ConnectiveTest(unittest.TestCase):
         Ensure basic & operator overloading is working
         """
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['x', 'y'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['x', 'y'])
+        delta = Predicate('D', ['z'])
 
         self.assertEqual(repr(alpha & beta), '(A(x) & B(x,y))')
         self.assertEqual(repr(alpha & beta & delta), '(A(x) & B(x,y) & D(z))')
@@ -24,9 +24,9 @@ class ConnectiveTest(unittest.TestCase):
         Ensure basic | operator overloading is working
         '''
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['x', 'y'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['x', 'y'])
+        delta = Predicate('D', ['z'])
 
         self.assertEqual(repr(alpha | beta), '(A(x) | B(x,y))')
         self.assertEqual(repr(alpha | beta | delta), '(A(x) | B(x,y) | D(z))')
@@ -36,9 +36,9 @@ class ConnectiveTest(unittest.TestCase):
         Ensure that the &  and | operators work when chained
         '''
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['x', 'y'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['x', 'y'])
+        delta = Predicate('D', ['z'])
 
         self.assertEqual(repr((alpha & beta) | delta), '((A(x) & B(x,y)) | D(z))')
         self.assertEqual(repr(alpha & (beta | delta)), '(A(x) & (B(x,y) | D(z)))')
@@ -52,10 +52,10 @@ class ConnectiveTest(unittest.TestCase):
         '''
         #(b & (a | (c & b)))
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['y'])
-        charlie = Symbol.Predicate('C', ['t'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['y'])
+        charlie = Predicate('C', ['t'])
+        delta = Predicate('D', ['z'])
 
         s = delta | (alpha & beta)
         ret = s.distribute(s.terms[0], s.terms[1])
@@ -81,10 +81,10 @@ class ConnectiveTest(unittest.TestCase):
 
     def test_connective_to_onf(self):
 
-        alpha = Symbol.Predicate('A', ['x'])
-        beta = Symbol.Predicate('B', ['y'])
-        charlie = Symbol.Predicate('C', ['u'])
-        delta = Symbol.Predicate('D', ['z'])
+        alpha = Predicate('A', ['x'])
+        beta = Predicate('B', ['y'])
+        charlie = Predicate('C', ['u'])
+        delta = Predicate('D', ['z'])
 
         # Trivial case -- already in CNF
         two = (beta | alpha) & (delta)
