@@ -53,7 +53,11 @@ class ReasonerProcess(multiprocessing.Process):
         #print "total CPU time of " + self.args[0] + " = " + str(self.cputime)
 
     def enforce_limits (self, pid):
-        limit = int(filemgt.read_config('system', 'memory_limit')) # each reasoning process is not allowed to use up more than 1.5GB of memory
+        limit = int(filemgt.read_config('system', 'memory_limit')) # read custom memory limit from configuration file
+        if limit is None:
+            logging.getLogger(__name__).debug("USING DEFAULT MEMORY LIMIT OF 2GB FOR EACH REASONER")
+            limit = 2048 # default memory limit for each reasoner is 2GB
+
         memory = get_memory(pid)
         #enforce memory limit
         if memory>limit:
