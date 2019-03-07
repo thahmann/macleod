@@ -88,7 +88,7 @@ class ReasonerProcess(multiprocessing.Process):
                 stdoutdata = ' '.join(stdoutdata.split())
                 logging.getLogger(__name__).debug("STDOUT from "  + self.name + ": " + str(stdoutdata))
             self.result_queue.put((self.args[0], -1, stdoutdata))
-            logging.getLogger(__name__).debug("ABORTED: "  + self.name + ", command = " + self.args[0])
+            logging.getLogger(__name__).info("ABORTED: "  + self.name + ", command = " + self.args[0])
             self.update_cputime(sp.pid)
             out_file.flush()
             out_file.close()
@@ -98,7 +98,7 @@ class ReasonerProcess(multiprocessing.Process):
         # finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
         self.update_cputime(sp.pid)
         self.result_queue.put((self.args[0], sp.returncode, None))
-        logging.getLogger(__name__).info("REASONER FINISHED: "  + self.name + ", exit code " + str(sp.returncode) + ", command = " + self.args[0])
+        logging.getLogger(__name__).info("REASONER COMPLETED: "  + self.name + ", exit code " + str(sp.returncode) + ", command = " + self.args[0])
         out_file.flush()
         out_file.close()
         self.writeHeader()
@@ -121,13 +121,15 @@ class ReasonerProcess(multiprocessing.Process):
 
         #logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())				
         in_file =  open(self.output_filename, 'a')
+        in_file.write('\n')
         in_file.write('============================= ' + self.args[0] + ' ================================\n')
         #file.write(vampire.get_version()+'\n')
         now = datetime.datetime.now()
         in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
         in_file.write("total CPU time used: " + str(self.cputime) +"\n")
         in_file.write('The command was \"' + cmd + '\"\n')
-        in_file.write('Input read from ' + input_string + '\n')
+        if len(input_string)>0:
+            in_file.write('Input read from ' + input_string + '\n')
         in_file.write('============================ end of footer ===========================\n')
         in_file.flush()
         in_file.close()
@@ -344,7 +346,7 @@ def raceProcesses (reasoners):
         for r in reasoners:
             # TODO Figure out why r.timeout is a str in python3
             p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), int(r.timeout), results, r.getId())
-            logging.getLogger(__name__).info('Created ' + str(p))
+            logging.getLogger(__name__).debug('Created ' + str(p))
             reasonerProcesses.append(p)
             p.start()
             time.sleep(0.1)
@@ -389,7 +391,7 @@ def raceProcesses (reasoners):
                             time.sleep(0.1)
                 
             else:
-                logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
+                logging.getLogger(__name__).debug("TERMINATED WITHOUT SUCCESS: " + name)
                 logging.getLogger(__name__).debug("PROCESSES STILL RUNNING: " + str(num_running))
 
 
