@@ -96,7 +96,7 @@ class Reasoner (object):
             ClifModuleSet.PROOF: True,
             ClifModuleSet.COUNTEREXAMPLE: True,
             ClifModuleSet.CONSISTENT: True,
-            ClifModuleSet.INCONSISTENT : True,
+            ClifModuleSet.INCONSISTENT: True,
             ClifModuleSet.UNKNOWN : False,
             None: False
         }
@@ -115,7 +115,9 @@ class Reasoner (object):
                 return ClifModuleSet.UNKNOWN
 
         def vampire_status(line):
-            if 'Refutation' in line:
+            if 'Refutation not found' in line:
+                return ClifModuleSet.UNKNOWN
+            elif 'Refutation' in line:
                 #print "VAMPIRE SZS status found: THEOREM"
                 return ClifModuleSet.PROOF
             elif 'Unsatisfiable' in line:
@@ -144,11 +146,13 @@ class Reasoner (object):
             output_lines = [x for x in lines if x.startswith('Termination reason:')]
             l = len(output_lines)
             if l==0:
-                if not self.return_code:
+                if self.return_code is None:
                     self.output = None
                 else:
-                    self.output = ClifModuleSet.UNKNOWN                    
+                    self.output = ClifModuleSet.UNKNOWN
+            # at least one line has a termination reason, so this might be an intermediate line (since Vampire in competition mode restarts several times)
             else:
+                # examine the last output line
                 self.output = vampire_status(output_lines[l-1])
 
             return mapping[self.output]
