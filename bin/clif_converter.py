@@ -22,7 +22,7 @@ tptp_output = 'tptp'
 ladr_output = 'ladr'
 
 
-def convert_single(file, output, noresolve, loc, prefix):
+def convert_single(file, output, noresolve, loc=default_dir, prefix=default_prefix):
 
     logging.getLogger(__name__).info("Converting " + args.file + " to " + output + " format")
     ontology = Parser.parse_file(file, prefix, loc, noresolve)
@@ -53,7 +53,7 @@ def convert_single(file, output, noresolve, loc, prefix):
 
 
 
-def convert_all(folder, output, noresolve, loc, prefix):
+def convert_all(folder, output, noresolve, loc=default_dir, prefix=default_prefix):
 
     tempfolder = Filemgt.read_config('converters', 'tempfolder')
     ignores = [tempfolder]
