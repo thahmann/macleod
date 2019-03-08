@@ -3,8 +3,7 @@ from PyQt5.Qt import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt, pyqtSignal
 import macleod.Filemgt as filemgt
-from bin import clif_to_ladr, clif_to_tptp
-import configparser
+from bin import clif_converter
 import os
 
 WINDOW_WIDTH = 400
@@ -45,7 +44,7 @@ class Export(MacleodTool):
 
         layout = QFormLayout(parent)
         layout.addRow("Output Path: ", sub_layout)
-        layout.addRow("Consolidate? ", self.consolidate)
+        layout.addRow("Include all imports? ", self.consolidate)
         layout.addWidget(exit_buttons)
         self.setLayout(layout)
 
@@ -53,10 +52,7 @@ class Export(MacleodTool):
         file, file_ext = os.path.splitext(self.path.text())
         options = ""
         options += "-cumulate" if self.consolidate.isChecked() else ""
-        if "tptp" in file_ext:
-            clif_to_tptp.tptp(os.path.normpath(self.path.text()), options)
-        elif "ladr" in file_ext:
-            clif_to_ladr.ladr(os.path.normpath(self.path.text()), options)
+        clif_converter.convert_single(os.path.normpath(self.path.text()),file_ext, not(self.consolidate.isChecked()))
 
         self.close()
 

@@ -15,12 +15,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../")
 from bin.check_consistency import *
 from bin.check_nontrivial_consistency import *
 from bin.check_consistency_all import *
-from bin.clif_to_ladr import *
-from bin.clif_to_ladr_all import *
-from bin.clif_to_tptp import *
-from bin.clif_to_tptp_all import *
-from bin.prove_lemma import *
-from bin.prove_lemma_all import *
 from bin.delete_output import *
 # source
 #from macleod.ClifModuleSet import *
@@ -236,6 +230,11 @@ class GUI(Frame):
         """  set up the two resizable paned window frames """
         self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
         print(self.selected_folder)
+
+        from bin import clif_converter
+        from bin.prove_lemma import *
+        from bin.prove_lemma_all import *
+
         if identifier == "file":
             consist = Button(self.task_pane, text="Check Consistency", \
                 command=lambda: consistent(self.selected_file,self.module))
@@ -243,25 +242,25 @@ class GUI(Frame):
             non_trivial_consist = Button(self.task_pane, text="Check Non-Trivial Consistency", \
                 command=lambda: nontrivially_consistent(self.selected_file, self.module))
             non_trivial_consist.pack(side=TOP)
-            clif_to_ladr = Button(self.task_pane, text="Clif to LADR", \
-                command=lambda: ladr(self.selected_file, self.module))
+            clif_to_ladr = Button(self.task_pane, text="Export to LADR file", \
+                command=lambda: clif_converter.convert_single(self.selected_file, clif_converter.ladr_output, False))
             clif_to_ladr.pack(side=TOP)
-            clif_to_tptp = Button(self.task_pane, text="Clif to TPTP", \
-                command=lambda: tptp(self.selected_file, self.module))
+            clif_to_tptp = Button(self.task_pane, text="Export to TPTP file", \
+                command=lambda: clif_converter.convert_single(self.selected_file, clif_converter.tptp_output, False))
             clif_to_tptp.pack(side=TOP)
-            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
-                command=lambda: tptp(self.selected_file, self.module))
-            prove_lemma.pack(side=TOP)
+#            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
+#                command=lambda: tptp(self.selected_file, self.module))
+#            prove_lemma.pack(side=TOP)
         else:
-            clif_to_ladr_all = Button(self.task_pane, text="Clif to LADR (ALL)", \
-                command=lambda: ladr_all(self.selected_folder))
+            clif_to_ladr_all = Button(self.task_pane, text="Export all to LADR", \
+                command=lambda: clif_converter.convert_single(self.selected_folder, clif_converter.ladr_output, False))
             clif_to_ladr_all.pack(side=TOP)
-            clif_to_tptp_all = Button(self.task_pane, text="Clif to TPTP (ALL)", \
-                command=lambda: ladr_all(self.selected_folder))
+            clif_to_tptp_all = Button(self.task_pane, text="Export all to TPTP", \
+                command=lambda: clif_converter.convert_single(self.selected_folder, clif_converter.tptp_output, False))
             clif_to_tptp_all.pack(side=TOP)
-            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
-                command=lambda: prove_all(self.selected_folder))
-            prove_lemma_all.pack(side=TOP)
+#            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
+#                command=lambda: prove_all(self.selected_folder))
+#            prove_lemma_all.pack(side=TOP)
 
         #static buttons
         #view_log = Button(self.task_pane, text="View Log", \
