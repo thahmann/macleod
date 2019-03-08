@@ -151,8 +151,11 @@ class Ontology(object):
         Translates all axioms in the module and, if present, in any imported modules to the TPTP format
         """
         tptp_output = []
-        
-        all_modules = self.get_all_modules()
+
+        if resolve:
+            all_modules = self.get_all_modules()
+        else:
+            all_modules = [self]
 
         for module in all_modules:
             print("Processing " + module.name)
@@ -164,7 +167,7 @@ class Ontology(object):
 
 
 
-    def to_ladr(self):
+    def to_ladr(self, resolve=True):
         """
         Translates all axioms in the module and, if present, in any imported modules to the LADR format supported by Prover9 and Mace4
         """

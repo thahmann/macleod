@@ -27,22 +27,24 @@ if __name__ == '__main__':
     # global variables
     parser = argparse.ArgumentParser(description='Utility function to convert Common Logic Interchange Format (.clif) files to TPTP syntax.')
     parser.add_argument('-f', '--file', type=str, help='Path to Clif file to parse', required=True)
-    parser.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=True)
+    parser.add_argument('--noresolve', action="store_false", help='Prevent from automatically resolving imports', default=True)
     parser.add_argument('-b', '--dir', type=str, help='Path to directory containing ontology files', default=default_dir)
     parser.add_argument('-s', '--prefix', type=str, help='String to replace with basepath found in imports', default=default_prefix)
     args = parser.parse_args()
 
     logging.getLogger(__name__).info("Converting " + args.file + " to TPTP format")
-    ontology = Parser.parse_file(args.file, args.prefix, args.dir, args.resolve)
+    ontology = Parser.parse_file(args.file, args.prefix, args.dir, args.noresolve)
 
-    tptp_output = ontology.to_tptp()
+    tptp_output = ontology.to_tptp(args.noresolve)
 
-    if args.resolve:
+    if args.noresolve:
         ending = Filemgt.read_config('tptp', 'all_ending')
     else:
-        ending = Filemgt.read_config('tptp', 'select_ending')
+        ending = ""
 
     ending = ending + Filemgt.read_config('tptp', 'ending')
+
+    print(ending)
 
     tptp_file_name = Filemgt.get_full_path(os.path.normpath(os.path.join(args.dir, args.file)),
                                            folder=Filemgt.read_config('tptp','folder'),
