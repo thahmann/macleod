@@ -497,8 +497,16 @@ def parse_file(path, sub, base, resolve=False, name=None):
     :return Ontology onto, newly constructed ontology object
     """
 
+    path = os.path.normpath(os.path.join(base, path))
+
     if not os.path.isfile(path):
         LOGGER.warning("Attempted to parse non-existent file: " + path)
+
+    ontology = Ontology(path)
+
+    if name is not None:
+        ontology.name = name
+
 
     with open(path, 'r') as f:
         buff = f.read()
@@ -512,10 +520,6 @@ def parse_file(path, sub, base, resolve=False, name=None):
 
     parsed_objects = yacc.parse(buff)
 
-    ontology = Ontology(path)
-
-    if name is not None:
-        ontology.name = name
 
     ontology.basepath = (sub, base)
 
