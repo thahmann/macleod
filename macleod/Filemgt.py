@@ -6,66 +6,70 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 '''
 
 from pathlib import Path
-import os, platform, logging, logging.config
 from configparser import ConfigParser
-from configparser import NoOptionError
+import os, platform, logging, logging.config
 
-CONFIG_PARSER = None
 #macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..'
 
 WIN_config_file = 'macleod_win.conf'
 LINUX_config_file = 'macleod_linux.conf'
 MAC_config_file = 'macleod_mac.conf'
 
-config_dir = str(Path.home().joinpath('macleod'))
-config_file = ''
 
+class MacleodConfigParser(object):
 
-def find_config (filename):
-    """tries to find some configuration file with the path filename."""
-    print("Trying to find config file " + filename)
-    try:
-        logging.getLogger(__name__).debug("Looking for " + filename + " at: " + os.path.curdir)
-        filename = os.path.normpath(os.path.join(os.path.abspath(os.path.curdir), filename))
-        if os.path.isfile(filename):
-            logging.getLogger(__name__).debug(filename + " FOUND")
-    except IOError:
-        pass
-    return filename
+    __instance = None
 
+    __config_dir = str(Path.home().joinpath('macleod'))
+    __config_file = ''
 
-def find_macleod_config():
-    """tries to find the Macleod configuration file."""
-    global config_file
-    config_file = config_dir
-    if str(platform.system()) == 'Windows':
-        config_file = os.path.join(config_file, WIN_config_file)
-    elif str(platform.system()) == 'Darwin':
-        config_file = os.path.join(config_file, MAC_config_file)
-    else:
-        config_file = os.path.join(config_file, LINUX_config_file)
+    def __new__(cls):
+        """ instantiating a single instance of a ConfigParser if it doesn't already exist"""
+        if MacleodConfigParser.__instance is None:
+            logging.getLogger(__name__).debug('Creating MacleodConfigParser')
+            config_file = MacleodConfigParser.__config_dir
 
-    config_file = find_config(os.path.abspath(config_file))
-    logging.getLogger(__name__).info('config file found: ' + str(config_file))
+            if str(platform.system()) == 'Windows':
+                config_file = os.path.join(config_file, WIN_config_file)
+            elif str(platform.system()) == 'Darwin':
+                config_file = os.path.join(config_file, MAC_config_file)
+            else:
+                config_file = os.path.join(config_file, LINUX_config_file)
+
+            logging.getLogger(__name__).info('config file found: ' + str(config_file))
+            MacleodConfigParser.__config_file = os.path.abspath(config_file)
+            MacleodConfigParser.__instance = ConfigParser()
+            MacleodConfigParser.__instance.read(MacleodConfigParser.__config_file)
+
+        else:
+            logging.getLogger(__name__).debug('Existing MacleodConfigParser')
+        return MacleodConfigParser.__instance
+
+    def find_config (filename):
+        """tries to find some configuration file with the path filename."""
+        print("Trying to find config file " + filename)
+        try:
+            logging.getLogger(__name__).debug("Looking for " + filename + " at: " + os.path.curdir)
+            filename = os.path.normpath(os.path.join(os.path.abspath(os.path.curdir), filename))
+            if os.path.isfile(filename):
+                logging.getLogger(__name__).debug(filename + " FOUND")
+        except IOError:
+            pass
+        return filename
+
+    def get(self,section, key):
+        return __instance.get(section, key)
 
 
 def read_config(section, key, file=None):
-    """read a value from the MacLeod configuration file."""
-    global CONFIG_PARSER
+    from configparser import NoOptionError
 
+    """read a value from the MacLeod configuration file."""
     if file is None:
-        if CONFIG_PARSER is None:
-            logging.getLogger(__name__).debug('CONFIG_PARSER missing') 
-            CONFIG_PARSER = ConfigParser()
-            find_macleod_config()
-        if len(config_file)>0:
-            #print("Read config file from " + config_file)
-            CONFIG_PARSER.read(config_file)
-            #logging.getLogger(__name__).info('Macleod configuration read from ' + config_file)
-            try:
-                return CONFIG_PARSER.get(section,key)
-            except NoOptionError as e:
-                logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
+        try:
+            return MacleodConfigParser().get(section, key)
+        except NoOptionError as e:
+            logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     else:
         CONFIG_PARSER_TEMP = ConfigParser()
         if os.path.isfile(file):
@@ -209,13 +213,9 @@ def module_is_theorem_set (module_name):
 
 
 def get_tptp_symbols ():
-    global CONFIG_PARSER
     """get all options and their values from a section as a dictionary."""
     options = {}
-    if CONFIG_PARSER is None:
-        CONFIG_PARSER = SafeConfigParser()
-        find_config()
-    symbol_file_name = os.path.normpath(os.path.dirname(os.path.abspath(config_file)) + os.sep + read_config("converters","tptp_symbols"))
+    symbol_file_name = os.path.normpath(os.path.dirname(os.path.abspath(MacleodConfigParser.__config_file)) + os.sep + read_config("converters","tptp_symbols"))
 
     symbol_file = open(symbol_file_name,"r")
     for line in symbol_file.readlines():
