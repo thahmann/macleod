@@ -3,7 +3,8 @@ Top level container for an ontology parsed into the object structure
 """
 
 import os
-import macleod.logical.Axiom as Axiom 
+import macleod.logical.Axiom as Axiom
+import macleod.Filemgt as Filemgt
 
 def pretty_print(ontology, pcnf=False):
     '''
@@ -79,6 +80,7 @@ class Ontology(object):
         already been parsed
         """
 
+
         # Cyclic imports are kind of painful in Python
         import macleod.parsing.Parser as Parser
 
@@ -92,6 +94,35 @@ class Ontology(object):
                 new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
                 new_ontology.basepath = self.basepath
                 self.imports[path] = new_ontology
+
+    def get_all_modules(self):
+        """Get a flatten list of all Ontologies that are imported either directly or indirectly """
+
+        all_modules=[self]
+        all_modules_names = set()
+        all_modules_names.add(self.name)
+
+        processing = [self]
+
+        while processing != []:
+
+            new = processing.pop()
+            #print("Processsing " + new.name)
+
+            if new is not None:
+
+                for onto in new.imports.values():
+                    #print ("Found import " + onto.name)
+                    if onto.name not in all_modules_names:
+                        print("New import " + onto.name)
+                        all_modules_names.add(onto.name)
+                        all_modules.append(onto)
+                        processing.append(onto)
+
+        #print(len(all_modules_names))
+        #print(len(all_modules))
+        return all_modules
+
 
     def add_axiom(self, logical):
         """
@@ -114,6 +145,42 @@ class Ontology(object):
         """
 
         self.imports[path] = None
+        
+    def to_tptp(self, resolve=True):
+        """
+        Translates all axioms in the module and, if present, in any imported modules to the TPTP format
+        """
+        tptp_output = []
+        
+        all_modules = self.get_all_modules()
+
+        for module in all_modules:
+            print("Processing " + module.name)
+            for axiom in module.axioms:
+                tptp_output.append(axiom.to_tptp())
+                #print(axiom)
+
+        return tptp_output
+
+
+
+    def to_ladr(self):
+        """
+        Translates all axioms in the module and, if present, in any imported modules to the LADR format supported by Prover9 and Mace4
+        """
+
+        ladr_output = []
+
+        all_modules = self.get_all_modules()
+
+        for module in all_modules:
+            print("Processing " + module.name)
+            for axiom in module.axioms:
+                ladr_output.append(axiom.to_ladr())
+                #print(axiom)
+
+
+        return ladr_output
 
     def __repr__(self):
         """
