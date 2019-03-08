@@ -1,26 +1,29 @@
 Macleod
 ======================================================
 
-Installation:
--------------
+Installation
+------------
 
 ## Dependencies
 
-At the moment, pyparsing is required: <https://pypi.python.org/pypi/pyparsing>
-* As of April 5, 2018, pyparsing is available for Python 3.5 but not yet for Python 3.6
+At the moment, pyparsing is still required: <https://pypi.python.org/pypi/pyparsing>, though portions of the code are moving away from it (e.g. clif_converter).
 
+The following dependencies are required:
 
-For the linux and apple platform only the following dependency is required.
-
+* ply
+* pyparsing
 * texttable
+* owlready (only for conversion to OWL)
 
-This is most easily obtained with <code>sudo pip install texttable</code>
+This is most easily obtained with <code>sudo pip install [library]</code>
 
 ### Windows:
 
-To install on Windows machines the following dependencies are required.
-* PyWin32 <https://github.com/mhammond/pywin32/releases> Look for the right version that is compatible with your Python version.
-* WMI module <http://timgolden.me.uk/python/wmi/index.html>
+For Windows, in addition to the above dependencies, the following additional dependencies are required:
+* pywin32 <https://github.com/mhammond/pywin32/releases>
+* wmi <http://timgolden.me.uk/python/wmi/index.html>
+
+Again, they are most easily obtained via the command  <code> pip install [library]</code> (may need administrator rights)
 
 
 
