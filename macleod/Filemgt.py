@@ -117,7 +117,8 @@ def get_full_path (module_name, folder=None, ending=''):
         if module_name.endswith(ending):
             return os.path.abspath(os.path.join(path, module_name))
         else:
-            return os.path.abspath(os.path.join(path, module_name + ending))
+            module_name = module_name.rsplit('.',1)
+            return os.path.abspath(os.path.join(path, module_name[0] + ending))
     else:
         if folder:
             path = os.path.abspath(os.path.join(read_config('system','path'), folder))
