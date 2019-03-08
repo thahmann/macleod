@@ -174,6 +174,8 @@ class Ontology(object):
 
         ladr_output = []
 
+        ladr_output.append('formulas(assumptions).')
+
         all_modules = self.get_all_modules()
 
         for module in all_modules:
@@ -182,6 +184,7 @@ class Ontology(object):
                 ladr_output.append(axiom.to_ladr())
                 #print(axiom)
 
+        ladr_output.append('end_of_list.\n')
 
         return ladr_output
 
