@@ -14,6 +14,7 @@ The following dependencies are required:
 * pyparsing
 * texttable
 * owlready (only for conversion to OWL)
+* PyQt5 (only for the GUI in macleod/gui/gui_main.py)
 
 This is most easily obtained with <code>sudo pip install [library]</code>
 

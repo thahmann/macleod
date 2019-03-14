@@ -1,7 +1,7 @@
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QRegularExpression
 from PyQt5.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor
-import macleod.Filemgt as filemgt
+from macleod.Filemgt import MacleodConfigParser
 import configparser
 
 COLOR_HIGHLIGHT_SYMBOL = Qt.yellow
@@ -90,6 +90,6 @@ class CLIFSyntaxHighlighter(QSyntaxHighlighter):
 
 def get_color(setting_name):
     try:
-        return QColor(filemgt.read_config("gui", setting_name, filemgt.config_file))
+        return QColor(MacleodConfigParser().get("gui", setting_name))
     except configparser.NoOptionError:
         return QColor()

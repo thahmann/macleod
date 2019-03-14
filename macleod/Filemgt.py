@@ -57,7 +57,7 @@ class MacleodConfigParser(object):
             pass
         return filename
 
-    def get(self,section, key):
+    def get(self, section, key):
         return __instance.get(section, key)
 
 
@@ -95,7 +95,7 @@ def format(record):
     formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
     return formatter.format(record)
 
-def get_full_path (module_name, folder=None, ending=''):
+def get_full_path (module_name, ending='', folder=None):
     """determines the suitable subfolder for a given file_name."""
     module_name = os.path.normpath(module_name)
     if os.sep in module_name:
@@ -216,7 +216,7 @@ def module_is_theorem_set (module_name):
 def get_tptp_symbols ():
     """get all options and their values from a section as a dictionary."""
     options = {}
-    symbol_file_name = os.path.normpath(os.path.dirname(os.path.abspath(MacleodConfigParser.__config_file)) + os.sep + read_config("converters","tptp_symbols"))
+    symbol_file_name = MacleodConfigParser().get("converters","tptp_symbols")
 
     symbol_file = open(symbol_file_name,"r")
     for line in symbol_file.readlines():
