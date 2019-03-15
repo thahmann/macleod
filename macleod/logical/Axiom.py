@@ -363,14 +363,15 @@ class Axiom(object):
             :return: TPTP version of the logical term; variables are converted to upper case and predicates and functions to lower case
             """
 
-            if isinstance(logical, Symbol.Predicate):
-                # TODO Deal with nested functions in predicates?
+            if isinstance(logical, str):
+                return str.upper(logical)
+            elif isinstance(logical, Symbol.Predicate):
                 if logical.is_equality():
-                    return str.upper(logical.variables[0])  + logical.name + str.upper(logical.variables[1])
+                    return tptp_logical(logical.variables[0])  + logical.name + tptp_logical(logical.variables[1])
                 else:
-                    return "{}({})".format(str.lower(logical.name), ",".join([str.upper(var) for var in logical.variables]))
+                    return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
             elif isinstance(logical, Symbol.Function):
-                return "{}({})".format(str.lower(logical.name), ",".join([str.upper(var) for var in logical.variables]))
+                return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
             elif isinstance(logical, Negation.Negation):
                 if isinstance(logical.terms[0], Negation.Negation):
                     # get rid of double negation
@@ -403,11 +404,12 @@ class Axiom(object):
 
         def ladr_logical(logical):
 
-            if isinstance(logical, Symbol.Predicate):
-                # TODO Deal with nested functions in predicates?
-                return "{}({})".format(logical.name, ",".join(logical.variables))
+            if isinstance(logical, str):
+                return logical
+            elif isinstance(logical, Symbol.Predicate):
+                return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
             elif isinstance(logical, Symbol.Function):
-                return "({}({}))".format(logical.name, ",".join(logical.variables))
+                return "{}({})".format(logical.name, ",".join(logical.variables))
             elif isinstance(logical, Negation.Negation):
                 if isinstance(logical.terms[0], Negation.Negation):
                     # get rid of double negation
