@@ -294,39 +294,6 @@ class ClifModule(object):
         return not self.eq(other)
 
 
-    def get_p9_file_name (self):
-        """get the filename of the LADR translation of the module and translate the ClifModule if not yet done so."""
-        if not self.p9_file_name: # do the translation
-            self.p9_file_name = filemgt.get_full_path(self.module_name,
-                                                       folder=filemgt.read_config('ladr','folder'),
-                                                       ending=filemgt.read_config('ladr','ending'))
-            self.get_translated_file(self.p9_file_name, "LADR")
-            logging.getLogger(__name__).info('CREATED LADR TRANSLATION: ' + self.p9_file_name)
-        return self.p9_file_name
-
-
-    def get_tptp_file_name (self):
-        """get the filename of the TPTP translation of the module and translate the ClifModule if not yet done so.
-        This version does not rely on the clif to ladr translation, but does a direct translation."""
-
-        if not self.tptp_file_name:
-            self.tptp_file_name = filemgt.get_full_path(self.module_name,
-                                                       folder=filemgt.read_config('tptp','folder'),
-                                                       ending=filemgt.read_config('tptp','ending'))
-
-            self.get_translated_file(self.tptp_file_name, "TPTP")
-            logging.getLogger(__name__).info('CREATED TPTP TRANSLATION: ' + self.tptp_file_name)
-        return self.tptp_file_name
-
-    def get_translated_file(self, output_file_name, language):
-#        try:
-        sentences = clif.translate_sentences([self.clif_processed_file_name], language)
-        output_file = open(output_file_name, 'w')
-        output_file.writelines([t+"\n" for t in sentences])
-        output_file.close()
-        return True
-
-
     """
     Find sentences in a definitional module (in the current module only) that are obviously faulty, e.g. that introduce no new symbols or that introduce more than one new symbol. 
     It does not check whether a specific definition is an explicit definition (of the form P(x,...) <=> ...) or whether the newly defined symbols are completely defined.
