@@ -43,9 +43,6 @@ class Predicate(Logical.Logical):
                            '<=': 'leq',
                            '>=': 'geq'}
 
-    SYMBOL_AUTO_NAME = 'Pred'
-
-    SYMBOL_AUTO_NUM = 1
 
     # TODO Implement smart scoping, quantifier resolution for variables?
     def __init__(self, name, variables):
