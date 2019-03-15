@@ -5,11 +5,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../../")
 
 
 import macleod.Filemgt as filemgt
-from bin import check_consistency, check_nontrivial_consistency
-from macleod import ClifModuleSet
 from macleod.gui.gui_beta import gui_widgets, gui_settings, gui_highlighter, gui_threads, gui_tool
 from PyQt5.Qt import QApplication, QMainWindow, QTabWidget, QAction, QShortcut, QKeySequence, QSplitter, QFileDialog, QStyleFactory, Qt, QMessageBox
-
 
 class MacleodApplication(QApplication):
     def __init__(self, argv, output_backup):
@@ -212,6 +209,10 @@ class MacleodWindow(QMainWindow):
         return path
 
     def parse_command(self):
+        """
+        Parse only a single clif file
+        :return:
+        """
         if self.editor_pane.currentWidget() is None:
             return
         self.console.flush()
@@ -236,6 +237,10 @@ class MacleodWindow(QMainWindow):
         export.exec()
 
     def parse_imports_command(self):
+        """
+        Parse and resolve all imports
+        :return:
+        """
         if self.editor_pane.currentWidget() is None:
             return
 
@@ -247,12 +252,12 @@ class MacleodWindow(QMainWindow):
             self.parse_thread.start()
 
     def check_consistency_command(self):
-        filename = self.editor_pane.file_helper.get_path(self.editor_pane.currentWidget())
-        options = ""
-        if filename is None:
-            filename = self.saveas_command()
-        m = ClifModuleSet(filename)
-        derp, clif = check_consistency.consistent(filename, m, options)
+        ontology = self.ontologies.get(self.editor_pane.currentWidget(),None)
+
+        if ontology is None:
+            pass
+        else:
+            (return_value, fastest_reasoner) = ontology.check_consistency(resolve=True)
 
     def __on_tab_change(self):
         """

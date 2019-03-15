@@ -52,7 +52,7 @@ class Export(MacleodTool):
         file, file_ext = os.path.splitext(self.path.text())
         options = ""
         options += "-cumulate" if self.consolidate.isChecked() else ""
-        clif_converter.convert_single(os.path.normpath(self.path.text()),file_ext, not(self.consolidate.isChecked()))
+        clif_converter.convert_single_clif_file(os.path.normpath(self.path.text()), file_ext, not(self.consolidate.isChecked()))
 
         self.close()
 

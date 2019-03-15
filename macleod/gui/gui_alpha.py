@@ -243,20 +243,20 @@ class GUI(Frame):
                 command=lambda: nontrivially_consistent(self.selected_file, self.module))
             non_trivial_consist.pack(side=TOP)
             clif_to_ladr = Button(self.task_pane, text="Export to LADR file", \
-                command=lambda: clif_converter.convert_single(self.selected_file, clif_converter.ladr_output, False))
+                                  command=lambda: clif_converter.convert_single_clif_file(self.selected_file, clif_converter.ladr_output, False))
             clif_to_ladr.pack(side=TOP)
             clif_to_tptp = Button(self.task_pane, text="Export to TPTP file", \
-                command=lambda: clif_converter.convert_single(self.selected_file, clif_converter.tptp_output, False))
+                                  command=lambda: clif_converter.convert_single_clif_file(self.selected_file, clif_converter.tptp_output, False))
             clif_to_tptp.pack(side=TOP)
 #            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
 #                command=lambda: tptp(self.selected_file, self.module))
 #            prove_lemma.pack(side=TOP)
         else:
             clif_to_ladr_all = Button(self.task_pane, text="Export all to LADR", \
-                command=lambda: clif_converter.convert_single(self.selected_folder, clif_converter.ladr_output, False))
+                                      command=lambda: clif_converter.convert_single_clif_file(self.selected_folder, clif_converter.ladr_output, False))
             clif_to_ladr_all.pack(side=TOP)
             clif_to_tptp_all = Button(self.task_pane, text="Export all to TPTP", \
-                command=lambda: clif_converter.convert_single(self.selected_folder, clif_converter.tptp_output, False))
+                                      command=lambda: clif_converter.convert_single_clif_file(self.selected_folder, clif_converter.tptp_output, False))
             clif_to_tptp_all.pack(side=TOP)
 #            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
 #                command=lambda: prove_all(self.selected_folder))
