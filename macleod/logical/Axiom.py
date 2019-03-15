@@ -358,26 +358,40 @@ class Axiom(object):
         """
 
         def tptp_logical(logical):
+            """
+            :param logical: term to be translated to TPTP
+            :return: TPTP version of the logical term; variables are converted to upper case and predicates and functions to lower case
+            """
 
             if isinstance(logical, Symbol.Predicate):
                 # TODO Deal with nested functions in predicates?
-                return "{}({})".format(logical.name, ",".join(logical.variables))
+                if logical.is_equality():
+                    return str.upper(logical.variables[0])  + logical.name + str.upper(logical.variables[1])
+                else:
+                    return "{}({})".format(str.lower(logical.name), ",".join([str.upper(var) for var in logical.variables]))
             elif isinstance(logical, Symbol.Function):
-                return "{}({})".format(logical.name, ",".join(logical.variables))
+                return "{}({})".format(str.lower(logical.name), ",".join([str.upper(var) for var in logical.variables]))
             elif isinstance(logical, Negation.Negation):
-                return "~{}".format(tptp_logical(logical.terms[0]))
+                if isinstance(logical.terms[0], Negation.Negation):
+                    # get rid of double negation
+                    return tptp_logical(logical.terms[0].terms[0])
+                elif isinstance(logical.terms[0], Symbol.Predicate):
+                    # put parentheses around single predicates to not mix them up with special-symbol predicates
+                    return "~({})".format(tptp_logical(logical.terms[0]))
+                else:
+                    return "~{}".format(tptp_logical(logical.terms[0]))
             elif isinstance(logical, Connective.Conjunction):
                 return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
             elif isinstance(logical, Connective.Disjunction):
                 return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
             elif isinstance(logical, Quantifier.Universal):
-                return "({} {})".format(("! [{}] : " * len(logical.variables)).format(*logical.variables), tptp_logical(logical.terms[0]))
+                return "({} ({}))".format(("! [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))
             elif isinstance(logical, Quantifier.Existential):
-                return "({} {})".format(("? [{}] : " * len(logical.variables)).format(*logical.variables), tptp_logical(logical.terms[0]))
+                return "({} ({}))".format(("? [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))
             else:
                 raise ValueError("Not a valid type for TPTP output")
 
-        return "fof(axiom{}, axiom, {}.".format(str(self.id*10),tptp_logical(self.sentence))
+        return "fof(axiom{}, axiom, {}).".format(str(self.id*10),tptp_logical(self.sentence))
 
 
     def to_ladr(self):
@@ -395,7 +409,14 @@ class Axiom(object):
             elif isinstance(logical, Symbol.Function):
                 return "({}({}))".format(logical.name, ",".join(logical.variables))
             elif isinstance(logical, Negation.Negation):
-                return "-{}".format(ladr_logical(logical.terms[0]))
+                if isinstance(logical.terms[0], Negation.Negation):
+                    # get rid of double negation
+                    return ladr_logical(logical.terms[0].terms[0])
+                elif isinstance(logical.terms[0], Symbol.Predicate):
+                    # put parentheses around single predicates to not mix them up with special-symbol predicates
+                    return "-({})".format(ladr_logical(logical.terms[0]))
+                else:
+                    return "-{}".format(ladr_logical(logical.terms[0]))
             elif isinstance(logical, Connective.Conjunction):
                 return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
             elif isinstance(logical, Connective.Disjunction):

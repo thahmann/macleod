@@ -37,6 +37,16 @@ class Predicate(Logical.Logical):
     variables.
     '''
 
+    # TODO: need to read translations from file
+    SYMBOL_TRANSLATIONS = {'<': 'lt',
+                           '>': 'gt',
+                           '<=': 'leq',
+                           '>=': 'geq'}
+
+    SYMBOL_AUTO_NAME = 'Pred'
+
+    SYMBOL_AUTO_NUM = 1
+
     # TODO Implement smart scoping, quantifier resolution for variables?
     def __init__(self, name, variables):
 
@@ -50,7 +60,9 @@ class Predicate(Logical.Logical):
             if not isinstance(var, str) and not isinstance(var, Function):
                 raise ValueError('Predicate variables must be strings or Functions!')
 
-        self.name = name
+        # Do predicate name substitution to eliminate any special symbols (lile <, >= not accepted by reasoners)
+        self.name = self.SYMBOL_TRANSLATIONS.get(name, name)
+
         # Make sure you make a COPY of everything, no references!
         self.variables = variables[:]
 
@@ -151,6 +163,15 @@ class Predicate(Logical.Logical):
             universal = Quantifier.Universal(variable_accumulator, ~predicate | term)
 
         return universal, predicate_accumulator
+
+    def is_equality(self):
+        if self.name=='=':
+            if len(self.variables)==2:
+                return True
+            else:
+                raise ValueError('Equality predicate must have exactly two variables')
+        else:
+            return False
 
     def is_onf(self):
         '''
