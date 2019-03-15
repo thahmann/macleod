@@ -4,11 +4,11 @@ import os, sys, logging
 import time, re, signal, subprocess
 
 import macleod.Filemgt as filemgt
-
+import macleod.Ontology as Ontology
 
 class ReasonerProcess(multiprocessing.Process):
 
-    def __init__(self, args, output_filename, input_filenames, timeout, result_queue, id):
+    def __init__(self, args, output_filename, timeout, result_queue, id):
         multiprocessing.Process.__init__(self)
         self.id = id
         self.args = args
@@ -16,11 +16,19 @@ class ReasonerProcess(multiprocessing.Process):
         self.exit = multiprocessing.Event()
         self.done = multiprocessing.Event()
         self.output_filename = output_filename
-        self.input_filenames = input_filenames
-        self.timeout = timeout	
+        self.timeout = timeout
         self.cputime = 0
         self.current_cputime = 0
         self.previous_cputime = 0
+
+        # string to capture the status of the reasoner at the end (Aborted, Successful, Unsuccessful, Timed out, ..
+        self.status = ''
+
+    def setStatus (self, status):
+        self.status = status
+
+    def getStatus (self):
+        return self.status
 
     def getId (self):
         return self.id
@@ -62,17 +70,19 @@ class ReasonerProcess(multiprocessing.Process):
         #enforce memory limit
         if memory>limit:
             logging.getLogger(__name__).info("MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0])
+            self.status = 'ALLOTED MEMORY EXCEEDED: ' + str(limit) + 'GB'
             self.shutdown()
         # enforce time limit
         if self.cputime>self.timeout:
             logging.getLogger(__name__).info("TIME EXCEEDED: " + self.name + ", command = " + self.args[0])
+            self.status = 'ALLOTED TIME EXCEEDED: ' + str(self.timeout) + ' seconds'
             self.shutdown()
 
 
     def run (self):
         logging.getLogger(__name__).info("STARTING: " + self.name + ", command = " + self.args[0])
         out_file = open (self.output_filename, 'w')
-        sp = startSubprocessWithOutput(self.args, out_file, self.input_filenames)				
+        sp = startSubprocessWithOutput(self.args, out_file, [])
         self.previous_cputime = 0
         self.current_cputime = 0
         while sp.poll() is None and not self.exit.is_set():
@@ -92,7 +102,7 @@ class ReasonerProcess(multiprocessing.Process):
             self.update_cputime(sp.pid)
             out_file.flush()
             out_file.close()
-            self.writeHeader()
+            #self.writeHeader()
             self.done.set()
             return True
         # finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
@@ -101,7 +111,7 @@ class ReasonerProcess(multiprocessing.Process):
         logging.getLogger(__name__).info("REASONER COMPLETED: "  + self.name + ", exit code " + str(sp.returncode) + ", command = " + self.args[0])
         out_file.flush()
         out_file.close()
-        self.writeHeader()
+        #self.writeHeader()
         self.done.set()
         return True
 
@@ -115,21 +125,18 @@ class ReasonerProcess(multiprocessing.Process):
         for i in range(1,len(self.args)):
             cmd += " " + self.args[i]
 
-        input_string = ""
-        for in_file in self.input_filenames:
-            input_string += " " + in_file
-
-        #logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())				
+        #logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())
         in_file =  open(self.output_filename, 'a')
         in_file.write('\n')
-        in_file.write('============================= ' + self.args[0] + ' ================================\n')
+
+        in_file.write('========================== MACLEOD SUMMARY ===========================\n')
         #file.write(vampire.get_version()+'\n')
         now = datetime.datetime.now()
-        in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
-        in_file.write("total CPU time used: " + str(self.cputime) +"\n")
+        in_file.write('reasoner: ' + self.args[0] + '\n')
+        in_file.write('status: ' + str(self.getStatus()) + '\n')
+        in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y") +'\n')
+        in_file.write('total CPU time used: ' + str(self.cputime) + '\n')
         in_file.write('The command was \"' + cmd + '\"\n')
-        if len(input_string)>0:
-            in_file.write('Input read from ' + input_string + '\n')
         in_file.write('============================ end of footer ===========================\n')
         in_file.flush()
         in_file.close()
@@ -152,7 +159,6 @@ def get_cputime(pid):
 
 
     def cputime_nix(pid):
-        # TODO: implement
         try:
             ps_process = subprocess.Popen("ps -g " + str(pid) + " -o time", shell=True, stdout=subprocess.PIPE)
             stdout_list = ps_process.communicate()[0].decode('utf-8').split('\n')
@@ -345,13 +351,13 @@ def raceProcesses (reasoners):
         reasonerProcesses = []
         for r in reasoners:
             # TODO Figure out why r.timeout is a str in python3
-            p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), int(r.timeout), results, r.getId())
+            p = ReasonerProcess(r.getCommand(), r.getOutputFile(), int(r.timeout), results, r.getId())
             logging.getLogger(__name__).debug('Created ' + str(p))
             reasonerProcesses.append(p)
             p.start()
             time.sleep(0.1)
         return reasonerProcesses
-        
+
 
     # keeps track of the number of running reasoners
     reasonerProcesses = startup(reasoners,results)
@@ -370,35 +376,52 @@ def raceProcesses (reasoners):
             num_running += - 1
             (name, code, _) = results.get()
             r = reasoners.getByCommand(name)
-            r.setReturnCode(code)
-            if r.terminatedSuccessfully():
-                if r.output==ClifModuleSet.INCONSISTENT:
+            #r.setReturnCode(code)
+            if r.terminatedWithError():
+                logging.getLogger(__name__).error("TERMINATED WITH ERROR (LIKELY DURING PARSING): " + name)
+            elif r.terminatedSuccessfully():
+                if r.output==Ontology.INCONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND PROOF: " + name)
+                        status = 'PROOF'
                     else:
                         logging.getLogger(__name__).info("PROVED INCONSISTENCY: " + name)
-                elif r.output==ClifModuleSet.CONSISTENT:
+                        status = 'INCONSISTENT'
+                elif r.output==Ontology.CONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND COUNTEREXAMPLE: " + name)
+                        status = 'COUNTEREXAMPLE'
                     else:
                         logging.getLogger(__name__).info("FOUND MODEL: " + name)
-                # cleanup the other reasoning processes that are still running
-                for p in reasonerProcesses:
-                    if p.getId()!=r.getId():
-                        #logging.getLogger(__name__).debug("ABORTING " + p.args[0])				
-                        p.shutdown()
-                        while not p.isDone():
-                            time.sleep(0.1)
-                
+                        status = 'MODEL'
             else:
+                status = 'TERMINATED'
                 logging.getLogger(__name__).debug("TERMINATED WITHOUT SUCCESS: " + name)
                 logging.getLogger(__name__).debug("PROCESSES STILL RUNNING: " + str(num_running))
 
 
+            if r.terminatedWithError():
+                # if one reasoner terminates with an error, set the status of all of them to Error
+                for p in reasonerProcesses:
+                    p.setStatus('ERROR')
+            elif r.terminatedSuccessfully():
+                # cleanup the other reasoning processes that are still running
+                for p in reasonerProcesses:
+                    if p.getId()==r.getId():
+                        # set the status of the successful reasoner
+                        if p.getStatus()=='':
+                            p.setStatus(status)
+                    else:
+                        # Set the status of the other reasoners
+                        p.shutdown()
+                        while not p.isDone():
+                            time.sleep(0.1)
+
+
     # write statistics
     # time.sleep(1)
-    # for r in reasonerProcesses:
-    # r.writeHeader()
+    for r in reasonerProcesses:
+        r.writeHeader()
 
     return reasoners
 

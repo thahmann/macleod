@@ -26,6 +26,7 @@ class ClifModuleSet(object):
     COUNTEREXAMPLE = 1
     UNKNOWN = 0
     CONTRADICTION = -100
+    ERROR = -50
 
 
     # initialize with a set of files to be processed (for lemmas)
@@ -369,20 +370,12 @@ class ClifModuleSet(object):
 
 
 
-    def run_simple_consistency_check (self, module_name = None, modules = None, options_files = None):
+    def run_simple_consistency_check (self, ontology, options_files = None):
         """ test the input for consistency by trying to find a model or an inconsistency."""
         # want to create a subfolder for the output files
-        outfile_stem = filemgt.get_full_path(self.module_name, 
-                                            folder=filemgt.read_config('output','folder')) 
-
-        if not module_name:
-            module_name = self.module_name
-
-        if not modules: 
-            modules = self.imports  # use all imports as default set of modules
 
         reasoners = ReasonerSet() 
-        reasoners.constructAllCommands(modules, outfile_stem)
+        reasoners.constructAllCommands(ontology)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
 
         # run provers and modelfinders simultaneously and wait until one returns
@@ -391,13 +384,8 @@ class ClifModuleSet(object):
         # this captures our return code (consistent/inconsistent/unknown), not the reasoning processes return code
         (return_value, fastest_reasoner) = self.consolidate_results(reasoners)    
 
-        if len(modules)==0:
-            self.pretty_print_result(module_name + " (without imports)", return_value)
-        else:
-            self.pretty_print_result(module_name + " (with imports = " + str(modules) + ")", return_value)
-
         results = []
-        results.append((tuple(modules), return_value, fastest_reasoner))
+        results.append((return_value, fastest_reasoner))
         #print str(results)
         return results
 
@@ -584,7 +572,7 @@ class ClifModuleSet(object):
                                             folder=filemgt.read_config('output','folder')) 
 
         reasoners = ReasonerSet() 
-        reasoners.constructAllCommands([module], outfile_stem)
+        reasoners.constructAllCommands([module])
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
 
         # run provers and modelfinders simultaneously and wait until one returns
@@ -688,110 +676,6 @@ class ClifModuleSet(object):
 #                    self.run_consistency_checks(self.imported[0][0] + '_' + order[0], p9_files, [options_file, order[1]])
 
 
-    def get_ladr_files (self, imports = None):
-        """get a list of translations of all associated ClifModules in LADR syntax."""
-
-        if not imports:
-            imports = self.imports
-
-        p9_files = []
-        for m in imports:
-            p9_files.append(m.get_p9_file_name())
-        return p9_files
-
-
-    def get_single_ladr_file (self, imports = None):
-        """get the ClifModuleSet as a single file in LADR syntax."""
-
-        # if the given imports are identical to the modules imports, treat it as the modules imports were used
-        if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
-            imports = None
-
-        # avoid redundant work if we already have the ladr file
-        if not imports and len(self.p9_file_name)>0:
-            return self.p9_file_name
-
-        ending = ""
-        if not imports:
-            ending = filemgt.read_config('ladr','all_ending')
-            name = self.module_name
-        else:
-            ending = filemgt.read_config('ladr','select_ending')
-            name = imports[0].module_name
-        # construct the final ending
-        ending += filemgt.read_config('ladr','ending')
-
-        p9_files = self.get_ladr_files(imports)
-
-        p9_file_name = filemgt.get_full_path(name, 
-                                           folder=filemgt.read_config('ladr','folder'), 
-                                           ending=ending)
-        if not imports:
-            self.p9_file_name = p9_file_name
-
-        #print "FILE NAME:" + self.p9_file_name
-        # TODO: need to initialize self.replaceable_symbols
-        ladr.cumulate_ladr_files(p9_files, p9_file_name)
-        logging.getLogger(__name__).info("CREATED SINGLE LADR TRANSLATION: " + p9_file_name)
-        return p9_file_name
-
-
-    def get_tptp_files (self, imports = None):
-        """ get a list of translations of all associated ClifModules in TPTP syntax."""
-
-        if not imports:
-            imports = self.imports
-
-        tptp_files = []
-        for m in imports:
-            tptp_files.append(m.get_tptp_file_name())
-        return tptp_files
-
-
-    def get_single_tptp_file (self, imports = None):
-        """translate the module and all imported modules to a single TPTP file."""
-
-        # if the given imports are identical to the modules imports, treat it as the modules imports were used
-        if imports and set(self.imports).issubset(imports) and set(self.imports).issuperset(imports):
-            imports = None
-
-        ending = ""
-
-        # avoid redundant work if we already have the tptp file and didn't add a lemma module
-        if not imports:
-            if len(self.tptp_file_name)>0 and self.lemma_module is None: return self.tptp_file_name
-            ending = filemgt.read_config('tptp','all_ending')
-            name = self.module_name
-        else:
-            ending = filemgt.read_config('tptp','select_ending')
-            name = imports[0].module_name
-        # construct the final ending
-        ending += filemgt.read_config('tptp','ending')
-
-        tptp_file_name = filemgt.get_full_path(name, 
-                                           folder=filemgt.read_config('tptp','folder'), 
-                                           ending=ending)
-
-        if not imports:
-            self.tptp_file_name = tptp_file_name
-            imports = self.get_imports().copy()
-
-        tptp_sentences = []
-        if self.lemma_module:
-            imports.remove(self.lemma_module)
-            tptp_sentences.append(self.lemma_module.tptp_sentence)
-
-        files_to_translate = [i.clif_processed_file_name for i in imports]
-        while None in files_to_translate:
-            files_to_translate.remove(None)
-        tptp_sentences.extend(clif.translate_sentences(files_to_translate, "TPTP"))
-        tptp_file = open(tptp_file_name, 'w')
-        tptp_file.writelines([t+"\n" for t in tptp_sentences])
-        tptp_file.close()
-
-        logging.getLogger(__name__).info("CREATED TPTP TRANSLATION: " + tptp_file_name)
-
-        return tptp_file_name                
 
 
 class ClifModuleSetError(Exception):

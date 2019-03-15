@@ -58,7 +58,7 @@ class MacleodConfigParser(object):
         return filename
 
     def get(self, section, key):
-        return __instance.get(section, key)
+        return self.__instance.get(section, key)
 
 
 def read_config(section, key, file=None):

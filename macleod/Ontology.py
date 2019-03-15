@@ -3,8 +3,22 @@ Top level container for an ontology parsed into the object structure
 """
 
 import os
+
+import logging
+
 import macleod.logical.Axiom as Axiom
 import macleod.Filemgt as Filemgt
+import macleod.Process as Process
+from macleod.ReasonerSet import *
+
+CONSISTENT = 1
+INCONSISTENT = -1
+PROOF = -1
+COUNTEREXAMPLE = 1
+UNKNOWN = 0
+CONTRADICTION = -100
+ERROR = -50
+
 
 def pretty_print(ontology, pcnf=False):
     '''
@@ -58,6 +72,9 @@ class Ontology(object):
         # Dict with [URI] : [filepath] to serve as the substitution string
         self.basepath = basepath
 
+        self.resolve = False
+
+
     def to_ffpcnf(self):
         """
         Translate any held Axioms to their equivalent function-free prenex
@@ -79,8 +96,7 @@ class Ontology(object):
         Look over our list of imports and tokenize / parse any that haven't
         already been parsed
         """
-
-
+        self.resolve = resolve
         # Cyclic imports are kind of painful in Python
         import macleod.parsing.Parser as Parser
 
@@ -107,20 +123,20 @@ class Ontology(object):
         while processing != []:
 
             new = processing.pop()
-            #print("Processsing " + new.name)
+            print("Processsing " + new.name)
 
             if new is not None:
 
                 for onto in new.imports.values():
-                    #print ("Found import " + onto.name)
+                    print ("Found import " + onto.name)
                     if onto.name not in all_modules_names:
                         print("New import " + onto.name)
                         all_modules_names.add(onto.name)
                         all_modules.append(onto)
                         processing.append(onto)
 
-        #print(len(all_modules_names))
-        #print(len(all_modules))
+            #print(len(all_modules_names))
+            #print(len(all_modules))
         return all_modules
 
 
@@ -174,9 +190,13 @@ class Ontology(object):
 
         ladr_output = []
 
-        ladr_output.append('formulas(assumptions).')
+        if resolve:
+            all_modules = self.get_all_modules()
+        else:
+            all_modules = [self]
 
-        all_modules = self.get_all_modules()
+
+        ladr_output.append('formulas(assumptions).')
 
         for module in all_modules:
             print("Processing " + module.name)
@@ -187,6 +207,63 @@ class Ontology(object):
         ladr_output.append('end_of_list.\n')
 
         return ladr_output
+
+
+    def check_consistency (self, resolve=True, options_files = None):
+        """ test the input for consistency by trying to find a model or an inconsistency."""
+        # want to create a subfolder for the output files
+
+        reasoners = ReasonerSet()
+        reasoners.constructAllCommands(self)
+        logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
+
+        # run provers and modelfinders simultaneously and wait until one returns
+        reasoners = Process.raceProcesses(reasoners)
+
+        # this captures our return code (consistent/inconsistent/unknown), not the reasoning processes return code
+        (return_value, fastest_reasoner) = self.consolidate_results(reasoners)
+
+        return (return_value, fastest_reasoner)
+
+
+    def consolidate_results (self, reasoners):
+        """ check all the return codes from the provers and model finders to find whether a model or inconsistency has been found.
+        return values:
+        consistent (1) -- model found, the ontology is consistent
+        unknown (0) -- unknown result (no model and no inconsistency found)
+        inconsistent (-1) -- an inconsistency has been found in the ontology
+         """
+        return_value = 0
+        successful_reasoner = ''
+        fastest_reasoner = None
+
+        for r in reasoners:
+            if r.terminatedWithError():
+                return_value = r.output
+                logging.getLogger(__name__).info("TERMINATED WITH ERROR (" + str(r.output) + "): " + r.name)
+            if r.terminatedSuccessfully():
+                if return_value == ERROR:
+                    # Another prover found an error (likely syntax error), thus the result is not meaningful
+                   continue
+                if return_value == UNKNOWN:
+                    return_value = r.output
+                    logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                    successful_reasoner = r.name
+                    fastest_reasoner = r
+                elif return_value == r.output:
+                    logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
+                    successful_reasoner += " " + r.name
+                    if (r.time<fastest_reasoner.time):
+                        fastest_reasoner = r
+                elif return_value != r.output:
+                    return_value = CONTRADICTION
+                    #print "CONTRADICTION: " + str(return_value)
+                    logging.getLogger(__name__).warning("CONTRADICTORY RESULTS from " + self.name +': ' + r.name + ' and ' + successful_reasoner + ' disagree')
+            if r.terminatedUnknowingly():
+                logging.getLogger(__name__).info("UNKNOWN RESULT (" + str(r.output) + "): " + r.name)
+
+        logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
+        return (return_value, fastest_reasoner)
 
     def __repr__(self):
         """

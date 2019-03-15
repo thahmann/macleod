@@ -33,10 +33,9 @@ class ReasonerSet (list):
         return True
 
 
-    def constructAllCommands (self, modules, outfile_stem):
-        import copy
+    def constructAllCommands (self, ontology):
         for r in self:
-            r.constructCommand(copy.copy(modules), outfile_stem)  
+            r.constructCommand(ontology)
 
     def getByName (self, name):
         for i in range(0,len(self)):
@@ -62,14 +61,3 @@ class ReasonerSet (list):
             if f.isProver():
                 finders.remove(f)
         return finders
-
-
-if __name__ == '__main__':
-    rs = ReasonerSet()
-    m = ClifModule("dim\dim_basic.clif",depth=0)
-    rs.constructAllCommands([m,], "dim\dim_basic")
-    print("ReasonerSet contains the following reasoners:")
-    for r in rs:
-        print(r.name + " -- " + r.command)
-
-
