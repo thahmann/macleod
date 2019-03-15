@@ -8,7 +8,6 @@ import re
 from pathlib import Path
 
 import macleod.Ontology as Ontology
-from macleod.Ontology import pretty_print
 import macleod.logical.Logical as Logical
 import macleod.logical.Connective as Connective
 import macleod.logical.Logical as Logical
@@ -501,8 +500,9 @@ def parse_file(path, sub, base, resolve=False, name=None):
 
     if not os.path.isfile(path):
         LOGGER.warning("Attempted to parse non-existent file: " + path)
+        return None
 
-    ontology = Ontology(path)
+    ontology = Ontology.Ontology(path)
 
     if name is not None:
         ontology.name = name
