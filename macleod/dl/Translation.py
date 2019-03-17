@@ -270,8 +270,7 @@ def reflexive_property(pattern, ontology):
             ontology.declare_property(p.name)
             properties.append(p.name)
 
-    prop = map(lambda x: x.name, pattern[1])
-
+    prop = pattern[1][0].name
     ontology.declare_reflexive_property(prop)
 
 def irreflexive_property(pattern, ontology):
