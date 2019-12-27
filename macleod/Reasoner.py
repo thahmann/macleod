@@ -151,7 +151,7 @@ class Reasoner (object):
             out_file = open(self.output_file, 'r')
             lines = out_file.readlines()
             out_file.close()
-            output_lines = [x for x in lines if x.startswith('Termination reason:')]
+            output_lines = [x for x in lines if x.startswith('% Termination reason:')]
             l = len(output_lines)
             if l==0:
                 self.output = Ontology.UNKNOWN
