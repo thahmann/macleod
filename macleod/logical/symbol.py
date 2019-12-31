@@ -50,7 +50,6 @@ class Predicate(Logical):
                            '>=': 'geq'}
 
 
->>>>>>> origin:macleod/logical/Symbol.py
     # TODO Implement smart scoping, quantifier resolution for variables?
     def __init__(self, name, variables):
 

@@ -468,7 +468,6 @@ class Axiom(object):
                 raise ValueError("Not a valid type for LADR output")
 
         return "{}.".format(ladr_logical(self.sentence))
->>>>>>> origin:macleod/logical/Axiom.py
 
     def __repr__(self):
 
