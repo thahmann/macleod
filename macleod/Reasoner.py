@@ -1,4 +1,6 @@
-from macleod import filemgt, commands
+import macleod.Filemgt as Filemgt
+import macleod.Commands as commands
+import macleod.Ontology as Ontology
 import logging
 
 class Reasoner (object):
@@ -9,15 +11,14 @@ class Reasoner (object):
 
     # initialize
     def __init__(self, name, reasoner_type=None, reasoner_id=None):
+        
+        logging.getLogger(__name__).debug('Initializing ' + name)
+        
         self.identifier = ''
 
         self.type = Reasoner.PROVER
 
         self.args = []
-
-        self.positive_returncodes = []
-
-        self.unknown_returncodes = []
 
         self.modules = []
 
@@ -25,9 +26,9 @@ class Reasoner (object):
 
         self.output_file = ''
 
-        self.time = -1
+        self.ontology = ''
 
-        self.return_code = None
+        self.time = -1
 
         self.output = None
 
@@ -38,11 +39,15 @@ class Reasoner (object):
             self.identifier = reasoner_id
         else:
             self.identifier = name
-        self.positive_returncodes = commands.get_positive_returncodes(self.name)
-        self.unknown_returncodes = commands.get_unknown_returncodes(self.name)
 
-        self.timeout = filemgt.read_config(self.name,'timeout')
+        self.timeout = Filemgt.read_config(self.name,'timeout')
+        
+        logging.getLogger(__name__).debug('Finished initializing ' + name)
+        
 
+    def getId (self):
+        return self.identifier
+        
     def __eq__ (self, other):
         if not isinstance(other, Reasoner):
             return False
@@ -54,75 +59,112 @@ class Reasoner (object):
     def __ne__ (self, other):
         return not self.eq(other)
 
-    def constructCommand (self, modules, outfile_stem):
-        """Construct the command to invoke the reasoner."""
-        self.modules = modules
-        self.output_file = outfile_stem + filemgt.read_config(self.name,'ending')
-        (self.args, self.input_files) = commands.get_system_command(self.name, modules, self.output_file)
+    def constructCommand (self, ontology):
+        import os
+        """Return the command (includes constructing it if necessary) to invoke the reasoner."""
+        self.args = commands.get_system_command(self.name, ontology)
+
+        ending = None
+
+        if ontology.resolve:
+            ending = Filemgt.read_config(self.name, 'all_ending')
+        if ending is None:
+            ending = ""
+
+        ending = ending + Filemgt.read_config(self.name, 'ending')
+
+        self.output_file = Filemgt.get_full_path(ontology.name,
+                                           folder=Filemgt.read_config('output','folder'),
+                                           ending=ending)
+        self.ontology = ontology
+        logging.getLogger(__name__).debug('Reasoner command: ' + str(self.args))
         return self.args
 
-    def getCommand (self, modules=None, outfile_stem=None):
-        """Return the command (includes constructing it if necessary) to invoke the reasoner."""
-        if not modules:
-            return self.args
-        else:
-            self.construct_command(modules, outfile_stem)
-            return self.args
+    def getCommand (self):
+        return self.args
 
-    def getOutfile(self):
-        return self.output_file        
+    def getOutputFile (self):
+        return self.output_file
 
-    def getInputFiles (self):
-        return self.input_files
+    def getOntology (self):
+        return self.ontology
 
     def isProver (self):
         if self.type==Reasoner.PROVER: return True
         else: return False
 
     def terminatedSuccessfully (self):
-        from macleod.ClifModuleSet import ClifModuleSet
         mapping = {
-            ClifModuleSet.CONSISTENT: True,
-            ClifModuleSet.INCONSISTENT : True,
-            ClifModuleSet.UNKNOWN : False,
+            Ontology.PROOF: True,
+            Ontology.COUNTEREXAMPLE: True,
+            Ontology.CONSISTENT: True,
+            Ontology.INCONSISTENT: True,
+            Ontology.ERROR : False,
+            Ontology.UNKNOWN : False,
             None: False
         }
 
-        def szs_status(line):
+        def paradox_status(line):
             if 'Theorem' in line:
-                #print "VAMPIRE SZS status found: THEOREM"
-                return ClifModuleSet.PROOF
+                #print "PARADOX SZS status found: THEOREM"
+                return Ontology.PROOF
             elif 'Unsatisfiable' in line:
-                return ClifModuleSet.INCONSISTENT
+                return Ontology.INCONSISTENT
             elif 'CounterSatisfiable' in line:
-                return ClifModuleSet.COUNTEREXAMPLE
+                return Ontology.COUNTEREXAMPLE
             elif 'Satisfiable' in line:
-                return ClifModuleSet.CONSISTENT
-            else: # Timeout, GaveUp, Error
-                return ClifModuleSet.UNKNOWN
+                return Ontology.CONSISTENT
+            else: # Timeout, GaveUp
+                return Ontology.UNKNOWN
+
+        def vampire_status(line):
+            if 'Refutation not found' in line:
+                return Ontology.UNKNOWN
+            elif 'Refutation' in line:
+                #print "VAMPIRE SZS status found: THEOREM"
+                return Ontology.PROOF
+            elif 'Unsatisfiable' in line:
+                return Ontology.INCONSISTENT
+            elif 'CounterSatisfiable' in line:
+                return Ontology.COUNTEREXAMPLE
+            elif 'Satisfiable' in line:
+                return Ontology.CONSISTENT
+            else: # Timeout, GaveUp
+                return Ontology.UNKNOWN
 
         def success_default (self):
-            if not self.return_code==None:
-                if self.return_code in self.positive_returncodes:
-                    if self.isProver():
-                        self.output = ClifModuleSet.PROOF
-                    else:
-                        self.output = ClifModuleSet.CONSISTENT
-                    return True
             return False
+
+        def success_prover9 (self):
+            out_file = open(self.output_file, 'r')
+            lines = out_file.readlines()
+            out_file.close()
+            output_lines = [x for x in lines if x.startswith('THEOREM PROVED')]
+            if len(output_lines)>0:
+                self.output = Ontology.PROOF
+
+            return mapping[self.output]
+
+
 
         def success_vampire (self):
             out_file = open(self.output_file, 'r')
             lines = out_file.readlines()
             out_file.close()
-            output_lines = [x for x in lines if x.startswith('% SZS status')]
-            if len(output_lines)!=1:
-                if not self.return_code:
-                    self.output = None
-                else:
-                    self.output = ClifModuleSet.UNKNOWN                    
+            output_lines = [x for x in lines if x.startswith('% Termination reason:')]
+            l = len(output_lines)
+            if l==0:
+                self.output = Ontology.UNKNOWN
+            # at least one line has a termination reason, so this might be an intermediate line (since Vampire in competition mode restarts several times)
             else:
-                self.output = szs_status(output_lines[0])
+                # examine the last output line
+                self.output = vampire_status(output_lines[l-1])
+                if self.output == Ontology.UNKNOWN:
+                    # Handle exceptions during parsing
+                    #print(str(lines))
+                    output_lines = [x for x in lines if x.startswith('Parser exception:')]
+                    if len(output_lines)>0:
+                        self.output = Ontology.ERROR
 
             return mapping[self.output]
 
@@ -133,55 +175,52 @@ class Reasoner (object):
             out_file.close()
             output_lines = [x for x in lines if x.startswith('+++ RESULT:')]
             if len(output_lines)!=1:
-                if not self.return_code:
-                    self.output = None
+                output_lines = [x for x in lines if x.startswith('*** Unexpected:')]
+                #print(str(lines))
+                if len(output_lines)>0:
+                    self.output = Ontology.ERROR
                 else:
-                    self.output = ClifModuleSet.UNKNOWN                    
+                    self.output = Ontology.UNKNOWN
             else:
-                self.output = szs_status(output_lines[0])
-                logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
+                self.output = paradox_status(output_lines[0])
+                #logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
 
+            return mapping[self.output]
+
+        def success_mace4 (self):
+            out_file = open(self.output_file, 'r')
+            lines = out_file.readlines()
+            out_file.close()
+            output_lines = [x for x in lines if x.startswith('Exiting with 1 model.')]
+            if len(output_lines)==0:
+                self.output = Ontology.UNKNOWN
+            else:
+                self.output = Ontology.CONSISTENT
+                self.output = Ontology.CONSISTENT
 
             return mapping[self.output]
 
 
         handlers = {
-            "paradox": success_paradox, 
-            "vampire": success_vampire, 
+            "mace4": success_mace4,
+            "prover9": success_prover9,
+            "paradox": success_paradox,
+            "vampire": success_vampire,
         }
 
         return handlers.get(self.name, success_default)(self)
 
+    def terminatedWithError (self):
+        # need to involve terminatedSuccessfully to make sure the self.output is set
+        self.terminatedSuccessfully()
 
-    def terminatedUnknowingly (self):
-        from macleod.ClifModuleSet import ClifModuleSet
-
-        def unknown_default (self):
-            if not self.return_code==None:
-                if self.return_code in self.unknown_returncodes:
-                    self.output = ClifModuleSet.UNKNOWN
-                    return True
+        if self.output==Ontology.ERROR:
+            return True
+        else:
             return False
 
-        def unknown_paradox (self):
-            success = self.terminatedSuccessfully()
-            if success:
-                return False
-            elif self.return_code==None:
-                return False
-            else: 
-                return True
-
-
-        handlers = {
-            "paradox": unknown_paradox, 
-        }
-
-        return handlers.get(self.name, unknown_default)(self)
-
-
-    def setReturnCode(self, rc):
-        self.return_code = rc
+    def terminatedUnknowingly (self):
+        return not(self.terminatedSuccessfully()) and not(self.terminatedWithError())
 
     def isDone (self):
         if self.output is None:

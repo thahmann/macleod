@@ -1,43 +1,47 @@
-import macleod.Filemgt as filemgt
-import logging
 import multiprocessing
 from multiprocessing import Queue
-import os
-import re
-import signal
-import subprocess
-import sys
-import time
+import os, sys, logging
+import time, re, signal, subprocess
 
+import macleod.Filemgt as filemgt
+import macleod.Ontology as Ontology
 
 class ReasonerProcess(multiprocessing.Process):
 
-    def __init__(self, args, output_filename, input_filenames, timeout, result_queue, log_queue):
+    def __init__(self, args, output_filename, timeout, result_queue, id):
         multiprocessing.Process.__init__(self)
-
+        self.id = id
         self.args = args
         self.result_queue = result_queue
-        self.log_queue = log_queue
         self.exit = multiprocessing.Event()
         self.done = multiprocessing.Event()
         self.output_filename = output_filename
-        self.input_filenames = input_filenames
-        self.timeout = timeout	
+        self.timeout = timeout
         self.cputime = 0
         self.current_cputime = 0
         self.previous_cputime = 0
 
+        # string to capture the status of the reasoner at the end (Aborted, Successful, Unsuccessful, Timed out, ..
+        self.status = ''
+
+    def setStatus (self, status):
+        self.status = status
+
+    def getStatus (self):
+        return self.status
+
+    def getId (self):
+        return self.id
+        
     def isDone (self):
         return self.done.is_set()
 
     def shutdown (self):
-        record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "RECEIVED ABORT SIGNAL: "  + self.name + ", command = " + self.args[0], None, None))
-        self.log_queue.put(record)
+        logging.getLogger(__name__).debug("ABORTING: "  + self.args[0])
         self.exit.set()
 
     def terminate (self):
-        record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TERMINATING: " + self.name + ", command = " + self.args[0], None, None))
-        self.log_queue.put(record)
+        logging.getLogger(__name__).debug("TERMINATING: " + self.name + ", command = " + self.args[0])
         self.shutdown()
         time.sleep(0.2)
         multiprocessing.Process.terminate (self)
@@ -57,25 +61,28 @@ class ReasonerProcess(multiprocessing.Process):
         #print "total CPU time of " + self.args[0] + " = " + str(self.cputime)
 
     def enforce_limits (self, pid):
-        limit = 1536 # each reasoning process is not allowed to use up more than 1.5GB of memory
+        limit = int(filemgt.read_config('system', 'memory_limit')) # read custom memory limit from configuration file
+        if limit is None:
+            logging.getLogger(__name__).debug("USING DEFAULT MEMORY LIMIT OF 2GB FOR EACH REASONER")
+            limit = 2048 # default memory limit for each reasoner is 2GB
+
         memory = get_memory(pid)
         #enforce memory limit
         if memory>limit:
-            record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
-            self.log_queue.put(record)
+            logging.getLogger(__name__).info("MEMORY EXCEEDED: " + self.name + ", command = " + self.args[0])
+            self.status = 'ALLOTED MEMORY EXCEEDED: ' + str(limit) + 'GB'
             self.shutdown()
         # enforce time limit
         if self.cputime>self.timeout:
-            record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "TIME EXCEEDED: " + self.name + ", command = " + self.args[0], None, None))
-            self.log_queue.put(record)
+            logging.getLogger(__name__).info("TIME EXCEEDED: " + self.name + ", command = " + self.args[0])
+            self.status = 'ALLOTED TIME EXCEEDED: ' + str(self.timeout) + ' seconds'
             self.shutdown()
 
 
     def run (self):
-        record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STARTING: " + self.name + ", command = " + self.args[0], None, None))
-        self.log_queue.put(record)
+        logging.getLogger(__name__).info("STARTING: " + self.name + ", command = " + self.args[0])
         out_file = open (self.output_filename, 'w')
-        sp = startSubprocessWithOutput(self.args, out_file, self.input_filenames)				
+        sp = startSubprocessWithOutput(self.args, out_file, [])
         self.previous_cputime = 0
         self.current_cputime = 0
         while sp.poll() is None and not self.exit.is_set():
@@ -84,58 +91,52 @@ class ReasonerProcess(multiprocessing.Process):
             self.enforce_limits(sp.pid)		
         if self.exit.is_set():
             # interrupted
-            record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.DEBUG, None, None, "ABORTING: "  + self.name + ", command = " + self.args[0], None, None))
-            self.log_queue.put(record)
-#			print "RECEIVED ABORT SIGNAL"
+            logging.getLogger(__name__).debug("ABORTING: "  + self.name + ", command = " + self.args[0])
             (_, stdoutdata) = terminateSubprocess(sp)
             if stdoutdata:
                 stdoutdata = re.sub(r'[^\w]', ' ', stdoutdata)
                 stdoutdata = ' '.join(stdoutdata.split())
-                record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "STDOUT from "  + self.name + ": " + str(stdoutdata), None, None))
-                self.log_queue.put(record)
+                logging.getLogger(__name__).debug("STDOUT from "  + self.name + ": " + str(stdoutdata))
             self.result_queue.put((self.args[0], -1, stdoutdata))
-            record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "ABORTED: "  + self.name + ", command = " + self.args[0], None, None))
-            self.log_queue.put(record)
+            logging.getLogger(__name__).info("ABORTED: "  + self.name + ", command = " + self.args[0])
             self.update_cputime(sp.pid)
             out_file.flush()
             out_file.close()
-            self.writeHeader()
+            #self.writeHeader()
             self.done.set()
             return True
         # finished normally, i.e., sp.poll() determined the subprocess has terminated by itself
         self.update_cputime(sp.pid)
         self.result_queue.put((self.args[0], sp.returncode, None))
-        record = filemgt.format(logging.LogRecord(self.__class__.__name__, logging.INFO, None, None, "FINISHED: "  + self.name + ", command = " + self.args[0], None, None))
-        self.log_queue.put(record)
+        logging.getLogger(__name__).info("REASONER COMPLETED: "  + self.name + ", exit code " + str(sp.returncode) + ", command = " + self.args[0])
         out_file.flush()
         out_file.close()
-        self.writeHeader()
+        #self.writeHeader()
         self.done.set()
         return True
 
     def writeHeader (self):
         import datetime
         """ Create a standardized footer for all output files that contains name of the program,
-		the specific command, and a timestamp."""
+        the specific command, and a timestamp."""
         # list of input files
         time.sleep(0.2)
         cmd = self.args[0]
         for i in range(1,len(self.args)):
             cmd += " " + self.args[i]
 
-        input_string = ""
-        for in_file in self.input_filenames:
-            input_string += " " + in_file
-
-        #logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())				
+        #logging.getLogger(__name__).debug("WRITING STATISTICS to " + reasoner.getOutfile())
         in_file =  open(self.output_filename, 'a')
-        in_file.write('============================= ' + self.args[0] + ' ================================\n')
+        in_file.write('\n')
+
+        in_file.write('========================== MACLEOD SUMMARY ===========================\n')
         #file.write(vampire.get_version()+'\n')
         now = datetime.datetime.now()
-        in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y")+'\n')
-        in_file.write("total CPU time used: " + str(self.cputime) +"\n")
+        in_file.write('reasoner: ' + self.args[0] + '\n')
+        in_file.write('status: ' + str(self.getStatus()) + '\n')
+        in_file.write('execution finished: ' + now.strftime("%a %b %d %H:%M:%S %Y") +'\n')
+        in_file.write('total CPU time used: ' + str(self.cputime) + '\n')
         in_file.write('The command was \"' + cmd + '\"\n')
-        in_file.write('Input read from ' + input_string + '\n')
         in_file.write('============================ end of footer ===========================\n')
         in_file.flush()
         in_file.close()
@@ -158,7 +159,6 @@ def get_cputime(pid):
 
 
     def cputime_nix(pid):
-        # TODO: implement
         try:
             ps_process = subprocess.Popen("ps -g " + str(pid) + " -o time", shell=True, stdout=subprocess.PIPE)
             stdout_list = ps_process.communicate()[0].decode('utf-8').split('\n')
@@ -300,7 +300,7 @@ def terminateSubprocess (process):
             stdout2 = ""
         re.sub(r'[^\w]', '', stdout)
         #stdoutdata = ' '.join(stdout.split())
-        return (process.returncode, stdout+stdout2)  
+        return (process.returncode, str(stdout)+str(stdout2))  
 
     def terminate_nix (process):
         #os.killpg(process.pid, signal.SIGINT)
@@ -341,90 +341,87 @@ def raceProcesses (reasoners):
     Parameters:
     reasoners -- list of Reasoners to execute.
     """
+    
     from macleod.ClifModuleSet import ClifModuleSet
 
     results = Queue()
 
-    processLogs = []
+    def startup(reasoners, results):
+        # start all processes
+        reasonerProcesses = []
+        for r in reasoners:
+            # TODO Figure out why r.timeout is a str in python3
+            p = ReasonerProcess(r.getCommand(), r.getOutputFile(), int(r.timeout), results, r.getId())
+            logging.getLogger(__name__).debug('Created ' + str(p))
+            reasonerProcesses.append(p)
+            p.start()
+            time.sleep(0.1)
+        return reasonerProcesses
 
-    reasonerProcesses = []
 
-    # start all processes
-    for r in reasoners:
-        log = Queue()
-        # TODO Figure out why r.timeout is a str in python3
-        p = ReasonerProcess(r.getCommand(),r.getOutfile(), r.getInputFiles(), int(r.timeout), results, log)
-        reasonerProcesses.append(p)
-        processLogs.append(log)
-        p.start()
-        time.sleep(0.1)
-
+    # keeps track of the number of running reasoners
+    reasonerProcesses = startup(reasoners,results)
     num_running = len(reasonerProcesses)
-    success = False
+    logging.getLogger(__name__).info(str(num_running) + ' Reasoners running')
+
 
     time.sleep(0.1)
-    while num_running>0:	
+    while num_running>0:
         while results.empty():
-            merged_log = merge(processLogs)
-            if len(merged_log)>0:
-                filemgt.add_to_subprocess_log(merged_log)
-                #print "\n\n" + l + "\n\n"
-            time.sleep(0.5)
-            sys.stdout.write(".")
-            #print "WAITING"
+            time.sleep(1)
+            #sys.stdout.write(".")
         # at least one process has terminated
         sys.stdout.write("\n")
         while not results.empty():
             num_running += - 1
             (name, code, _) = results.get()
             r = reasoners.getByCommand(name)
-            r.setReturnCode(code)
-            if r.terminatedSuccessfully():
-                success = True
-                if r.output==ClifModuleSet.INCONSISTENT:
+            #r.setReturnCode(code)
+            if r.terminatedWithError():
+                logging.getLogger(__name__).error("TERMINATED WITH ERROR (LIKELY DURING PARSING): " + name)
+            elif r.terminatedSuccessfully():
+                if r.output==Ontology.INCONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND PROOF: " + name)
+                        status = 'PROOF'
                     else:
-                        logging.getLogger(__name__).info("PROVED INCONSISTENCY: " + name)						
-                elif r.output==ClifModuleSet.CONSISTENT:
+                        logging.getLogger(__name__).info("PROVED INCONSISTENCY: " + name)
+                        status = 'INCONSISTENT'
+                elif r.output==Ontology.CONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND COUNTEREXAMPLE: " + name)
+                        status = 'COUNTEREXAMPLE'
                     else:
                         logging.getLogger(__name__).info("FOUND MODEL: " + name)
+                        status = 'MODEL'
             else:
-                logging.getLogger(__name__).info("TERMINATED WITHOUT SUCCESS: " + name)
-                logging.getLogger(__name__).info("PROCESSES STILL RUNNING: " + str(num_running))
+                status = 'TERMINATED'
+                logging.getLogger(__name__).debug("TERMINATED WITHOUT SUCCESS: " + name)
+                logging.getLogger(__name__).debug("PROCESSES STILL RUNNING: " + str(num_running))
 
-            # END OF PROCESSING QUEUE
 
-        if success:
-            for p in reasonerProcesses:
-                logging.getLogger(__name__).debug("SENDING ABORT SIGNAL to " + p.args[0])				
-                p.shutdown()
-                while not p.isDone():
-                    time.sleep(0.1)
-            logging.getLogger(__name__).debug("Final processing of subprocess log queue")
-            time.sleep(1)
-            merged_log = merge(processLogs)
-            filemgt.add_to_subprocess_log(merged_log)
-            merged_log = []
-            break
+            if r.terminatedWithError():
+                # if one reasoner terminates with an error, set the status of all of them to Error
+                for p in reasonerProcesses:
+                    p.setStatus('ERROR')
+            elif r.terminatedSuccessfully():
+                # cleanup the other reasoning processes that are still running
+                for p in reasonerProcesses:
+                    if p.getId()==r.getId():
+                        # set the status of the successful reasoner
+                        if p.getStatus()=='':
+                            p.setStatus(status)
+                    else:
+                        # Set the status of the other reasoners
+                        p.shutdown()
+                        while not p.isDone():
+                            time.sleep(0.1)
+
 
     # write statistics
-#	time.sleep(1)
-#	for r in reasonerProcesses:
-#		r.writeHeader()
+    # time.sleep(1)
+    for r in reasonerProcesses:
+        r.writeHeader()
 
     return reasoners
 
-
-def merge(logs):
-    """ simple sort algorithm for merging the log queues from multiple processes"""
-
-    merged_log = []
-
-    # combine everything into a single list
-    for i in range(0,len(logs)):
-        while not logs[i].empty():
-            merged_log.append(logs[i].get())
-    return sorted(merged_log)

@@ -7,16 +7,17 @@ more generic tree structure
 """
 
 import sys
-sys.path.append("../src")
+sys.path.append("../")
+
+import macleod.Filemgt as filemgt
 
 from tkinter import *
-from .summary import *
-import src.filemgt
-import logging
 import tkinter.font
 import tkinter.ttk
 
-LOG = logging.getLogger(__name__)
+from .summary import *
+import logging
+
 
 # Width of node as counted for tree spacing usually the same as BASE_BUFFER
 NODE_BASE_WIDTH = 50
@@ -71,23 +72,23 @@ class Arborist(object):
 
         removes = []
         for name in self.nodes:
-            if src.filemgt.module_is_definition_set(name):
+            if filemgt.module_is_definition_set(name):
                 print(name)
                 removes.append(name)
 
         for name, node in self.nodes.items():
             if 'definition' not in name:
                 # TODO refactor these comprehensions
-                node.children = [c for c in node.children if not src.filemgt.module_is_definition_set(c.name)]
-                node.definitions += [p for p in node.parents if src.filemgt.module_is_definition_set(p.name)]
-                node.parents = [p for p in node.parents if not src.filemgt.module_is_definition_set(p.name)]
+                node.children = [c for c in node.children if not filemgt.module_is_definition_set(c.name)]
+                node.definitions += [p for p in node.parents if filemgt.module_is_definition_set(p.name)]
+                node.parents = [p for p in node.parents if not filemgt.module_is_definition_set(p.name)]
 
                 for c in node.children:
                     if 'definitions' in c.name:
-                        LOG.debug('Did not remove definition in ' + node.name)
+                        logging.getLogger(__name__).debug('Did not remove definition in ' + node.name)
                 for p in node.parents:
                     if 'definitions' in p.name:
-                        LOG.debug('Did not remove definition in ' + node.name)
+                        logging.getLogger(__name__).debug('Did not remove definition in ' + node.name)
 
         visited = self.traverse(self.tree)
 
@@ -99,7 +100,7 @@ class Arborist(object):
             try:
                 self.nodes.pop(name)
             except KeyError:
-                LOG.debug('Already removed definition ' + name)
+                logging.getLogger(__name__).debug('Already removed definition ' + name)
 
     def traverse(self, rootnode):
         """ Traverse over the tree marking nodes as reachable """
@@ -365,7 +366,7 @@ class VisualNode(Node):
         if self.visual_parent is None and self.depth != 1:
             for parent in self.parents:
                 print(parent.name)
-            LOG.debug('Non-root node without parent ' + self.name)
+            logging.getLogger(__name__).debug('Non-root node without parent ' + self.name)
 
     def set_visual_children(self):
         """ Return a list of children who are directly below the node """

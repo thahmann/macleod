@@ -1,12 +1,13 @@
 
 if __name__ == '__main__':
-    import os
+    from bin import licence, check_consistency
+    licence.print_terms()
 
-    # Mac-a-Hack again
-    import sys
-    sys.path.append("../")
+    import os, sys
 
-    from bin import check_consistency
+	#print(os.path.dirname(os.path.abspath(__file__)))
+	sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
+
 
     #ignores = ["theorems", "generated", "output","consistency"]
     ignores = ["theorems", "generated", "output"]

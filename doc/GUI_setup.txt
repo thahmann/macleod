@@ -1,0 +1,47 @@
+4/1/18
+Evan Sampson
+
+How to Setup The Editor
+=============================
+
+Requirements:
+- Python 3
+- ply (Python Lex & Yacc): 
+	- On linux/mac, run "pip install ply" (see below if you have multiple versions of Python installed)
+	- On Windows, run "python -m pip install ply"
+- PyQt5
+	- On linux/mac, run "pip install PyQt5" (see below if you have multiple versions of Python installed)
+	- On Windows, run "python -m pip install PyQt5"
+	
+	
+If you have multiple versions of Python on Linux:
+-------------------------------------------------
+- make sure you use the right python and the right pip
+- use "pip -V" to determine the version, if it is not 3.5, install pip3:
+"sudo apt-get install python3-pip"
+- then run "pip3 install ply" and "pip3 install PyQt5"
+-------------------------------------------------
+
+Instructions:
+- Follow the "Installation" instructions found in README.md to get the Macleod dependencies
+- In your home directory, create a directory called "macleod"
+- Copy the appropriate conf files from the "conf" directory to the new "macleod" directory
+    - Make sure you get the appropriate conf for your operating system
+    - Update logging.conf to point to where you would like to store the logs.
+- Install ply. On Linux and Mac, the easiest way to do this is to use pip. Run "pip install ply".
+    - If you're on Windows, the PyCharm IDE makes it easy:
+        - https://www.jetbrains.com/help/pycharm/installing-uninstalling-and-upgrading-packages.html
+    - If you don't want to use an IDE and you're using Python 3.4 or higher:
+        - https://stackoverflow.com/questions/29817447/how-to-run-pip-commands-from-cmd
+    - If you don't want to use an IDE but you're using Python 3.3 or lower:
+        - https://stackoverflow.com/questions/4750806/how-do-i-install-pip-on-windows
+- Install PyQt5. Again using pip, run "pip install PyQt5".
+- Navigate to macleod/gui/gui_beta
+- Run gui_main.py
+
+Personalization:
+- In the gui, access the file menu
+- Select "Settings"
+- Here you can:
+    - Change the root directory. This will change which files are shown in the "Directory" panel
+    - Change the highlighter colors. By default they are all black.

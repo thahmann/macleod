@@ -4,38 +4,33 @@
 
 High-level overview of graphical element to be added to Macleod
 """
+# task scripts
+import os, sys, logging
 
-from macleod.bin import *
-from macleod import *
+#print(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../")
+#print(sys.path)
+#from macleod import *
 
+from bin.check_consistency import *
+from bin.check_nontrivial_consistency import *
+from bin.check_consistency_all import *
+from bin.delete_output import *
 # source
-#from src.ClifModuleSet import *
-#from src.filemgt import *
+#from macleod.ClifModuleSet import *
+#from macleod.filemgt import *
 
 # visual components
 from gui.Arborist import *
 from gui.summary import *
 from gui.table import *
 
-# task scripts
-import logging
 
-from tasks.check_consistency import *
-from tasks.clif_to_ladr import *
-from tasks.clif_to_tptp import *
-from tasks.prove_lemma import *
-from tasks.check_nontrivial_consistency import *
-from tasks.check_consistency_all import *
-from tasks.clif_to_ladr_all import *
-from tasks.clif_to_tptp_all import *
-from tasks.prove_lemma_all import *
-from tasks.delete_output import *
 from tkinter import *
 import tkinter.ttk
 import tkinter.messagebox
 import tkinter.filedialog
 
-LOG = logging.getLogger(__name__)
 img_dir = os.path.join(os.path.dirname(__file__), 'img')
 
 def btn_press(event):
@@ -235,6 +230,11 @@ class GUI(Frame):
         """  set up the two resizable paned window frames """
         self.task_pane = Frame(self.main_frame, borderwidth=1, relief=SUNKEN)
         print(self.selected_folder)
+
+        from bin import clif_converter
+        from bin.prove_lemma import *
+        from bin.prove_lemma_all import *
+
         if identifier == "file":
             consist = Button(self.task_pane, text="Check Consistency", \
                 command=lambda: consistent(self.selected_file,self.module))
@@ -242,30 +242,30 @@ class GUI(Frame):
             non_trivial_consist = Button(self.task_pane, text="Check Non-Trivial Consistency", \
                 command=lambda: nontrivially_consistent(self.selected_file, self.module))
             non_trivial_consist.pack(side=TOP)
-            clif_to_ladr = Button(self.task_pane, text="Clif to LADR", \
-                command=lambda: ladr(self.selected_file, self.module))
+            clif_to_ladr = Button(self.task_pane, text="Export to LADR file", \
+                                  command=lambda: clif_converter.convert_single_clif_file(self.selected_file, clif_converter.ladr_output, False))
             clif_to_ladr.pack(side=TOP)
-            clif_to_tptp = Button(self.task_pane, text="Clif to TPTP", \
-                command=lambda: tptp(self.selected_file, self.module))
+            clif_to_tptp = Button(self.task_pane, text="Export to TPTP file", \
+                                  command=lambda: clif_converter.convert_single_clif_file(self.selected_file, clif_converter.tptp_output, False))
             clif_to_tptp.pack(side=TOP)
-            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
-                command=lambda: tptp(self.selected_file, self.module))
-            prove_lemma.pack(side=TOP)
+#            prove_lemma = Button(self.task_pane, text="Prove Lemma", \
+#                command=lambda: tptp(self.selected_file, self.module))
+#            prove_lemma.pack(side=TOP)
         else:
-            clif_to_ladr_all = Button(self.task_pane, text="Clif to LADR (ALL)", \
-                command=lambda: ladr_all(self.selected_folder))
+            clif_to_ladr_all = Button(self.task_pane, text="Export all to LADR", \
+                                      command=lambda: clif_converter.convert_single_clif_file(self.selected_folder, clif_converter.ladr_output, False))
             clif_to_ladr_all.pack(side=TOP)
-            clif_to_tptp_all = Button(self.task_pane, text="Clif to TPTP (ALL)", \
-                command=lambda: ladr_all(self.selected_folder))
+            clif_to_tptp_all = Button(self.task_pane, text="Export all to TPTP", \
+                                      command=lambda: clif_converter.convert_single_clif_file(self.selected_folder, clif_converter.tptp_output, False))
             clif_to_tptp_all.pack(side=TOP)
-            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
-                command=lambda: prove_all(self.selected_folder))
-            prove_lemma_all.pack(side=TOP)
+#            prove_lemma_all = Button(self.task_pane, text="Prove Lemma (ALL)", \
+#                command=lambda: prove_all(self.selected_folder))
+#            prove_lemma_all.pack(side=TOP)
 
         #static buttons
         #view_log = Button(self.task_pane, text="View Log", \
         #        command=lambda: .open_macleod_log())
-        #view_log.pack(side=BOTTOM)
+        #view_LOGGER.pack(side=BOTTOM)
         #clear_workspace = Button(self.task_pane, text="Clear Modules", \
         #        command=self.deforestation())
         #clear_workspace.pack(side=BOTTOM)
@@ -317,7 +317,7 @@ class GUI(Frame):
     def askopenfilename(self):
         """ Returns a selected directory name """
 
-        self.selected_file = tkinter.filedialog.askopenfilename()
+        self.selected_file = tkinter.filediaLOGGER.askopenfilename()
         self.selected_path.set("  Path:\t"+self.selected_file)
         self.default_dropdown_text.set("Choose Ontology...")
         self.deforestation()
@@ -328,7 +328,7 @@ class GUI(Frame):
     def askdirectory(self):
         """ Returns a selected directory name """
 
-        self.selected_folder = tkinter.filedialog.askdirectory()
+        self.selected_folder = tkinter.filediaLOGGER.askdirectory()
         self.selected_path.set("  Path:\t"+self.selected_folder)
         self.default_dropdown_text.set("Choose Folder...")
         self.deforestation()

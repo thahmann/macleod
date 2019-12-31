@@ -4,13 +4,13 @@ Created on 2013-03-31
 @author: Torsten Hahmann
 '''
 
-from macleod.ClifModule import ClifModule
-from macleod import clif
-from macleod import filemgt
-from macleod import ladr
+import logging, os
 
-import logging
-import os
+import macleod.Filemgt as filemgt
+
+from macleod.ClifModule import ClifModule
+
+from macleod import clif, ladr
 
 class LemmaModule(ClifModule):
 
@@ -21,8 +21,7 @@ class LemmaModule(ClifModule):
         '''
         Constructor
         '''
-        self.depth = 0
-        self.module_name = module_name
+        super().__init__(module_name,0)
         self.p9_file_name = ladr_file_name
         # THIS IS UNIQUE to the LemmaModule
         self.tptp_sentence = tptp_sentence
@@ -31,13 +30,16 @@ class LemmaModule(ClifModule):
         self.time = None
         self.reasoner_name = None
         self.module_set = None
-        self.imports = set([])
-        self.parents = set([])
+        #self.imports = set([])
+        #self.parents = set([])
         # no preprocessed version of this file available
-        self.clif_processed_file_name = None 
+        # self.clif_processed_file_name = None
 
         logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('constructing lemma module: ' + self.module_name)
 
+    # overwrite inherited method to do nothing
+    def preprocess_clif_file (self):
+        return
 
 class ClifLemmaSet(object):
 
@@ -70,7 +72,9 @@ class ClifLemmaSet(object):
         logging.getLogger(__name__).debug("CREATED LADR TRANSLATION OF LEMMA: " + self.module.get_p9_file_name())
 
         # translate to tptp as goal
-        tptp_sentences = clif.to_tptp([self.module.clif_processed_file_name], axiom=False)
+        tptp_sentences = clif.translate_sentences([self.module.clif_processed_file_name], "TPTP", axiom=False)
+
+        logging.getLogger(__name__).debug("Goal created with " + str(len(tptp_sentences))+ " sentences")
 
 #        for t in tptp_sentences:
 #            print t

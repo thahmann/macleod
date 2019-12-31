@@ -53,7 +53,8 @@ class Axiom(object):
         Axiom.axiom_id = Axiom.axiom_id + 1
 
         # Build our cache of useful information
-        self.analyze_logical()
+        # TODO: Functions crash the parse!
+        # self.analyze_logical()
 
     def quantifiers(self):
         """
@@ -377,7 +378,7 @@ class Axiom(object):
         """
         Produce a TPTP representation of this axiom.
 
-        :return str tptp, tptp formatted version of this axiom
+        :return str tptp, TPTP formatted version of this axiom
         """
 
         # For printing to TPTP add Axiom identifier to each variable to keep it unique
@@ -386,26 +387,88 @@ class Axiom(object):
             variable_map[var.upper()] = var.upper() + str(self.id)
 
         def tptp_logical(logical):
+            """
+            :param logical: term to be translated to TPTP
+            :return: TPTP version of the logical term; variables are converted to upper case and predicates and functions to lower case
+            """
 
-            if isinstance(logical, Predicate):
-                # TODO Does TPTP let you nest functions in predicates?
-                return "({}({}))".format(logical.name, ",".join([variable_map[x.upper()] for x in logical.variables]))
+            if isinstance(logical, str):
+                return str.upper(logical)
+
+            elif isinstance(logical, Predicate):
+                if logical.is_equality():
+                    return tptp_logical(logical.variables[0])  + logical.name + tptp_logical(logical.variables[1])
+                else:
+                    return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
+
             elif isinstance(logical, Function):
-                return "({}({}))".format(logical.name, ",".join([variable_map[x.upper()] for x in logical.variables]))
+                return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
+
             elif isinstance(logical, Negation):
-                return "~({})".format(tptp_logical(logical.terms[0]))
+                if isinstance(logical.terms[0], Negation):
+                    # get rid of double negation
+                    return tptp_logical(logical.terms[0].terms[0])
+                elif isinstance(logical.terms[0], Predicate):
+                    # put parentheses around single predicates to not mix them up with special-symbol predicates
+                    return "~({})".format(tptp_logical(logical.terms[0]))
+                else:
+                    return "~{}".format(tptp_logical(logical.terms[0]))
+
             elif isinstance(logical, Conjunction):
                 return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
+
             elif isinstance(logical, Disjunction):
                 return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
+
             elif isinstance(logical, Universal):
-                return "{} {}".format(("! [{}] : " * len(logical.variables)).format(*[variable_map[x.upper()] for x in logical.variables]), tptp_logical(logical.terms[0]))
+                return "({} ({}))".format(("! [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))
+
             elif isinstance(logical, Existential):
-                return "{} {}".format(("? [{}] : " * len(logical.variables)).format(*[variable_map[x.upper()] for x in logical.variables]), tptp_logical(logical.terms[0]))
+                return "({} ({}))".format(("? [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))
+
             else:
                 raise ValueError("Not a valid type for TPTP output")
 
-        return "fof(axiom{}, axiom, ( {} )).".format(str(self.id*10), tptp_logical(self.sentence))
+        return "fof(axiom{}, axiom, {}).".format(str(self.id*10),tptp_logical(self.sentence))
+
+
+    def to_ladr(self):
+        """
+        Produce a LADR representation of this axiom.
+
+        :return str ladr, LADR formatted version of this axiom
+        """
+
+        def ladr_logical(logical):
+
+            if isinstance(logical, str):
+                return logical
+            elif isinstance(logical, Symbol.Predicate):
+                return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
+            elif isinstance(logical, Symbol.Function):
+                return "{}({})".format(logical.name, ",".join(logical.variables))
+            elif isinstance(logical, Negation.Negation):
+                if isinstance(logical.terms[0], Negation.Negation):
+                    # get rid of double negation
+                    return ladr_logical(logical.terms[0].terms[0])
+                elif isinstance(logical.terms[0], Symbol.Predicate):
+                    # put parentheses around single predicates to not mix them up with special-symbol predicates
+                    return "-({})".format(ladr_logical(logical.terms[0]))
+                else:
+                    return "-{}".format(ladr_logical(logical.terms[0]))
+            elif isinstance(logical, Connective.Conjunction):
+                return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
+            elif isinstance(logical, Connective.Disjunction):
+                return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
+            elif isinstance(logical, Quantifier.Universal):
+                return "({} {})".format(("all {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
+            elif isinstance(logical, Quantifier.Existential):
+                return "({} {})".format(("exists {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
+            else:
+                raise ValueError("Not a valid type for LADR output")
+
+        return "{}.".format(ladr_logical(self.sentence))
+>>>>>>> origin:macleod/logical/Axiom.py
 
     def __repr__(self):
 

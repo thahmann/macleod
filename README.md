@@ -1,22 +1,30 @@
 Macleod
 ======================================================
 
-Installation:
--------------
+Installation
+------------
 
 ## Dependencies
 
-For the linux and apple platform only the following dependency is required.
+At the moment, pyparsing is still required: <https://pypi.python.org/pypi/pyparsing>, though portions of the code are moving away from it (e.g. clif_converter).
 
+The following dependencies are required:
+
+* ply
+* pyparsing
 * texttable
+* owlready (only for conversion to OWL)
+* PyQt5 (only for the GUI in macleod/gui/gui_main.py)
 
-This is most easily obtained with <code>sudo pip install texttable</code>
+This is most easily obtained with <code>sudo pip install [library]</code>
 
 ### Windows:
 
-To install on Windows machines the following dependencies are required.
-* PyWin32 <http://sourceforge.net/projects/pywin32/files/>
-* WMI module <http://timgolden.me.uk/python/wmi/index.html>
+For Windows, in addition to the above dependencies, the following additional dependencies are required:
+* pywin32 <https://github.com/mhammond/pywin32/releases>
+* wmi <http://timgolden.me.uk/python/wmi/index.html>
+
+Again, they are most easily obtained via the command  <code> pip install [library]</code> (may need administrator rights)
 
 
 
@@ -24,8 +32,8 @@ Quick Start
 -----------
 * Install required dependencies
 * Navigate to the gui subfolder
+* Add the macleod/ and bin/ folders to your python path
 * Execute the gui_alpha.py file with python
-* Add the src/ and task/ folders to your python path
 
 To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
 
@@ -38,3 +46,8 @@ While the program primarily targets first-order ontologies specified in the Comm
 Moreover, the tool exploits the modularity of ontologies, which manifests itself in its file CL imports structure. 
 
 In the near future it will be integrated with COLORE to provide design, verification, and other reasoning support for all ontologies in the repository.
+
+Troubleshooting:
+----------------
+
+certain errors (for example "bad magic number in 'macleod': b'\x03\xf3\r\n': ImportError") that appear after updating the repository locally can be fixed by deleting the Python cache for the macleod directory. This can be accomplished with the command "find . -name \*.pyc -delete"

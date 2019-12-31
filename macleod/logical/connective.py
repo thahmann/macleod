@@ -343,7 +343,7 @@ class Conjunction(Connective):
 
             if isinstance(term, Quantifier):
 
-                raise ValueError("Quantifer within connective during ONF")
+                raise ValueError("Quantifier within connective during ONF")
 
             elif isinstance(term, Conjunction):
 
