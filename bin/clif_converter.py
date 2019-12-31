@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
 
 import macleod.Filemgt as Filemgt
-import macleod.parsing.Parser as Parser
+import macleod.parsing.parser as Parser
 #from macleod.Filemgt import Filemgt
 
 # defaults for the ontology directory and basepath

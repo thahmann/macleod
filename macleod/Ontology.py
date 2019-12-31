@@ -15,7 +15,6 @@ import macleod.Process as Process
 import macleod.dl.filters as Filter
 import macleod.dl.translation as Translation
 import macleod.dl.utilities as Util
-import macleod.logical.Axiom as Axiom
 
 CONSISTENT = 1
 INCONSISTENT = -1
@@ -108,7 +107,7 @@ class Ontology(object):
 
         self.resolve = resolve
         # Cyclic imports are kind of painful in Python
-        import macleod.parsing.Parser as Parser
+        import macleod.parsing.parser as Parser
 
         for path in self.imports:
 

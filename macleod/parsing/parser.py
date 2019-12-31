@@ -1,3 +1,4 @@
+import logging
 import os
 import ply.lex as lex
 import ply.yacc as yacc
@@ -20,80 +21,67 @@ global parser
 class ParseError(Exception):
 	pass
 
-tokens = (
+tokens = [
     "LPAREN",
     "RPAREN",
-    "NOT",
-    "AND",
-    "OR",
-    "EXISTS",
-    "FORALL",
-    "IFF",
-    "IF",
     "URI",
+    "NONLOGICAL",
     "COMMENT",
-    "CLCOMMENT",
-    "STRING",
-    "START",
-    "IMPORT",
-    "NONLOGICAL"
-)
+    "QUOTED_STRING"
+]
 
-precedence = (('left', 'IFF'),
-              ('left', 'IF'))
+reserved = {
+        'not': 'NOT',
+        'and': 'AND',
+        'or': 'OR',
+        'exists': 'EXISTS',
+        'forall': 'FORALL',
+        'iff': 'IFF',
+        'if': 'IF',
+        'cl-comment': 'CLCOMMENT',
+        'cl-text': 'START',
+        'cl-imports': 'IMPORT'
+}
 
+tokens += reserved.values()
 
-def t_NOT(t): r'not'; return t
+precedence = [['left', 'IFF'],
+              ['left', 'IF']]
 
+t_COMMENT = r'\/\*["\w\W\d*]+?\*\/'
+t_QUOTED_STRING = r"'[\w\s.\-\+-,]+?'"
+t_ignore = ' \t\r\n\f\v'
 
-def t_AND(t): r'and'; return t
+literals = [ '(', ')' ]
 
+def t_LPAREN(t):
+    r'\('
+    t.type = 'LPAREN'      # Set token type to the expected literal
+    return t
 
-def t_OR(t): r'or'; return t
+def t_RPAREN(t):
+    r'\)'
+    t.type = 'RPAREN'      # Set token type to the expected literal
+    return t
 
+def t_URI(t):
+    r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+    return t
 
-def t_EXISTS(t): r'exists'; return t
+def t_NONLOGICAL(t):
+    r'[<>=\w\-\+_=]+'
+    if t.value in reserved:
+        t.type = reserved[t.value]
+    return t
 
-
-def t_FORALL(t): r'forall'; return t
-
-
-def t_IFF(t): r'iff'; return t
-
-
-def t_IF(t): r'if'; return t
-
-
-def t_CLCOMMENT(t): r'cl-comment'; return t
-
-
-def t_START(t): r'cl-text'; return t
-
-
-def t_IMPORT(t): r'cl-imports'; return t
-
-
-def t_LPAREN(t): r'\('; return t
-
-
-def t_RPAREN(t): r'\)'; return t
 def t_NEWLINE(t): 
     r'\n+'
     t.lexer.lineno += len(t.value)
     
-
-
 def t_error(t):
     print("Unknown character \"{}\"".format(t.value[0]))
     t.lexer.skip(1)
-
-
-t_URI = r"http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$\=\?\/\%\-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-t_NONLOGICAL = r'[<>=\w\-=]+'
-t_COMMENT = r'\/\*["\w\W\d*]+?\*\/'
-t_STRING = r"['\"](.+)['\"]"
-t_ignore = " \r\t"
-
+ 
 
 def p_starter(p):
     """
@@ -164,7 +152,7 @@ def p_statement(p):
 
 def p_comment(p):
     """
-    comment : LPAREN CLCOMMENT STRING RPAREN
+    comment : LPAREN CLCOMMENT QUOTED_STRING RPAREN
     """
 
     # p[0] = p[3]
