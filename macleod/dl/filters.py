@@ -5,7 +5,7 @@ possibly applicable Patterns based on the composition of a provided Axiom.
 The function you're most likely looking for is the filter_axiom(axiom) method.
 """
 
-import macleod.dl.Patterns as Pattern
+import macleod.dl.patterns as Pattern
 
 def filter_axiom(axiom):
     """

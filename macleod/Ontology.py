@@ -3,12 +3,12 @@ Top level container for an ontology parsed into the object structure
 """
 
 import os
-from macleod.dl.owl import Owl
-import macleod.dl.Translation as Translation
-import macleod.dl.Utilities as Util
-import macleod.dl.Filters as Filter
 
+from macleod.dl.owl import Owl
 from macleod.logical.axiom import Axiom
+import macleod.dl.filters as Filter
+import macleod.dl.translation as Translation
+import macleod.dl.utilities as Util
 
 def pretty_print(ontology, pcnf=False, tptp=False):
     '''

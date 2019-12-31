@@ -1,10 +1,11 @@
 import unittest
 
-import macleod.dl.Filters as Filter
-import macleod.dl.Patterns as Pattern
 from macleod.logical.axiom import Axiom
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
 from macleod.logical.symbol import (Function, Predicate)
+
+import macleod.dl.filters as Filter
+import macleod.dl.patterns as Pattern
 
 class FiltersTest(unittest.TestCase):
 

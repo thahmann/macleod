@@ -15,7 +15,7 @@ time.
 import functools
 import logging
 
-import macleod.dl.Utilities as Utility
+import macleod.dl.utilities as Utility
 from macleod.dl.owl import Owl
 from macleod.logical.symbol import Predicate
 

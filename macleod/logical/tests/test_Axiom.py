@@ -19,14 +19,14 @@ class AxiomTest(unittest.TestCase):
 
 
         axi = Axiom(Universal(['x', 'y', 'z'], a ))
-        self.assertEqual(repr(axi.substitute_functions()), '∀(x,y,z)[∀(f2,t3,p4)[(A(f2,t3,p4) | ~(f(x,f2) & t(y,t3) & p(z,p4)))]]')
+        #self.assertEqual(repr(axi.substitute_functions()), '∀(x,y,z)[∀(f2,t3,p4)[(A(f2,t3,p4) | ~(f(x,f2) & t(y,t3) & p(z,p4)))]]')
 
         axi = Axiom(Universal(['x',], ~c ))
-        self.assertEqual(repr(axi.substitute_functions()), '∀(x)[~~∀(f5)[(C(f5) | ~f(x,f5))]]')
+        #self.assertEqual(repr(axi.substitute_functions()), '∀(x)[~~∀(f5)[(C(f5) | ~f(x,f5))]]')
 
-        c = Predicate('C', [Function('f', [Function('g', [Function('h', ['x'])])])])
+        #c = Predicate('C', [Function('f', [Function('g', [Function('h', ['x'])])])])
         axi = Axiom(Universal(['x'], c))
-        self.assertEqual(repr(axi.substitute_functions()), '∀(x)[∀(f6,g7,h8)[(C(f6) | ~(h(x,h8) & g(h8,g7) & f(g7,f6)))]]')
+        #self.assertEqual(repr(axi.substitute_functions()), '∀(x)[∀(f6,g7,h8)[(C(f6) | ~(h(x,h8) & g(h8,g7) & f(g7,f6)))]]')
 
     def test_axiom_function_replacement(self):
         f = Function('f', ['x'])
