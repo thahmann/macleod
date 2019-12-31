@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QThread
-from macleod.parsing import Parser
+from macleod.parsing import parser as Parser
 import os
 import macleod.Filemgt as filemgt
 import tempfile

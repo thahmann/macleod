@@ -49,7 +49,7 @@ precedence = [['left', 'IFF'],
               ['left', 'IF']]
 
 t_COMMENT = r'\/\*["\w\W\d*]+?\*\/'
-t_QUOTED_STRING = r"'[\w\s.\-\+-,]+?'"
+t_QUOTED_STRING = r"'[\w\s.\-\+-:,\(\)<=>;]+?'"
 t_ignore = ' \t\r\n\f\v'
 
 literals = [ '(', ')' ]

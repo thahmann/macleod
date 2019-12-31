@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.Qt import QSize, QColor, Qt, QTextFormat, QRect, QPainter, QFontDatabase, QMessageBox
 
 from macleod.gui.gui_beta import gui_highlighter, gui_filehelper
-from macleod.logical import Symbol
+from macleod.logical import symbol as Symbol
 
 
 class TabController(QTabWidget):
