@@ -66,6 +66,9 @@ class Ontology(object):
         # For the time being, just maintain a list of axioms
         self.axioms = []
 
+        # for flexibility, maintain a separate list of conjectures
+        self.conjectures = []
+
         # Imports we handle with a [path] : [ontologies] dict
         self.imports = {}
 
@@ -112,7 +115,7 @@ class Ontology(object):
                 self.imports[path] = new_ontology
 
     def get_all_modules(self):
-        """Get a flatten list of all Ontologies that are imported either directly or indirectly """
+        """Get a flattened list of all Ontologies that are imported either directly or indirectly """
 
         all_modules=[self]
         all_modules_names = set()
@@ -150,6 +153,17 @@ class Ontology(object):
         """
 
         self.axioms.append(Axiom.Axiom(logical))
+
+    def add_conjecture(self, logical):
+        """
+        Accepts a logical object and creates an accompanying Axiom object out
+        of it
+
+        :param Logical logical, a parsed logical object
+        :return None
+        """
+
+        self.conjecture.append(Axiom.Axiom(logical))
 
     def add_import(self, path):
         """
@@ -224,6 +238,19 @@ class Ontology(object):
         (return_value, fastest_reasoner) = self.consolidate_results(reasoners)
 
         return (return_value, fastest_reasoner)
+
+    # def prove_conjectures (self, resolve = True, options_files = None):
+    #     """ try to prove each of the conjectures from the axioms with or without imported axioms."""
+    #
+    #     (return_value, reasoner) check_consistency(self,resolve, options_files)
+    #     if return_value != CONSISTENT:
+    #         return return_value
+    #     else:
+    #         # construct commands for each theorem
+    #         for conjecture in self.conjectures:
+    #             reasoners = ReasonerSet()
+    #             reasoners.constructAllCommands(self,theorem)
+
 
 
     def consolidate_results (self, reasoners):
