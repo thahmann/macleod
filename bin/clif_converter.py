@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Utility function to convert Common Logic Interchange Format (.clif) files to the TPTP or LADR syntax.')
     parser.add_argument('-f', '--file', type=str, help='Clif file or folder to parse', required=True)
-    parser.add_argument('-o', '--output', type=str, help='Output format', default=tptp_output)
+    parser.add_argument('-o', '--output', type=str, help='Output format (currently supported are tptp and ladr)', default=tptp_output)
     parser.add_argument('-n', '--noresolve', action="store_true", help='Prevent from automatically resolving imports', default=False)
     parser.add_argument('--loc', type=str, help='Path to directory containing ontology files', default=default_dir)
     parser.add_argument('--prefix', type=str, help='String to replace with basepath found in imports', default=default_prefix)
