@@ -4,36 +4,47 @@ Macleod
 Installation
 ------------
 
-## Dependencies
+It is recommended to create a virtual environment to work out of:
 
-At the moment, pyparsing is still required: <https://pypi.python.org/pypi/pyparsing>, though portions of the code are moving away from it (e.g. clif_converter).
+```bash
+# On Windows hosts with Python3 already installed and on the %PATH%
+python -m venv ve && virtual_env/scripts/activate.bat
 
-The following dependencies are required:
+# On Linux hosts with Python3 installed
+python3 -m ve && . ve/bin/active
+```
 
-* ply
-* pyparsing
-* texttable
-* owlready (only for conversion to OWL)
-* PyQt5 (only for the GUI in macleod/gui/gui_main.py)
+Once the virtual environment has been created and activated clone this repository and install:
 
-This is most easily obtained with <code>sudo pip install [library]</code>
+```bash
+# Clone the repository using https or ssh
+git clone https://github.com/thahmann/macleod.git && cd macleod
 
-### Windows:
+# Install macleod and all dependencies via pip
+pip install .
 
-For Windows, in addition to the above dependencies, the following additional dependencies are required:
-* pywin32 <https://github.com/mhammond/pywin32/releases>
-* wmi <http://timgolden.me.uk/python/wmi/index.html>
+# Optionally you can install the GUI components as well
+pip install .[GUI]
+```
 
-Again, they are most easily obtained via the command  <code> pip install [library]</code> (may need administrator rights)
+Usage
+-----
 
+After macleod is installed a number of scripts will be available to run from within the virtual environment:
 
+```bash
+[rob@demo]$ parse_clif -f ../colore/ontologies/multidim_space_codib/codib_down.clif 
+∀(x)[(~(S(x) & ~ZEX(x)) | ∃(y)[(P(y,x) & Min(y))])]
+∀(x,y)[(~(S(x) & S(y) & BCont(x,y)) | (Cont(x,y) & Inc(x,y)))]
+∀(x,y,v,z)[(~(S(x) & S(y) & S(v) & S(z) & SC(x,y) & Min(x) & P(x,v) & Cont(y,v) & Cont(z,x) & Cont(z,y)) | BCont(z,x))]
+∀(x,y,z,v)[(~(S(x) & S(y) & S(v) & S(z) & SC(x,y) & P(x,v) & P(y,v) & Cont(z,x) & Cont(z,y) & Covers(v,z)) | ~BCont(z,v))]
+∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & P(y,z) & ∀(v,w)[(~(S(v) & S(w) & P(v,z) & ~PO(v,y) & P(w,x)) | ~Cont(w,v))]) | BCont(x,z))]
+∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & Cont(z,x)) | BCont(z,y))]
+∀(x,y)[((~(S(x) & S(y) & BCont(x,y)) | (S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))])) & (~(S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))]) | (S(x) & S(y) & BCont(x,y))))]
 
-Quick Start
------------
-* Install required dependencies
-* Navigate to the gui subfolder
-* Add the macleod/ and bin/ folders to your python path
-* Execute the gui_alpha.py file with python
+# To launch the GUI
+[rob@demo]$ macleod
+```
 
 To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
 
@@ -51,3 +62,4 @@ Troubleshooting:
 ----------------
 
 certain errors (for example "bad magic number in 'macleod': b'\x03\xf3\r\n': ImportError") that appear after updating the repository locally can be fixed by deleting the Python cache for the macleod directory. This can be accomplished with the command "find . -name \*.pyc -delete"
+

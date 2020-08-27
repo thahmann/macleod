@@ -45,10 +45,8 @@ def consistent(filename, m, options=[]):
                         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
     return (None, m)
 
-
-if __name__ == '__main__':
-    #licence.print_terms()
-    # global variables
+def main():
+    """Entrypoint for check consistency"""
 
     options = sys.argv
     options.reverse()
@@ -56,4 +54,10 @@ if __name__ == '__main__':
     filename = options.pop()
     m = ClifModuleSet(filename)
     derp, clif = consistent(filename, m, options)
+
+
+
+if __name__ == '__main__':
+    sys.exit(main())
+
 

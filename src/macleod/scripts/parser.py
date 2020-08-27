@@ -7,7 +7,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 import macleod.parsing.parser as Parser
 
-if __name__ == '__main__':
+def main():
 
     # Setup the command line arguments to the program
     parser = argparse.ArgumentParser(description='Utility function to read and translate Common Logic Interchange Format (.clif) files and print to stdout.')
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
     parser.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     parser.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
-    parser.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files')
+    parser.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files', default='.')
     parser.add_argument('-s', '--sub', required='--resolve' in sys.argv, type=str, help='String to replace with basepath found in imports')
 
     # Parse the command line arguments
@@ -43,5 +43,5 @@ if __name__ == '__main__':
         else:
             print (axiom)
 
-
-
+if __name__ == '__main__':
+    sys.exit(main())

@@ -6,6 +6,8 @@ Created on 2019-03-07
 
 import os, sys, argparse, logging
 
+import macleod.scripts.licence
+
 #print(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
@@ -73,8 +75,8 @@ def convert_all_clif_files(folder, output, resolve, loc=default_dir, prefix=defa
                     convert_single_clif_file(ontology, output, resolve, loc, prefix)
 
 
-if __name__ == '__main__':
-    import licence
+
+def main():
     licence.print_terms()
 
     parser = argparse.ArgumentParser(description='Utility function to convert Common Logic Interchange Format (.clif) files to the TPTP or LADR syntax.')
@@ -97,4 +99,5 @@ if __name__ == '__main__':
     else:
         logging.getLogger(__name__).error("Attempted to parse non-existent file or directory: " + path)
 
-
+if __name__ == '__main__':
+    sys.exit(main())

@@ -7,7 +7,7 @@ import macleod.Filemgt as filemgt
 import macleod.Ladr as ladr
 import os, logging
 
-from bin import clif_converter
+from macleod.scripts import clif_converter
 
 options_files = []
 

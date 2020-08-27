@@ -280,25 +280,29 @@ class MacleodWindow(QMainWindow):
                 self.import_explorer.build_tree(self.ontologies[key])
 
 
-# just in case anything gets weird, we will save a pointer to the regular console
-backup = sys.stdout
-app = MacleodApplication(sys.argv, backup)
+def main():
+    # just in case anything gets weird, we will save a pointer to the regular console
+    backup = sys.stdout
+    app = MacleodApplication(sys.argv, backup)
 
-# Set the style to "Fusion", which looks similar across all platforms
-app.setStyle(QStyleFactory.create('Fusion'))
-window = MacleodWindow()
+    # Set the style to "Fusion", which looks similar across all platforms
+    app.setStyle(QStyleFactory.create('Fusion'))
+    window = MacleodWindow()
 
-# Capture all errors and print statements in our console
-sys.stdout = window.console
-window.setWindowTitle("Macleod")
-window.show()
+    # Capture all errors and print statements in our console
+    sys.stdout = window.console
+    window.setWindowTitle("Macleod")
+    window.show()
 
-# Generic error capturing
-while True:
-    try:
-        sys.exit(app.exec_())
-    except Exception as e:
-        error = QMessageBox()
-        error_text = "An error has occurred:\n{0}".format(e)
-        error.setText(error_text)
+    # Generic error capturing
+    while True:
+        try:
+            sys.exit(app.exec_())
+        except Exception as e:
+            error = QMessageBox()
+            error_text = "An error has occurred:\n{0}".format(e)
+            error.setText(error_text)
         error.exec()
+
+if __name__=='__main__':
+    main()

@@ -9,8 +9,7 @@ import os, sys, datetime
 #print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
-
-from bin import licence
+import macleod.scripts.licence
 import macleod.ClifLemmaSet as ClifLemmaSet
 import macleod.ClifModuleSet as ClifModuleSet
 import macleod.Filemgt as filemgt
@@ -109,9 +108,7 @@ def print_options ():
     print("-module:")
     print("-depth:")
 
-if __name__ == '__main__':
-    # global variables
-    import sys
+def main():
     licence.print_terms()
     options = sys.argv
     options.reverse()
@@ -127,4 +124,7 @@ if __name__ == '__main__':
         axioms_filename = options.pop()
         lemmas_filename = options.pop()
     prove (lemmas_filename, 'lemma_summary.log', axioms_filename=axioms_filename, options=options)
+
+if __name__ == '__main__':
+    sys.exit(main())
 

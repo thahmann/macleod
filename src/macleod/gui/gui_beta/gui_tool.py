@@ -3,7 +3,7 @@ from PyQt5.Qt import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt, pyqtSignal
 import macleod.Filemgt as filemgt
-from bin import clif_converter
+from macleod.scripts import clif_converter
 import os
 
 WINDOW_WIDTH = 400

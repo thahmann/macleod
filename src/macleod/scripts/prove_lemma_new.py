@@ -10,7 +10,7 @@ import os, sys, datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
 
-from bin import licence
+import macleod.licence
 import macleod.ClifLemmaSet as ClifLemmaSet
 import macleod.ClifModuleSet as ClifModuleSet
 import macleod.Filemgt as filemgt

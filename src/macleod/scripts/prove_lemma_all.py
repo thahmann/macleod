@@ -4,7 +4,8 @@ import os, sys, datetime
 #print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
-from bin import licence, prove_lemma
+import macleod.scripts.licence 
+import macleod.scripts.prove_lemma
 
 #global variables
 #ignores = ["theorems", "generated", "output", "consistency"]
@@ -12,8 +13,8 @@ ignores = ["generated", "output", "consistency"]
 necessary = "_theorems"
 #necessary = false
 
-if __name__ == '__main__':
-	licence.print_terms()
+def main():
+    licence.print_terms()
 	
     proofs = 0
     counterexamples = 0
@@ -52,3 +53,5 @@ if __name__ == '__main__':
                     print(str(counterexamples) + " counterexamples")
                     print("---------------------")
 
+if __name__ == '__main__':
+    sys.exit(main())

@@ -308,6 +308,13 @@ class Ontology(object):
             pcnf = axiom.ff_pcnf()
             print('FF-PCNF: {}'.format(pcnf))
 
+            # Shim to add ensure every class and property is captured
+            for unary in axiom.unary():
+                onto.declare_class(unary.name)
+
+            for binary in axiom.binary():
+                onto.declare_property(binary.name)
+
             for pruned in Translation.translate_owl(pcnf):
 
                 tmp_axiom = Axiom(pruned)

@@ -1,13 +1,15 @@
+import os
+import sys
+import macleod.scripts.licence 
+import macleod.scripts.check_consistency
 
-if __name__ == '__main__':
-    from bin import licence, check_consistency
+def main():
+    """Entrypoint for check consistency all"""
+
     licence.print_terms()
 
-    import os, sys
-
-	#print(os.path.dirname(os.path.abspath(__file__)))
-	sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
-
+    #print(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
     #ignores = ["theorems", "generated", "output","consistency"]
     ignores = ["theorems", "generated", "output"]
@@ -43,3 +45,6 @@ if __name__ == '__main__':
     print(str(good) + " consistent")
     print(str(neutral) + " unknown")
     print(str(bad) + " inconsistent")
+
+if __name__ == '__main__':
+    sys.exit(main())

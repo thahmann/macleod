@@ -49,7 +49,7 @@ precedence = [['left', 'IFF'],
               ['left', 'IF']]
 
 t_COMMENT = r'\/\*["\w\W\d*]+?\*\/'
-t_QUOTED_STRING = r"'[\w\s.\-\+-:,\(\)<=>;]+?'"
+t_QUOTED_STRING = r"'[\w\s.\-\+\*:,\(\)<=>;]+?'"
 t_ignore = ' \t\r\n\f\v'
 
 literals = [ '(', ')' ]
@@ -164,7 +164,7 @@ def p_comment_error(p):
     """
 
     if "'" not in p[3].value:
-        raise TypeError("Error in comment: missing '")
+        raise TypeError("Error in comment: missing ' {}".format(p))
 
     raise TypeError("Error in comment: bad string")
 
@@ -499,6 +499,7 @@ def parse_file(path, sub, base, resolve=False, name=None):
     """
 
     global parser
+
     path = os.path.normpath(os.path.join(base, path))
 
     if not os.path.isfile(path):

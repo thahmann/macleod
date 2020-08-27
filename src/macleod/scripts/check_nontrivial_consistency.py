@@ -9,12 +9,11 @@ import os, sys, datetime
 #print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
-
-from bin import licence, check_consistency
-
-import macleod.Filemgt as filemgt
-import macleod.Clif as clif
 from macleod.ClifModuleSet import ClifModuleSet
+import macleod.scripts.check_consistency
+import macleod.scripts.licence 
+import macleod.Clif as clif
+import macleod.Filemgt as filemgt
 
 # hack to filter out function symbols and treat them differently in the creating of existential sentences
 # this currently is only tailored to the CODI ontology
@@ -178,10 +177,6 @@ def construct_existential_sentence (symbol, arity, negation=False, all_distinct=
     existential_sentence += ')\n' # closing "existential"
     return existential_sentence
 
-
-
-
-
 def print_options ():
     print("USAGE: check_nontrivial_consistency file [options]")
     print("with the following options:")
@@ -191,7 +186,7 @@ def print_options ():
     print("-defs: check only for defined symbols.")
 
 
-if __name__ == '__main__':
+def main():
     licence.print_terms()
     # global variables
     options = sys.argv
@@ -204,3 +199,6 @@ if __name__ == '__main__':
 
     m = ClifModuleSet(filename)
     nontrivially_consistent(filename, m, options)
+
+if __name__ == '__main__':
+    sys.exit(main())
