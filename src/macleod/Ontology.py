@@ -79,7 +79,10 @@ class Ontology(object):
         self.imports = {}
 
         # Dict with [URI] : [filepath] to serve as the substitution string
-        self.basepath = basepath
+        if basepath is None:
+            self.basepath = Filemgt.get_ontology_basepath()
+        else:
+            self.basepath = basepath
 
         self.resolve = False
 

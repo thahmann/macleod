@@ -90,6 +90,11 @@ def edit_config(section, key, value, file):
         with open(file,'w') as cfgfile:
             CONFIG_PARSER_TEMP.write(cfgfile)
 
+def get_ontology_basepath():
+    default_ontology_path = read_config('system','path')
+    default_cl_prefix = read_config('cl','prefix')
+    return default_cl_prefix, default_ontology_path
+
 
 def format(record):
     formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
