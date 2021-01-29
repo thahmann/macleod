@@ -4,11 +4,18 @@ Macleod
 Installation
 ------------
 
+Requirements: 
+* Python 3.7.* or higher (there are some issues with Python 3.6.*)
+* Virtual Environments for Python enabled, if not (or unsure) first run "pip install virtualenv"
+
 It is recommended to create a virtual environment to work out of:
 
 ```bash
 # On Windows hosts with Python3 already installed and on the %PATH%
-python -m venv ve && virtual_env/scripts/activate.bat
+# Create a new virtual environment called "ve" (or whatever you want to name it)
+python -m venv ve
+# Activate the newly created virtual environment
+ve/scripts/activate.bat
 
 # On Linux hosts with Python3 installed
 python3 -m ve && . ve/bin/active
@@ -18,7 +25,9 @@ Once the virtual environment has been created and activated clone this repositor
 
 ```bash
 # Clone the repository using https or ssh
-git clone https://github.com/thahmann/macleod.git && cd macleod
+git clone https://github.com/thahmann/macleod.git
+# Go to the folder that contains the cloned repository (e.g. "%USERPROFILE%\GitHub\macleod\")
+cd macleod
 
 # Install macleod and all dependencies via pip
 pip install .
