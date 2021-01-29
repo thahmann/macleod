@@ -4,61 +4,71 @@ Macleod
 Installation
 ------------
 
-## Dependencies
+It is recommended to create a virtual environment to work out of:
 
-At the moment, pyparsing is still required: <https://pypi.python.org/pypi/pyparsing>, though the project is moving away from it (e.g. clif_converter.py no longer needs it and translates CLIF files to TPTP much more efficiently now).
+```bash
+# On Windows hosts with Python3 already installed and on the %PATH%
+python -m venv ve && virtual_env/scripts/activate.bat
 
-The following dependencies are required:
+# On Linux hosts with Python3 installed
+python3 -m ve && . ve/bin/active
+```
 
-* ply
-* pyparsing
-* texttable
-* owlready (only for conversion to OWL)
-* PyQt5 (only for the GUI in macleod/gui/gui_main.py)
+Once the virtual environment has been created and activated clone this repository and install:
 
-This is most easily obtained with <code>sudo pip install [library]</code> (may need administrator rights)
+```bash
+# Clone the repository using https or ssh
+git clone https://github.com/thahmann/macleod.git && cd macleod
 
-### Windows:
+# Install macleod and all dependencies via pip
+pip install .
 
-For Windows, in addition to the above dependencies, the following additional dependencies are required:
-* pywin32 <https://github.com/mhammond/pywin32/releases>
-* wmi <http://timgolden.me.uk/python/wmi/index.html>
+# Optionally you can install the GUI components as well (see more information about the GUI alpha version below)
+pip install .[GUI]
+```
 
-Again, they are most easily obtained via the command  <code> pip install [library]</code> 
+Usage
+-----
 
+After macleod is installed a number of scripts will be available to run from within the virtual environment:
 
+```bash
+[rob@demo]$ parse_clif -f ../colore/ontologies/multidim_space_codib/codib_down.clif 
+∀(x)[(~(S(x) & ~ZEX(x)) | ∃(y)[(P(y,x) & Min(y))])]
+∀(x,y)[(~(S(x) & S(y) & BCont(x,y)) | (Cont(x,y) & Inc(x,y)))]
+∀(x,y,v,z)[(~(S(x) & S(y) & S(v) & S(z) & SC(x,y) & Min(x) & P(x,v) & Cont(y,v) & Cont(z,x) & Cont(z,y)) | BCont(z,x))]
+∀(x,y,z,v)[(~(S(x) & S(y) & S(v) & S(z) & SC(x,y) & P(x,v) & P(y,v) & Cont(z,x) & Cont(z,y) & Covers(v,z)) | ~BCont(z,v))]
+∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & P(y,z) & ∀(v,w)[(~(S(v) & S(w) & P(v,z) & ~PO(v,y) & P(w,x)) | ~Cont(w,v))]) | BCont(x,z))]
+∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & Cont(z,x)) | BCont(z,y))]
+∀(x,y)[((~(S(x) & S(y) & BCont(x,y)) | (S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))])) & (~(S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))]) | (S(x) & S(y) & BCont(x,y))))]
 
-Quick Start
------------
-* Install required dependencies (see above)
-* Create a macleod folder in your home directory
-* Place copies of the theorem provers and model finders in your newly created macleod folder or whereever you want them to reside
-* Copy logging.conf to that folder and edit the following setting therein to point to where you would like all logging to be located. Here an example for a directory (relative to the home directory) on Windows):
-[handler_fHandler]
-args = ('macleod/macleod.log',)
-* Copy macleod_win.conf (or macleod_mac.conf or macleod_linux.conf, depending on your operating system) to the newly created macleod folder and edit the paths that point to your local ontology directory and the reasoners (theorem provers and model finders) as necessary, e.g. on Windows:
-[system]
-path: GitHub/colore/ontologies/
-* For convenience you should add the macleod/ and bin/ folders to your python path
+# To launch the GUI
+[rob@demo]$ macleod
+```
+
+To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
 
 About the project:
 ------------------
 
 This program consists of a set of scripts designed for key reasoning tasks frequently encountered in ontology design and verification. At the moment it focuses on automating tasks that can be accomplished independent of the semantic of concepts and relations. These tasks are consistency checking of ontologies and their modules as well as checking whether competency questions, providing as ''lemmas'', are entailed.
 
-While the program primarily targets first-order ontologies specified in the Common Logic (CL) syntax, some parts of it can also be used for reasoning about ontologies in LADR (Prover9/Mace4) or TPTP syntax (accepted by many first-order theorem provers and model finders, including Vampire, IProver and Paradox). The tasks are accomplished by running existing automated theorem provers and model finders in parallel to establish consistency or inconsistency of an ontology or a module thereof, or to prove a sentence from an ontology (or module) or to find a counterexample of the sentence.
+While the program primarily targets first-order ontologies specified in the Common Logic (CL) syntax, some parts of it can also be used for reasoning about ontologies in LADR (Prover9/Mace4) or TPTP syntax (accepted by many first-order theorem provers and model finders). The tasks are accomplished by running existing automated theorem provers and model finders in parallel to establish consistency or inconsistency of an ontology or a module thereof, or to prove a sentence from an ontology (or module) or to find a counterexample of the sentence.
 Moreover, the tool exploits the modularity of ontologies, which manifests itself in its file CL imports structure. 
 
-
-GUI:
----- 
-* Navigate to the gui subfolder
-* Execute the gui_alpha.py file with python
-
-
 In the near future it will be integrated with COLORE to provide design, verification, and other reasoning support for all ontologies in the repository.
+
 
 Troubleshooting:
 ----------------
 
 certain errors (for example "bad magic number in 'macleod': b'\x03\xf3\r\n': ImportError") that appear after updating the repository locally can be fixed by deleting the Python cache for the macleod directory. This can be accomplished with the command "find . -name \*.pyc -delete"
+
+
+GUI:
+----
+
+The GUI is currently in alpha state and might even be broken due to recent changes in other components of macleod.
+The main capabilities (when working) of the GUI are:
+* open an ontology (a clif file) and visualize all its imports
+* execute basic tasks (verification, conversion to LADR, TPTP)

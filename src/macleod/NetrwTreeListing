@@ -1,0 +1,17 @@
+../
+scripts/
+| __pycache__/
+| macleod.egg-info/
+| __init__.py*
+| check_consistency.py*
+| check_consistency_all.py*
+| check_nontrivial_consistency.py*
+| delete_output.py*
+| licence.py*
+| prove_lemma.py*
+| prove_lemma_all.py*
+| check_consistency_new.py
+| clif_converter.py
+| parser.py
+| prove_lemma_new.py
+| task_specs
