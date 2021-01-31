@@ -16,7 +16,9 @@ It is recommended to create a virtual environment to work out of:
 python -m venv ve
 # Activate the newly created virtual environment
 ve/scripts/activate.bat
+```
 
+```bash
 # On Linux hosts with Python3 installed
 python3 -m ve && . ve/bin/active
 ```
@@ -26,7 +28,7 @@ Once the virtual environment has been created and activated clone this repositor
 ```bash
 # Clone the repository using https or ssh
 git clone https://github.com/thahmann/macleod.git
-# Go to the folder that contains the cloned repository (e.g. "%USERPROFILE%\GitHub\macleod\")
+# Go to the folder that contains the cloned repository (e.g. "%USERPROFILE%\GitHub\macleod\" by default on Windows hosts; a location like "/home/git/macleod" on Linux hosts)
 cd macleod
 
 # Install macleod and all dependencies via pip
@@ -36,11 +38,11 @@ pip install .
 pip install .[GUI]
 ```
 
-As a final step, the configuration file and provers need to be provided:
+As a next step, the configuration files need to be put in place:
 
 ```bash
 # On Windows hosts:
-# Create a folder `macleod' in your home directory
+# Go to your home directory and create a subfolder `macleod'
 cd %USERPROFILE%
 mkdir macleod
 cd macleod
@@ -48,6 +50,22 @@ cd macleod
 copy "%USERPROFILE%\GitHub\macleod\conf\macleod_win.conf .
 copy "%USERPROFILE%\GitHub\macleod\conf\logging.conf .
 ```
+
+
+```bash
+# On Linux hosts:
+# Go to your home directory and create a subfolder `macleod'
+cd ~
+mkdir macleod
+cd macleod
+# copy the configuration files from the github folder to this new folder 
+cp "/home/git/macleod/conf/macleod_linux.conf .
+cp "/home/git/macleod/conf/logging.conf .
+```
+
+As a final step, add the theorem provers and model finders to be used for ontology verification and proving of lemmas:
+Note: The provers are not needed for translation to TPTP, LADR or for extraction of OWL ontologies.
+
 
 Usage
 -----
