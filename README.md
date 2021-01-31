@@ -36,6 +36,19 @@ pip install .
 pip install .[GUI]
 ```
 
+As a final step, the configuration file and provers need to be provided:
+
+```bash
+# On Windows hosts:
+# Create a folder `macleod' in your home directory
+cd %USERPROFILE%
+mkdir macleod
+cd macleod
+# copy the configuration files from the github folder to this new folder 
+copy "%USERPROFILE%\GitHub\macleod\conf\macleod_win.conf .
+copy "%USERPROFILE%\GitHub\macleod\conf\logging.conf .
+```
+
 Usage
 -----
 
