@@ -28,7 +28,9 @@ Once the virtual environment has been created and activated clone this repositor
 ```bash
 # Clone the repository using https or ssh
 git clone https://github.com/thahmann/macleod.git
-# Go to the folder that contains the cloned repository (e.g. "%USERPROFILE%\GitHub\macleod\" by default on Windows hosts; a location like "/home/git/macleod" on Linux hosts)
+# Go to the folder that contains the cloned repository,
+# e.g. "%USERPROFILE%\GitHub\macleod\" by default on Windows hosts,
+# or a location like "/home/git/macleod" on Linux hosts
 cd macleod
 
 # Install macleod and all dependencies via pip
