@@ -7,7 +7,7 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 
 from pathlib import Path
 from configparser import ConfigParser
-import os, platform, logging, logging.config
+import sys, os, platform, logging, logging.config
 
 #macleod_dir = os.path.realpath(__file__).rsplit(os.sep, 1)[0] + os.sep + '..'
 
@@ -35,14 +35,20 @@ class MacleodConfigParser(object):
                 config_file = os.path.join(config_file, MAC_config_file)
             else:
                 config_file = os.path.join(config_file, LINUX_config_file)
+            config_file = os.path.abspath(config_file)
 
-            logging.getLogger(__name__).info('config file found: ' + str(config_file))
-            MacleodConfigParser.__config_file = os.path.abspath(config_file)
+            if os.path.isfile(config_file):
+                logging.getLogger(__name__).info('CONFIG FILE FOUND: ' + str(config_file))
+            else:
+                logging.getLogger(__name__).error('ABORTING; CONFIG FILE NOT FOUND: ' + str(config_file))
+                sys.exit(1)
+            MacleodConfigParser.__config_file = config_file
             MacleodConfigParser.__instance = ConfigParser()
             MacleodConfigParser.__instance.read(MacleodConfigParser.__config_file)
 
         else:
-            logging.getLogger(__name__).debug('Existing MacleodConfigParser')
+            print('Using existing MacleodConfigParser')
+            logging.getLogger(__name__).debug('Using existing MacleodConfigParser')
         return MacleodConfigParser.__instance
 
     def find_config (filename):
@@ -53,7 +59,10 @@ class MacleodConfigParser(object):
             filename = os.path.normpath(os.path.join(os.path.abspath(os.path.curdir), filename))
             if os.path.isfile(filename):
                 logging.getLogger(__name__).debug(filename + " FOUND")
+            else:
+                logging.getLogger(__name__).error("CANNOT FIND " + filename)
         except IOError:
+            logging.getLogger(__name__).error("CANNOT FIND " + filename)
             pass
         return filename
 
@@ -67,7 +76,8 @@ def read_config(section, key, file=None):
     """read a value from the MacLeod configuration file."""
     if file is None:
         try:
-            return MacleodConfigParser().get(section, key)
+            mcp = MacleodConfigParser()
+            return mcp.get(section, key)
         except NoOptionError as e:
             logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     else:
