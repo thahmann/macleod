@@ -84,7 +84,8 @@ cp "/home/git/macleod/conf/macleod_linux.conf .
 cp "/home/git/macleod/conf/logging.conf .
 ```
 
-In a final step, add the binaries of the theorem provers and model finders to be used for ontology verification and proving of lemmas to the "macleod" directory and edit the configuration file "maleod_win", "macleod_linux" or "macleod_mac" as necessary. In particular the commands for the utilized theorem provers and model finders must use the correct paths. 
+In a final step, add the binaries of the theorem provers and model finders to be used for ontology verification and proving of lemmas to the "macleod" directory and edit the configuration file "maleod_win", "macleod_linux" or "macleod_mac" as necessary. In particular the commands for the utilized theorem provers and model finders must use the correct paths (if not on the PATH variable) and commands. Likewise, make sure that in *logging.conf* the *args* parameter of the section *[handler_fHandler]* uses the correct path for your host.
+
 *Note: The provers are not needed for translation to TPTP, LADR or for extraction of OWL ontologies.*
 
 
