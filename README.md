@@ -1,6 +1,25 @@
 Macleod
 ======================================================
 
+About the project:
+------------------
+
+This program consists of a set of scripts designed for key reasoning tasks frequently encountered when desiging and verifying (testing) ontologies written in the CLIF dialect of the Common Logic standard. Note that the program currently supports only a limited subset of the full semantics of Common Logic: it only supports the standard logical connectives (if, iff, and, or, not) and quantifiers (exists, forall) for writing first-order logic axioms and unrestricted importation of the axiom from another CLIF file. It does not support other module semantics  and syntactic sugar like sequence markers. 
+
+The most common tasks supported at the moment:
+* Translating a single CLIF file (a "module") or a CLIF ontology (a single CLIF file and its import closure) to formats supported by FOL reasoners: 
+** TPTP, which is supported by all reasoners participating in the annual theorem proving competition (ATP) including Vampire and the model finder Paradox 
+** LADR, which is supported by the theorem prover Prover9 and its accompanying model finder Mace4
+* Extracting an OWL approximation of a CLIF ontology or module 
+* Verifying the logical consistency of a CLIF ontology or module by invoking a model finder like Mace4 or Paradox
+* Verifying the *non-trivial* logical consistency of a CLIF ontology or module by adding existential statements that demand the existence and non-existence of each new concept and relation for some individuals
+* Proving theorems/lemmas that encode intended consequences of an ontology or module, such as properties of concepts and relations or competency questions
+
+The program provides reusable functionality to parse CLIF files and represents them using an internal data structure that captures the logic of FOL. This structure can be further manipulated (e.g. converted into normal forms like CNF or PNF) and translated into various other syntaxes (such as TPTP or OWL). 
+
+The reasoning tasks are accomplished by running existing automated theorem provers and model finders in parallel to establish consistency or inconsistency of an ontology or module, or to prove a sentence from an ontology (or module) or to find a counterexample of the sentence. Note that the reasoners are external to Macleod, they are called via the command line. For licencing reasons, they are not distributed with Macleod and must be installed separately as outlined in the installation instructions (many are available as pre-compiled binaries).
+
+
 Installation
 ------------
 
@@ -16,7 +35,9 @@ It is recommended to create a virtual environment to work out of:
 python -m venv ve
 # Activate the newly created virtual environment
 ve/scripts/activate.bat
+```
 
+```bash
 # On Linux hosts with Python3 installed
 python3 -m ve && . ve/bin/active
 ```
@@ -26,7 +47,9 @@ Once the virtual environment has been created and activated clone this repositor
 ```bash
 # Clone the repository using https or ssh
 git clone https://github.com/thahmann/macleod.git
-# Go to the folder that contains the cloned repository (e.g. "%USERPROFILE%\GitHub\macleod\")
+# Go to the folder that contains the cloned repository,
+# e.g. "%USERPROFILE%\GitHub\macleod\" by default on Windows hosts,
+# or a location like "/home/git/macleod" on Linux hosts
 cd macleod
 
 # Install macleod and all dependencies via pip
@@ -35,6 +58,35 @@ pip install .
 # Optionally you can install the GUI components as well (see more information about the GUI alpha version below)
 pip install .[GUI]
 ```
+
+As a next step, the configuration files need to be put in place:
+
+```bash
+# On Windows hosts:
+# Go to your home directory and create a subfolder `macleod'
+cd %USERPROFILE%
+mkdir macleod
+cd macleod
+# copy the configuration files from the github folder to this new folder 
+copy "%USERPROFILE%\GitHub\macleod\conf\macleod_win.conf .
+copy "%USERPROFILE%\GitHub\macleod\conf\logging.conf .
+```
+
+
+```bash
+# On Linux hosts:
+# Go to your home directory and create a subfolder `macleod'
+cd ~
+mkdir macleod
+cd macleod
+# copy the configuration files from the github folder to this new folder 
+cp "/home/git/macleod/conf/macleod_linux.conf .
+cp "/home/git/macleod/conf/logging.conf .
+```
+
+In a final step, add the binaries of the theorem provers and model finders to be used for ontology verification and proving of lemmas to the "macleod" directory and edit the configuration file "maleod_win", "macleod_linux" or "macleod_mac" as necessary. In particular the commands for the utilized theorem provers and model finders must use the correct paths. 
+*Note: The provers are not needed for translation to TPTP, LADR or for extraction of OWL ontologies.*
+
 
 Usage
 -----
@@ -56,16 +108,6 @@ After macleod is installed a number of scripts will be available to run from wit
 ```
 
 To check the consistency of modules you will need to place the prover executables into the provers/ sub-directory. Once you have the provers in the correct directory edit the configuration file for your platform within the conf/ sub-directory. 
-
-About the project:
-------------------
-
-This program consists of a set of scripts designed for key reasoning tasks frequently encountered in ontology design and verification. At the moment it focuses on automating tasks that can be accomplished independent of the semantic of concepts and relations. These tasks are consistency checking of ontologies and their modules as well as checking whether competency questions, providing as ''lemmas'', are entailed.
-
-While the program primarily targets first-order ontologies specified in the Common Logic (CL) syntax, some parts of it can also be used for reasoning about ontologies in LADR (Prover9/Mace4) or TPTP syntax (accepted by many first-order theorem provers and model finders). The tasks are accomplished by running existing automated theorem provers and model finders in parallel to establish consistency or inconsistency of an ontology or a module thereof, or to prove a sentence from an ontology (or module) or to find a counterexample of the sentence.
-Moreover, the tool exploits the modularity of ontologies, which manifests itself in its file CL imports structure. 
-
-In the near future it will be integrated with COLORE to provide design, verification, and other reasoning support for all ontologies in the repository.
 
 
 Troubleshooting:
