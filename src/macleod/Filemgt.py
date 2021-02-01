@@ -6,6 +6,8 @@ Major revision (restructured as a module with new name filemgt) on 2013-03-14
 '''
 
 from pathlib import Path
+import logging
+import logging.config
 from configparser import ConfigParser
 import sys, os, platform, logging, logging.config
 
@@ -14,7 +16,6 @@ import sys, os, platform, logging, logging.config
 WIN_config_file = 'macleod_win.conf'
 LINUX_config_file = 'macleod_linux.conf'
 MAC_config_file = 'macleod_mac.conf'
-
 
 class MacleodConfigParser(object):
 
@@ -26,7 +27,6 @@ class MacleodConfigParser(object):
     def __new__(cls):
         """ instantiating a single instance of a ConfigParser if it doesn't already exist"""
         if MacleodConfigParser.__instance is None:
-            logging.getLogger(__name__).debug('Creating MacleodConfigParser')
             config_file = MacleodConfigParser.__config_dir
 
             if str(platform.system()) == 'Windows':
@@ -38,36 +38,36 @@ class MacleodConfigParser(object):
             config_file = os.path.abspath(config_file)
 
             if os.path.isfile(config_file):
-                logging.getLogger(__name__).info('CONFIG FILE FOUND: ' + str(config_file))
+                MacleodConfigParser.__config_file = config_file
+                MacleodConfigParser.__instance = ConfigParser()
+                MacleodConfigParser.__instance.read(MacleodConfigParser.__config_file)
+
+                # start logging according to the logging configuration file
+                home_dir = MacleodConfigParser.__instance.get('system', 'home')
+                log_conf = MacleodConfigParser.__instance.get('system', 'log_config')
+                log_conf = os.path.abspath(os.path.join(home_dir, log_conf))
+                if os.path.isfile(log_conf):
+                    logging.config.fileConfig(log_conf)
+                    logging.getLogger(__name__).info('Config file read: ' + str(config_file))
+                    logging.getLogger(__name__).info('Logging configuration file read: ' + log_conf)
+                    logging.getLogger(__name__).debug('Started logging with MacleodConfigParser')
+                else:
+                    logger = logging.getLogger(__name__)
+                    logger.setLevel(logging.DEBUG)
+                    logger.warning('CONFIG FILE READ: ' + config_file)
+                    logger.error('LOGGING CONFIGURATION FILE NOT FOUND: ' + log_conf)
+
             else:
                 logging.getLogger(__name__).error('ABORTING; CONFIG FILE NOT FOUND: ' + str(config_file))
                 sys.exit(1)
-            MacleodConfigParser.__config_file = config_file
-            MacleodConfigParser.__instance = ConfigParser()
-            MacleodConfigParser.__instance.read(MacleodConfigParser.__config_file)
 
-        else:
-            print('Using existing MacleodConfigParser')
-            logging.getLogger(__name__).debug('Using existing MacleodConfigParser')
+
+
         return MacleodConfigParser.__instance
-
-    def find_config (filename):
-        """tries to find some configuration file with the path filename."""
-        print("Trying to find config file " + filename)
-        try:
-            logging.getLogger(__name__).debug("Looking for " + filename + " at: " + os.path.curdir)
-            filename = os.path.normpath(os.path.join(os.path.abspath(os.path.curdir), filename))
-            if os.path.isfile(filename):
-                logging.getLogger(__name__).debug(filename + " FOUND")
-            else:
-                logging.getLogger(__name__).error("CANNOT FIND " + filename)
-        except IOError:
-            logging.getLogger(__name__).error("CANNOT FIND " + filename)
-            pass
-        return filename
 
     def get(self, section, key):
         return self.__instance.get(section, key)
+
 
 
 def read_config(section, key, file=None):
@@ -79,7 +79,7 @@ def read_config(section, key, file=None):
             mcp = MacleodConfigParser()
             return mcp.get(section, key)
         except NoOptionError as e:
-            logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
+            logging.getLogger(__name__).warning('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     else:
         CONFIG_PARSER_TEMP = ConfigParser()
         if os.path.isfile(file):
@@ -87,7 +87,7 @@ def read_config(section, key, file=None):
             try:
                 return CONFIG_PARSER_TEMP.get(section,key)
             except NoOptionError as e:
-                logging.getLogger(__name__).warn('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
+                logging.getLogger(__name__).warning('COULD NOT FIND OPTION: ' + key + ' in section ' + section)
     return None
 
 

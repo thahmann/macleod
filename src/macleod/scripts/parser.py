@@ -2,13 +2,14 @@ import argparse
 import logging
 import sys
 
+
 LOGGER = logging.getLogger(__name__)
-logging.getLogger().setLevel(logging.DEBUG)
 
 import macleod.parsing.parser as Parser
 
 def main():
 
+    LOGGER.info('Called script parse_clif')
     # Setup the command line arguments to the program
     parser = argparse.ArgumentParser(description='Utility function to read and translate Common Logic Interchange Format (.clif) files and print to stdout.')
     parser.add_argument('-f', '--file', type=str, help='Path to Clif file to parse', required=True)
