@@ -103,8 +103,43 @@ After macleod is installed a number of scripts will be available to run from wit
 ∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & P(y,z) & ∀(v,w)[(~(S(v) & S(w) & P(v,z) & ~PO(v,y) & P(w,x)) | ~Cont(w,v))]) | BCont(x,z))]
 ∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & Cont(z,x)) | BCont(z,y))]
 ∀(x,y)[((~(S(x) & S(y) & BCont(x,y)) | (S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))])) & (~(S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))]) | (S(x) & S(y) & BCont(x,y))))]
+```
+or
 
-# To launch the GUI
+```bash
+[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -t -o --resolve -b "C:/Users/torsten/GitHub/colore/ontologies/" -s "http://colore.oor.net/"
+2021-02-02 06:16:51,685 macleod.Filemgt                INFO     Config file read: C:\Users\torsten\macleod\macleod_win.conf
+2021-02-02 06:16:51,687 macleod.Filemgt                INFO     Logging configuration file read: C:\Users\torsten\macleod\logging.conf
+2021-02-02 06:16:51,710 macleod.scripts.parser         INFO     Called script parse_clif
+Cyclic import found: C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\definitions\min_max_dim.clif imports http://colore.oor.net/multidim_space_dim/dim_prime_linear_unbounded.clif
+fof(axiom10, axiom, (? [X] :  (mindim(X)))).
+2021-02-02 06:16:51,736 macleod.scripts.parser         INFO     Converting C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear.clif to TPTP format
+Processsing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear.clif
+Found import C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear_unbounded.clif
+New import C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear_unbounded.clif
+Found import C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\definitions\min_max_dim.clif
+New import C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\definitions\min_max_dim.clif
+Processsing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\definitions\min_max_dim.clif
+Found import C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear_unbounded.clif
+Processsing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear_unbounded.clif
+Processing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear.clif
+Processing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\dim_prime_linear_unbounded.clif
+Processing C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\definitions\min_max_dim.clif
+fof(axiom10, axiom, (? [X] :  (mindim(X)))).
+fof(axiom20, axiom, (! [X] : ! [Y] :  ((~(leq(X,Y)) | s(X))))).
+fof(axiom30, axiom, (! [X] : ! [Y] :  ((~(leq(X,Y)) | s(Y))))).
+fof(axiom40, axiom, (! [X] :  ((~(zex(X)) | s(X))))).
+fof(axiom50, axiom, (! [X] :  ((~(s(X)) | leq(X,X))))).
+fof(axiom60, axiom, (! [X] : ! [Y] : ! [Z] :  ((~(leq(X,Y) & leq(Y,Z)) | leq(X,Z))))).
+fof(axiom70, axiom, (! [X] : ! [Y] :  ((~(zex(X) & zex(Y)) | X=Y)))).
+fof(axiom80, axiom, (! [X] : ! [Y] :  ((~(zex(X) & s(Y)) | leq(X,Y))))).
+fof(axiom90, axiom, (! [X] :  (((~(maxdim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y)) | leq(Y,X)))))) & (~(s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y)) | leq(Y,X))))) | maxdim(X)))))).
+fof(axiom100, axiom, (! [X] :  (((~(mindim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y) & ~(zex(Y))) | leq(X,Y)))))) & (~(s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y) & ~(zex(Y))) | leq(X,Y))))) | mindim(X)))))).
+2021-02-02 06:16:51,741 macleod.scripts.parser         INFO     Finished writing TPTP file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\conversions\dim_prime_linear.all.tptp
+```
+
+To launch the GUI
+```bash
 [rob@demo]$ macleod
 ```
 
