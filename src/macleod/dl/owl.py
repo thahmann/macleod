@@ -2,6 +2,7 @@ import functools
 import itertools
 import xml.etree.ElementTree as ET
 import enum as Enum
+import xml.dom.minidom
 
 class Owl(object):
     """
@@ -56,9 +57,16 @@ class Owl(object):
         ET.register_namespace('rdfs', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#')
         self.root = ET.fromstring(start)
 
-    def tostring(self):
+    def tostring(self, pretty_print=False):
 
-        return ET.tostring(self.root, encoding="unicode", short_empty_elements=False)
+        xmlstring = ET.tostring(self.root, encoding="unicode", short_empty_elements=False)
+        if not pretty_print:
+            return xmlstring
+        else:
+            dom = xml.dom.minidom.parseString(xmlstring)
+            return dom.toprettyxml()
+
+
 
     def declare_class(self, class_name):
         """

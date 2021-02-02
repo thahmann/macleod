@@ -28,8 +28,8 @@ def main():
     optionalArguments.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
-    optionalArguments.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files (bathpath)', default='.')
-    optionalArguments.add_argument('-s', '--sub', required='--resolve' in sys.argv, type=str, help='String to replace with basepath found in imports', default='.')
+    optionalArguments.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files (basepath)', default=".")
+    optionalArguments.add_argument('-s', '--sub', default='http://colore.oor.net/', type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -42,6 +42,12 @@ def main():
         print("\n-- Translation --\n")
 
         print(onto.tostring())
+
+        if args.output:
+            filename = write_owl_file(onto, args.resolve)
+            logging.getLogger(__name__).info("Produced OWL file " + filename)
+
+
         exit(0)
 
 
@@ -62,39 +68,58 @@ def main():
     if args.output:
         if args.tptp:
             filename = write_tptp_file(ontology, args.resolve)
-            logging.getLogger(__name__).info("Finished writing TPTP file " + filename)
+            logging.getLogger(__name__).info("Produced TPTP file " + filename)
 #        elif args.ladr:
 #            print (ontology.to_ladr())
         else:
             print(ontology)
 
+def get_output_filename(ontology, resolve, output_type):
 
-def write_tptp_file(ontology, resolve, loc=default_dir, prefix=default_prefix):
+    # the following assumes that the names of the configuration sections
+    # are the same as the names of the output (tptp/ladr/owl)
+    if resolve:
+        ending = Filemgt.read_config(output_type, 'all_ending')
+    else:
+        ending = ""
+
+    ending = ending + Filemgt.read_config(output_type, 'ending')
+
+    output_filename = Filemgt.get_full_path(ontology.name,
+                                           folder=Filemgt.read_config(output_type,'folder'),
+                                           ending=ending)
+
+    return output_filename
+
+def write_owl_file(ontology, resolve):
+
+    logging.getLogger(__name__).info("Approximating " + ontology.name + " as an OWL ontology")
+
+    output_filename = get_output_filename(ontology, resolve, 'owl')
+
+    with open(output_filename, "w") as f:
+        f.write(ontology.tostring(pretty_print=True))
+    f.close()
+
+    return output_filename
+
+
+def write_tptp_file(ontology, resolve):
 
     logging.getLogger(__name__).info("Converting " + ontology.name + " to TPTP format")
 
     results = ontology.to_tptp(resolve)
     # results = ontology.to_ladr(resolve)
 
-    # the following assumes that the names of the configuration sections are the same as the names of the output (tptp/ladr)
-    if resolve:
-        ending = Filemgt.read_config('tptp', 'all_ending')
-    else:
-        ending = ""
+    output_filename = get_output_filename(ontology, resolve, 'tptp')
 
-    ending = ending + Filemgt.read_config('tptp', 'ending')
-
-    output_file_name = Filemgt.get_full_path(ontology.name,
-                                           folder=Filemgt.read_config('tptp','folder'),
-                                           ending=ending)
-
-    with open(output_file_name, "w") as f:
+    with open(output_filename, "w") as f:
         for sentence in results:
             print(sentence)
             f.write(sentence + "\n")
         f.close()
 
-    return output_file_name
+    return output_filename
 
 
 if __name__ == '__main__':
