@@ -331,6 +331,12 @@ class Ontology(object):
                 seen_paths.append(path)
                 unprocessed += ontology.imports.items()
 
+        # keeping track of classes (unary predicates) and properties (binary predicates) encountered
+        # to avoid redundant declarations
+        # predicates with the same arity and name are assumed to be identical
+        classes = set()
+        properties = set()
+
         # Loop over each Axiom and filter applicable patterns
         for axiom, path in axioms:
 
@@ -338,12 +344,15 @@ class Ontology(object):
             pcnf = axiom.ff_pcnf()
             print('FF-PCNF: {}'.format(pcnf))
 
-            # Shim to add ensure every class and property is captured
             for unary in axiom.unary():
-                onto.declare_class(unary.name)
+                if unary.name not in classes:
+                    classes.add(unary.name)
+                    onto.declare_class(unary.name)
 
             for binary in axiom.binary():
-                onto.declare_property(binary.name)
+                if binary.name not in properties:
+                    properties.add(binary.name)
+                    onto.declare_property(binary.name)
 
             for pruned in Translation.translate_owl(pcnf):
 
