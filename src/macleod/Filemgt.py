@@ -103,6 +103,7 @@ def edit_config(section, key, value, file):
 def get_ontology_basepath():
     default_ontology_path = read_config('system','path')
     default_cl_prefix = read_config('cl','prefix')
+    #logging.getLogger(__name__).info('Ontology URI ' + default_cl_prefix + ' is used to substitute for path ' + default_ontology_path )
     return default_cl_prefix, default_ontology_path
 
 

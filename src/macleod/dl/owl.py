@@ -21,7 +21,7 @@ class Owl(object):
         INVERSE = 1
         OTHER = 2
 
-    def __init__(self, name):
+    def __init__(self, filename, uri):
         """
         Create a new Owl class
 
@@ -30,12 +30,14 @@ class Owl(object):
 
         template = '''<?xml version="1.0"?>
         <Ontology xmlns="http://www.w3.org/2002/07/owl#"
-            xml:base="{0}"
+            xml:base="{0}#"
             xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
             xmlns:xml="http://www.w3.org/XML/1998/namespace"
             xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
             xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
-            ontologyIRI="{0}">
+            ontologyIRI="{0}"
+            versionIRI="{0}">
+            <Prefix name="" IRI="{0}#"/>
             <Prefix name="owl" IRI="http://www.w3.org/2002/07/owl#"/>
             <Prefix name="rdf" IRI="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
             <Prefix name="xml" IRI="http://www.w3.org/XML/1998/namespace"/>
@@ -44,12 +46,13 @@ class Owl(object):
         </Ontology>
         '''
 
-        self.name = name
-        self.uri = self.name + "#"
+        self.name = filename
+        self.base_uri = uri
+        self.uri = ''
         self.properties = {}
         self.classes = {}
         self.individuals = {}
-        start = template.format(name, name + "#")
+        start = template.format(self.base_uri)
         ET.register_namespace('', 'http://www.w3.org/2002/07/owl#')
         ET.register_namespace('rdf', 'http://www.w3.org/2000/01/rdf-schema#')
         ET.register_namespace('xml', 'http://www.w3.org/XML/1998/namespace')

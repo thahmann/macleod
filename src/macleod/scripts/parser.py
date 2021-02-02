@@ -28,13 +28,18 @@ def main():
     optionalArguments.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
-    optionalArguments.add_argument('-b', '--base', required='--resolve' in sys.argv, type=str, help='Path to directory containing ontology files (basepath)', default=".")
-    optionalArguments.add_argument('-s', '--sub', default='http://colore.oor.net/', type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+    optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
+    optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
 
     # Parse the command line arguments
     args = parser.parse_args()
 
     # Parse out the ontology object then print it nicely
+    default_basepath = Filemgt.get_ontology_basepath()
+    if args.sub is None:
+        args.sub = default_basepath[0]
+    if args.base is None:
+        args.base = default_basepath[1]
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
     if args.owl:

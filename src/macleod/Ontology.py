@@ -83,6 +83,7 @@ class Ontology(object):
             self.basepath = Filemgt.get_ontology_basepath()
         else:
             self.basepath = basepath
+        #logging.getLogger(__name__).info('Using URI ' + self.basepath[0] + ' to substitute for path ' + self.basepath[1])
 
         self.resolve = False
 
@@ -317,7 +318,9 @@ class Ontology(object):
         """
 
         # Create new OWL ontology instance
-        onto = Owl(self.name.replace(self.basepath[1], self.basepath[0]).replace('.clif', '.owl'))
+        # need to use normalized path to work properly on Windows
+        onto = Owl(self.name,
+                   self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
 
         # Create a nice long list of all axioms first
         seen_paths = []
