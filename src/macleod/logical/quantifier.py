@@ -310,7 +310,9 @@ class Universal(Quantifier):
 
     def __repr__(self):
 
-        return "{}({})[{}]".format(u"\u2200", ",".join(self.variables), repr(self.terms[0]))
+        # problems with unicode characters printing to stdout or a file
+        # return "{}({})[{}]".format(u"\u2200", ",".join(self.variables), repr(self.terms[0]))
+        return "{}{}\;[{}]".format("\\forall ", ",".join(self.variables), repr(self.terms[0]))
 
 
 class Existential(Quantifier):
@@ -344,4 +346,6 @@ class Existential(Quantifier):
 
     def __repr__(self):
 
-        return "{}({})[{}]".format(u"\u2203", ",".join(self.variables), repr(self.terms[0]))
+        # problems with unicode characters printing to stdout or a file
+        # return "{}({})[{}]".format(u"\u2203", ",".join(self.variables), repr(self.terms[0]))
+        return "{}{}\;[{}]".format("\exists ", ",".join(self.variables), repr(self.terms[0]))
