@@ -103,7 +103,7 @@ class Ontology(object):
             temp_axioms.append(axiom.ff_pcnf())
 
         self.axioms = temp_axioms
-        print(self.axioms)
+        return self.axioms
 
     def resolve_imports(self, resolve=False):
         """
@@ -375,7 +375,10 @@ class Ontology(object):
 
         # TODO: Find another way to do this instead of case by case
         # etree.ElementTree html encodes special characters. Protege does not like this.
-        return onto.tostring()
+        # return onto.tostring()
+        return onto
+
+
 
     def __repr__(self):
         """
