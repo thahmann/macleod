@@ -24,7 +24,7 @@ def main():
     optionalArguments.add_argument('-o', '--output', action='store_true', help='Write output to file', default=False)
     optionalArguments.add_argument('-p', '--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
     optionalArguments.add_argument('-t', '--tptp', action='store_true', help='Convert the read axioms into TPTP format', default=False)
-    #optionalArguments.add_argument('-l', '--ladr', action='store_true', help='Convert the read axioms into LADR format', default=False)
+    optionalArguments.add_argument('-l', '--ladr', action='store_true', help='Convert the read axioms into LADR format', default=False)
     optionalArguments.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
@@ -60,13 +60,13 @@ def main():
         print(ontology.to_ffpcnf())
 
     # printing output to stdout
-    for axiom in ontology.axioms:
 
-        if args.tptp:
-            print (axiom.to_tptp())
- #       elif args.ladr:
- #           print (axiom.to_ladr())
-        else:
+    if args.tptp:
+        print (ontology.to_tptp(args.resolve))
+    elif args.ladr:
+        print (ontology.to_ladr(args.resolve))
+    else:
+        for axiom in ontology.axioms:
             print (axiom)
 
     # if output to file is also required

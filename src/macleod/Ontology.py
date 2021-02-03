@@ -193,22 +193,20 @@ class Ontology(object):
 
         self.imports[path] = None
         
-    def to_tptp(self, resolve=True):
+    def to_tptp(self, resolve=False):
         """
         Translates all axioms in the module and, if present, in any imported modules to the TPTP format
         """
         tptp_output = []
 
-        if resolve:
-            all_modules = self.get_all_modules()
-        else:
-            all_modules = [self]
+        for (axiom, path) in self.get_all_axioms(resolve):
+            tptp_output.append(axiom.to_tptp())
 
-        for module in all_modules:
-            print("Processing " + module.name)
-            for axiom in module.axioms:
-                tptp_output.append(axiom.to_tptp())
-                #print(axiom)
+        # if resolve:
+        #     self.resolve_imports(resolve)
+        #     if len(self.imports)>0:
+        #         for import_name in self.imports:
+        #             logging.getLogger(__name__).info("Processing import " + import_name)
 
         return tptp_output
 
@@ -309,7 +307,50 @@ class Ontology(object):
         logging.getLogger(__name__).info("CONSOLIDATED RESULT: " + str(return_value))
         return (return_value, fastest_reasoner)
 
-    def to_owl(self):
+    def get_imported_axioms(self):
+        """
+        Traverses over all imports to create and return a list of all axioms found in the import closure.
+        The axioms directly contained in the ontology are excluded from this list but can be accessed via self.axioms
+
+        :return List imported_axioms, a list of tuples of the form (axiom, module name)
+        """
+
+        imported_axioms = []
+        self.resolve_imports(resolve=True)
+
+        seen_paths = []
+        unprocessed = [x for x in self.imports.items()]
+        while unprocessed:
+            path, ontology = unprocessed.pop()
+            if path not in seen_paths and ontology is not None:
+                logging.getLogger(__name__).debug("Adding imported axioms from " + path)
+                imported_axioms += [(a, path) for a in ontology.axioms]
+                seen_paths.append(path)
+                unprocessed += ontology.imports.items()
+
+        logging.getLogger(__name__).info("Collected " + str(len(imported_axioms)) + " imported axioms")
+
+        return imported_axioms
+
+    def get_all_axioms(self, resolve=True):
+        """
+        Gets a list of all axioms found in the ontology itself or in its import closure
+
+        :param resolve: Boolean that indicates whether to include all axioms from the import closure as well
+        :return: axioms: list of all axioms (concatenation of axioms from the ontology and the imported axioms)
+        """
+
+        axioms = [(x, self.name) for x in self.axioms[:]]
+        logging.getLogger(__name__).info("Found " + str(len(axioms)) + " axioms in " + self.name)
+
+        if resolve:
+            axioms +=self.get_imported_axioms()
+            logging.getLogger(__name__).info("Working from a total of " + str(len(axioms)) + " axioms (including imported ones)")
+
+        return axioms
+
+
+    def to_owl(self, resolve=True):
         """
         Return a string representation of this ontology in OWL format. If this ontology
         contains imports will translate those as well and concatenate all the axioms.
@@ -322,17 +363,7 @@ class Ontology(object):
         onto = Owl(self.name,
                    self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
 
-        # Create a nice long list of all axioms first
-        seen_paths = []
-        axioms = [(x, self.name) for x in self.axioms[:]]
-
-        unprocessed = [x for x in self.imports.items()]
-        while unprocessed:
-            path, ontology = unprocessed.pop()
-            if path not in seen_paths and ontology is not None:
-                axioms += [(a, path) for a in ontology.axioms]
-                seen_paths.append(path)
-                unprocessed += ontology.imports.items()
+        axioms = self.get_all_axioms(resolve)
 
         # keeping track of classes (unary predicates) and properties (binary predicates) encountered
         # to avoid redundant declarations
