@@ -74,8 +74,9 @@ def main():
         if args.tptp:
             filename = write_tptp_file(ontology, args.resolve)
             logging.getLogger(__name__).info("Produced TPTP file " + filename)
-#        elif args.ladr:
-#            print (ontology.to_ladr())
+        elif args.ladr:
+            filename = write_ladr_file(ontology, args.resolve)
+            logging.getLogger(__name__).info("Produced LADR file " + filename)
         else:
             print(ontology)
 
@@ -114,7 +115,6 @@ def write_tptp_file(ontology, resolve):
     logging.getLogger(__name__).info("Converting " + ontology.name + " to TPTP format")
 
     results = ontology.to_tptp(resolve)
-    # results = ontology.to_ladr(resolve)
 
     output_filename = get_output_filename(ontology, resolve, 'tptp')
 
@@ -122,6 +122,25 @@ def write_tptp_file(ontology, resolve):
         for sentence in results:
             print(sentence)
             f.write(sentence + "\n")
+        f.close()
+
+    return output_filename
+
+def write_ladr_file(ontology, resolve):
+
+    logging.getLogger(__name__).info("Converting " + ontology.name + " to TPTP format")
+
+    results = ontology.to_ladr(resolve)
+
+    output_filename = get_output_filename(ontology, resolve, 'ladr')
+
+    with open(output_filename, "w") as f:
+        if len(results) > 0:
+            f.write("formulas(sos).\n")
+            for sentence in results:
+                print(sentence)
+                f.write(sentence + "\n")
+            f.write("end_of_list.\n")
         f.close()
 
     return output_filename

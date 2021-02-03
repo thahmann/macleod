@@ -443,26 +443,26 @@ class Axiom(object):
 
             if isinstance(logical, str):
                 return logical
-            elif isinstance(logical, Symbol.Predicate):
+            elif isinstance(logical, Predicate):
                 return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
-            elif isinstance(logical, Symbol.Function):
+            elif isinstance(logical, Function):
                 return "{}({})".format(logical.name, ",".join(logical.variables))
-            elif isinstance(logical, Negation.Negation):
-                if isinstance(logical.terms[0], Negation.Negation):
+            elif isinstance(logical, Negation):
+                if isinstance(logical.terms[0], Negation):
                     # get rid of double negation
                     return ladr_logical(logical.terms[0].terms[0])
-                elif isinstance(logical.terms[0], Symbol.Predicate):
+                elif isinstance(logical.terms[0], Predicate):
                     # put parentheses around single predicates to not mix them up with special-symbol predicates
                     return "-({})".format(ladr_logical(logical.terms[0]))
                 else:
                     return "-{}".format(ladr_logical(logical.terms[0]))
-            elif isinstance(logical, Connective.Conjunction):
+            elif isinstance(logical, Conjunction):
                 return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
-            elif isinstance(logical, Connective.Disjunction):
+            elif isinstance(logical, Disjunction):
                 return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
-            elif isinstance(logical, Quantifier.Universal):
+            elif isinstance(logical, Universal):
                 return "({} {})".format(("all {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
-            elif isinstance(logical, Quantifier.Existential):
+            elif isinstance(logical, Existential):
                 return "({} {})".format(("exists {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
             else:
                 raise ValueError("Not a valid type for LADR output")

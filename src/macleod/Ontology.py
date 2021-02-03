@@ -202,12 +202,6 @@ class Ontology(object):
         for (axiom, path) in self.get_all_axioms(resolve):
             tptp_output.append(axiom.to_tptp())
 
-        # if resolve:
-        #     self.resolve_imports(resolve)
-        #     if len(self.imports)>0:
-        #         for import_name in self.imports:
-        #             logging.getLogger(__name__).info("Processing import " + import_name)
-
         return tptp_output
 
 
@@ -219,21 +213,9 @@ class Ontology(object):
 
         ladr_output = []
 
-        if resolve:
-            all_modules = self.get_all_modules()
-        else:
-            all_modules = [self]
-
-
-        ladr_output.append('formulas(assumptions).')
-
-        for module in all_modules:
-            print("Processing " + module.name)
-            for axiom in module.axioms:
-                ladr_output.append(axiom.to_ladr())
-                #print(axiom)
-
-        ladr_output.append('end_of_list.\n')
+        all_axioms = self.get_all_axioms(resolve)
+        for (axiom, path) in all_axioms:
+            ladr_output.append(axiom.to_ladr())
 
         return ladr_output
 
