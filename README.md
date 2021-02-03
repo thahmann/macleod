@@ -92,7 +92,9 @@ In a final step, add the binaries of the theorem provers and model finders to be
 Usage
 -----
 
-After macleod is installed a number of scripts will be available to run from within the virtual environment:
+After macleod is installed a number of scripts will be available to run from within the virtual environment.
+
+For example to simply parse a CLIF module:
 
 ```bash
 [rob@demo]$ parse_clif -f ../colore/ontologies/multidim_space_codib/codib_down.clif 
@@ -104,10 +106,10 @@ After macleod is installed a number of scripts will be available to run from wit
 ∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & Cont(z,x)) | BCont(z,y))]
 ∀(x,y)[((~(S(x) & S(y) & BCont(x,y)) | (S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))])) & (~(S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))]) | (S(x) & S(y) & BCont(x,y))))]
 ```
-or
+Or to produce a TPTP conversion of a CLIF ontology (which involves resolving all imports):
 
 ```bash
-[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -t -o --resolve -b "C:/Users/torsten/GitHub/colore/ontologies/" -s "http://colore.oor.net/"
+[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -t -o --resolve
 2021-02-02 06:16:51,685 macleod.Filemgt                INFO     Config file read: C:\Users\torsten\macleod\macleod_win.conf
 2021-02-02 06:16:51,687 macleod.Filemgt                INFO     Logging configuration file read: C:\Users\torsten\macleod\logging.conf
 2021-02-02 06:16:51,710 macleod.scripts.parser         INFO     Called script parse_clif
@@ -136,6 +138,15 @@ fof(axiom80, axiom, (! [X] : ! [Y] :  ((~(zex(X) & s(Y)) | leq(X,Y))))).
 fof(axiom90, axiom, (! [X] :  (((~(maxdim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y)) | leq(Y,X)))))) & (~(s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y)) | leq(Y,X))))) | maxdim(X)))))).
 fof(axiom100, axiom, (! [X] :  (((~(mindim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y) & ~(zex(Y))) | leq(X,Y)))))) & (~(s(X) & ~(zex(X)) & (! [Y] :  ((~(s(Y) & ~(zex(Y))) | leq(X,Y))))) | mindim(X)))))).
 2021-02-02 06:16:51,741 macleod.scripts.parser         INFO     Finished writing TPTP file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\conversions\dim_prime_linear.all.tptp
+```
+
+or to generate OWL approximation of an entire ontology:
+
+```bash
+parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif --owl --resolve -o
+[the bulk of the output is omitted here]
+2021-02-02 17:25:07,571 macleod.scripts.parser         INFO     Approximating C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif as an OWL ontology
+2021-02-02 17:25:07,585 macleod.scripts.parser         INFO     Produced OWL file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\owl\codib_simple_curves.all.owl
 ```
 
 To launch the GUI
