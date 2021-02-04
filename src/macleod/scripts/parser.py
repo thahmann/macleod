@@ -44,6 +44,9 @@ def main():
         args.base = default_basepath[1]
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
+    if ontology is None:
+        exit(-1)
+
     # producing OWL output
     if args.owl:
         onto = ontology.to_owl()

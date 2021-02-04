@@ -156,7 +156,7 @@ class Owl(object):
         """
 
         if len(subclass) > 1:
-            subclass_element = self._get_object_union(subclass)
+            subclass_element = self._get_object_intersection(subclass)
         else:
             subclass_element = self.classes[subclass[0]]
 
@@ -238,6 +238,7 @@ class Owl(object):
                 elif sign == Owl.Relations.INVERSE:
                     intersection.append(self._get_object_complement(name))
             else:
+                name = c
                 intersection.append(self.classes[name])
 
         return intersection
