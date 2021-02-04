@@ -219,6 +219,19 @@ class Ontology(object):
 
         return ladr_output
 
+    def to_latex(self, resolve=True):
+        """
+        Translates all axioms in the module and, if present, in any imported modules to a LaTeX representation
+        """
+
+        latex_output = []
+
+        all_axioms = self.get_all_axioms(resolve)
+        for (axiom, path) in all_axioms:
+            latex_output.append("$" + axiom.to_latex() +"$")
+
+        return latex_output
+
 
     def check_consistency (self, resolve=True, options_files = None):
         """ test the input for consistency by trying to find a model or an inconsistency."""

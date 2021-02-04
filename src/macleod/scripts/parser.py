@@ -1,6 +1,6 @@
 import argparse
 import logging
-import sys
+import sys, os
 
 
 LOGGER = logging.getLogger(__name__)
@@ -21,15 +21,17 @@ def main():
     requiredArguments.add_argument('-f', '--file', type=str, help='Path to Clif file to parse', required=True)
 
     optionalArguments = parser.add_argument_group('optional arguments')
-    optionalArguments.add_argument('-o', '--output', action='store_true', help='Write output to file', default=False)
-    optionalArguments.add_argument('-p', '--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
-    optionalArguments.add_argument('-t', '--tptp', action='store_true', help='Convert the read axioms into TPTP format', default=False)
-    optionalArguments.add_argument('-l', '--ladr', action='store_true', help='Convert the read axioms into LADR format', default=False)
-    optionalArguments.add_argument('-c', '--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
-    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
+    optionalArguments.add_argument('--tptp', action='store_true', help='Convert the read axioms into TPTP format', default=False)
+    optionalArguments.add_argument('--ladr', action='store_true', help='Convert the read axioms into LADR format', default=False)
+    optionalArguments.add_argument('--latex', action='store_true', help='Convert the read axioms into LaTeX format', default=False)
+    optionalArguments.add_argument('--enum', action='store_true', help='Enumerate axioms in LaTeX output', default=False)
+    optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
+    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
     optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+    optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
+    optionalArguments.add_argument('--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -42,43 +44,58 @@ def main():
         args.base = default_basepath[1]
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
+    # producing OWL output
     if args.owl:
         onto = ontology.to_owl()
         print("\n-- Translation --\n")
 
         print(onto.tostring())
 
+        # producing OWL file
         if args.output:
             filename = write_owl_file(onto, args.resolve)
             logging.getLogger(__name__).info("Produced OWL file " + filename)
 
-
         exit(0)
 
+    if args.tptp:
+        to_tptp(ontology, args.resolve, args.output)
+
+    if args.ladr:
+        to_tptp(ontology, args.resolve, args.output)
+
+    if args.latex:
+        to_latex(ontology, args.resolve, args.output, args.enum)
 
     if args.ffpcnf:
         print(ontology.to_ffpcnf())
 
+
+
+def to_tptp(ontology, resolve=False, output=True):
     # printing output to stdout
+    print(ontology.to_tptp(resolve))
+    if output:
+        filename = write_tptp_file(ontology, resolve)
+        logging.getLogger(__name__).info("Produced TPTP file " + filename)
 
-    if args.tptp:
-        print (ontology.to_tptp(args.resolve))
-    elif args.ladr:
-        print (ontology.to_ladr(args.resolve))
-    else:
-        for axiom in ontology.axioms:
-            print (axiom)
 
-    # if output to file is also required
-    if args.output:
-        if args.tptp:
-            filename = write_tptp_file(ontology, args.resolve)
-            logging.getLogger(__name__).info("Produced TPTP file " + filename)
-        elif args.ladr:
-            filename = write_ladr_file(ontology, args.resolve)
-            logging.getLogger(__name__).info("Produced LADR file " + filename)
-        else:
-            print(ontology)
+def to_ladr(ontology, resolve=False, output=True):
+    # printing output to stdout
+    print(ontology.to_ladr(resolve))
+    if output:
+        filename = write_ladr_file(ontology, resolve)
+        logging.getLogger(__name__).info("Produced LADR file " + filename)
+
+
+def to_latex(ontology, resolve=False, output=True, enumerate=False):
+    # printing output to stdout
+    print(ontology.to_latex(resolve))
+    if output:
+        filename = write_latex_file(ontology, resolve, enumerate)
+        logging.getLogger(__name__).info("Produced LaTeX file " + filename)
+
+
 
 def get_output_filename(ontology, resolve, output_type):
 
@@ -128,7 +145,7 @@ def write_tptp_file(ontology, resolve):
 
 def write_ladr_file(ontology, resolve):
 
-    logging.getLogger(__name__).info("Converting " + ontology.name + " to TPTP format")
+    logging.getLogger(__name__).info("Converting " + ontology.name + " to LADR format")
 
     results = ontology.to_ladr(resolve)
 
@@ -141,6 +158,39 @@ def write_ladr_file(ontology, resolve):
                 print(sentence)
                 f.write(sentence + "\n")
             f.write("end_of_list.\n")
+        f.close()
+
+    return output_filename
+
+def write_latex_file(ontology, resolve, enumerate):
+
+    logging.getLogger(__name__).info("Converting " + ontology.name + " to LaTeX format")
+
+    results = ontology.to_latex(resolve)
+
+    output_filename = get_output_filename(ontology, resolve, 'latex')
+
+
+    with open(output_filename, "w") as f:
+        f.write("\\documentclass{article}\n")
+
+        f.write("\\usepackage{amsmath,amssymb,hyperref}\n\n")
+
+        printable_name = ontology.name.replace(os.sep, '/').replace("_","\_")
+
+        f.write("\\begin{document}\n")
+        f.write("\\textbf{\\url{"+ printable_name +"}}\n\n")
+        if enumerate:
+            f.write("\\begin{enumerate}\n")
+        for sentence in results:
+            print(sentence)
+            if enumerate:
+                f.write("\\item " + sentence + "\n\n")
+            else:
+                f.write(sentence + "\n")
+        if enumerate:
+            f.write("\\end{enumerate}\n")
+        f.write("\\end{document}")
         f.close()
 
     return output_filename

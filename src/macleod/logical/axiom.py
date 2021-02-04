@@ -33,7 +33,7 @@ class Axiom(object):
     def __init__(self, sentence):
 
         if not isinstance(sentence, Logical):
-            raise ValueError("Axiom's need Logicals")
+            raise ValueError("Axiom need Logicals")
 
         self.sentence = sentence
         self.extra_sentences = []
@@ -468,6 +468,44 @@ class Axiom(object):
                 raise ValueError("Not a valid type for LADR output")
 
         return "{}.".format(ladr_logical(self.sentence))
+
+    def to_latex(self):
+        """
+        Produce a LADR representation of this axiom.
+
+        :return str ladr, LADR formatted version of this axiom
+        """
+
+        def latex_logical(logical):
+
+            if isinstance(logical, str):
+                return logical
+            elif isinstance(logical, Predicate):
+                return "{}({})".format("\\textrm{" + logical.name +"}", ",".join([latex_logical(t) for t in logical.variables]))
+            elif isinstance(logical, Function):
+                return "{}({})".format("\\textrm{" + logical.name + "}", ",".join(logical.variables))
+            elif isinstance(logical, Negation):
+                if isinstance(logical.terms[0], Negation):
+                    # get rid of double negation
+                    return latex_logical(logical.terms[0].terms[0])
+                elif isinstance(logical.terms[0], Predicate):
+                    # put parentheses around single predicates to not mix them up with special-symbol predicates
+                    return "\\neg ({})".format(latex_logical(logical.terms[0]))
+                else:
+                    return "\\neg {}".format(latex_logical(logical.terms[0]))
+            elif isinstance(logical, Conjunction):
+                return "({})".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
+            elif isinstance(logical, Disjunction):
+                return "({})".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
+            elif isinstance(logical, Universal):
+                return "{} [{}]".format(("\\forall {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+            elif isinstance(logical, Existential):
+                return "{} [{}]".format(("\\exists {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+            else:
+                raise ValueError("Not a valid type for LaTeX output")
+
+        return "{}.".format(latex_logical(self.sentence))
+
 
     def __repr__(self):
 
