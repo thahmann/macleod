@@ -396,7 +396,7 @@ class Disjunction(Connective):
 
     def __init__(self, terms):
         '''
-        Expect that a conjunction is constructed with at least two terms.
+        Expect that a disjunction is constructed with at least two terms.
 
         :param list terms, List of LogicalObjects
         :return Disjunction
@@ -406,7 +406,7 @@ class Disjunction(Connective):
 
     def __repr__(self):
         '''
-        Allow nice printing of Conjunctions
+        Allow nice printing of Disjunctions
 
         :return self.__repr__() method
         '''
@@ -459,7 +459,7 @@ class Disjunction(Connective):
                 break
 
         # Pick a distribute term that isn't our conjunct
-        # TODO: Hueristic, always pick the smallest other term first
+        # TODO: Heuristic, always pick the smallest other term first
         distributive_term = terms[0] if terms[0] != conjunct else terms[1] 
 
         other_terms = [x for x in terms if (x != conjunct and x != distributive_term)]
@@ -467,3 +467,63 @@ class Disjunction(Connective):
         distributed = working.distribute(distributive_term, conjunct)
 
         return distributed.to_onf()
+
+class Conditional(Connective):
+    '''
+    Representation of a FOL conditional statement (if ... then ...)
+    '''
+
+    def __init__(self, terms):
+        '''
+        Expect that a conditional is constructed with exactly two terms.
+
+        :param list terms, List of LogicalObjects
+        :return Conditional
+        '''
+
+        # making sure a maximum of 2 terms, the init function of the superclass already checks for a minimum of 2 terms
+        if len(terms) > 2:
+            LOGGER.debug(terms)
+            raise ValueError("{} cannot contain more than two terms".format(type(self)))
+
+        super().__init__(terms)
+
+
+    def __repr__(self):
+        '''
+        Allow nice printing of Conditionals
+
+        :return self.__repr__() method
+        '''
+
+        return "({0} -> {1})".format(self.terms[0], self.terms[1])
+
+
+class Biconditional(Connective):
+    '''
+    Representation of a FOL biconditional statement (... if and only if ...)
+    '''
+
+    def __init__(self, terms):
+        '''
+        Expect that a biconditional is constructed with exactly two terms.
+
+        :param list terms, List of LogicalObjects
+        :return Biconditional
+        '''
+
+        # making sure a maximum of 2 terms, the init function of the superclass already checks for a minimum of 2 terms
+        if len(terms) > 2:
+            LOGGER.debug(terms)
+            raise ValueError("{} cannot contain more than two terms".format(type(self)))
+
+        super().__init__(terms)
+
+    def __repr__(self):
+        '''
+        Allow nice printing of Conditionals
+
+        :return self.__repr__() method
+        '''
+
+        return "({0} <-> {1})".format(self.terms[0], self.terms[1])
