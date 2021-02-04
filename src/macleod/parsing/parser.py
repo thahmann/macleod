@@ -260,6 +260,10 @@ def p_conditional(p):
     conditional : LPAREN IF axiom axiom RPAREN
     """
 
+    # TODO: Need to expand the connectives to include a biconditional and a conditional
+    #  rather than always translating them directly to conjunctions/disjunctions
+    #  this is important for example to have a true TPTP, LADR or LaTeX representation
+
     p[0] = Disjunction([Negation(p[3]), p[4]])
 
 def p_conditional_error(p):
@@ -279,6 +283,10 @@ def p_biconditional(p):
     biconditional : LPAREN IFF axiom axiom RPAREN
     """
 
+    # TODO: Need to expand the connectives to include a biconditional and a conditional
+    #  rather than always translating them directly to conjunctions/disjunctions
+    #  this is important for example to have a true TPTP, LADR or LaTeX representation
+    
     p[0] = Conjunction([Disjunction([Negation(p[3]), p[4]]),
                                    Disjunction([Negation(p[4]), p[3]])
                                   ])
