@@ -113,10 +113,15 @@ class Ontology(object):
         """
 
         self.resolve = resolve
+
+        logging.getLogger(__name__).debug("Resolving imports")
+
         # Cyclic imports are kind of painful in Python
         import macleod.parsing.parser as Parser
 
         for path in self.imports:
+
+            logging.getLogger(__name__).debug("Working on import " + path)
 
             if self.imports[path] is None:
 
@@ -126,9 +131,19 @@ class Ontology(object):
                 else:
                     sub, base = self.basepath
                     subbed_path = path.replace(self.basepath[0], self.basepath[1])
-                    new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
+                    logging.getLogger(__name__).debug("Subbed path for import " + path)
+                    # Need to immediately keep track of the ontology path in processing to not
+                    # even though we don't have the ontology object yet
+                    Ontology.imported[path] = None
+                    try:
+                        logging.getLogger(__name__).info("Starting to parse " + subbed_path)
+                        new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
+                    except TypeError as e:
+                        logging.getLogger(__name__).error("Error parsing + " + subbed_path + ": " + str(e))
+
                     new_ontology.basepath = self.basepath
                     self.imports[path] = new_ontology
+                    # update the import information with the ontology object
                     Ontology.imported[path] = new_ontology
 
     def get_all_modules(self):
