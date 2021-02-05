@@ -132,8 +132,8 @@ class Ontology(object):
                     sub, base = self.basepath
                     subbed_path = path.replace(self.basepath[0], self.basepath[1])
                     logging.getLogger(__name__).debug("Subbed path for import " + path)
-                    # Need to immediately keep track of the ontology path in processing to not
-                    # even though we don't have the ontology object yet
+                    # Need to immediately keep track of the ontology path in processing to not visit it again
+                    # we later update the value with the actual created ontology object
                     Ontology.imported[path] = None
                     try:
                         logging.getLogger(__name__).info("Starting to parse " + subbed_path)
@@ -143,7 +143,7 @@ class Ontology(object):
 
                     new_ontology.basepath = self.basepath
                     self.imports[path] = new_ontology
-                    # update the import information with the ontology object
+                    # update the import information with the created ontology object
                     Ontology.imported[path] = new_ontology
 
     def get_all_modules(self):
