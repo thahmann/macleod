@@ -42,6 +42,7 @@ def main():
         args.sub = default_basepath[0]
     if args.base is None:
         args.base = default_basepath[1]
+    logging.getLogger(__name__).info("Starting to parse " + args.file)
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
     if ontology is None:
@@ -65,7 +66,7 @@ def main():
         to_tptp(ontology, args.resolve, args.output)
 
     if args.ladr:
-        to_tptp(ontology, args.resolve, args.output)
+        to_ladr(ontology, args.resolve, args.output)
 
     if args.latex:
         to_latex(ontology, args.resolve, args.output, args.enum)
