@@ -453,7 +453,7 @@ class Axiom(object):
                 return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Function):
-                return "{}({})".format(logical.name, ",".join(logical.variables))
+                return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Negation):
                 if isinstance(logical.terms[0], Negation):
@@ -504,7 +504,7 @@ class Axiom(object):
                 return "{}({})".format("\\textrm{" + logical.name.replace('_','\_') +"}", ",".join([latex_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Function):
-                return "{}({})".format("\\textrm{" + logical.name.replace('_','\_') + "}", ",".join(logical.variables))
+                return "{}({})".format("\\textrm{" + logical.name.replace('_','\_') + "}", ",".join([latex_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Negation):
                 if isinstance(logical.terms[0], Negation):
