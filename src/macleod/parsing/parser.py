@@ -8,7 +8,7 @@ from pathlib import Path
 
 import macleod.Ontology as Ontology
 from macleod.logical.logical import Logical
-from macleod.logical.connective import (Conjunction, Disjunction, Connective)
+from macleod.logical.connective import (Conjunction, Disjunction, Connective, Conditional, Biconditional)
 from macleod.logical.logical import Logical
 from macleod.logical.negation import Negation
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
@@ -16,7 +16,11 @@ from macleod.logical.symbol import (Function, Predicate)
 
 LOGGER = logging.getLogger(__name__)
 
-global parser 
+global parser
+
+# Boolean switch to determine whether to maintain (True) or substitute (False) (bi)conditionals
+global conditionals
+conditionals = False
 
 class ParseError(Exception):
 	pass
@@ -260,11 +264,10 @@ def p_conditional(p):
     conditional : LPAREN IF axiom axiom RPAREN
     """
 
-    # TODO: Need to expand the connectives to include a biconditional and a conditional
-    #  rather than always translating them directly to conjunctions/disjunctions
-    #  this is important for example to have a true TPTP, LADR or LaTeX representation
-
-    p[0] = Disjunction([Negation(p[3]), p[4]])
+    if conditionals:
+        p[0] = Conditional([p[3], p[4]])
+    else:
+        p[0] = Disjunction([Negation(p[3]), p[4]])
 
 def p_conditional_error(p):
     """
@@ -283,11 +286,10 @@ def p_biconditional(p):
     biconditional : LPAREN IFF axiom axiom RPAREN
     """
 
-    # TODO: Need to expand the connectives to include a biconditional and a conditional
-    #  rather than always translating them directly to conjunctions/disjunctions
-    #  this is important for example to have a true TPTP, LADR or LaTeX representation
-
-    p[0] = Conjunction([Disjunction([Negation(p[3]), p[4]]),
+    if conditionals:
+        p[0] = Biconditional([p[3], p[4]])
+    else:
+        p[0] = Conjunction([Disjunction([Negation(p[3]), p[4]]),
                                    Disjunction([Negation(p[4]), p[3]])
                                   ])
 

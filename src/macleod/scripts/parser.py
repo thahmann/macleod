@@ -28,6 +28,7 @@ def main():
     optionalArguments.add_argument('--enum', action='store_true', help='Enumerate axioms in LaTeX output', default=False)
     optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    optionalArguments.add_argument('--nocond', action='store_true', help='Do not use conditionals (only applies to TPTP, LADR and LaTeX production)', default=False)
     optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
     optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
     optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
@@ -43,6 +44,9 @@ def main():
     if args.base is None:
         args.base = default_basepath[1]
     logging.getLogger(__name__).info("Starting to parse " + args.file)
+
+    if (args.tptp or args.ladr or args.latex) and args.nocond is False:
+        Parser.conditionals = True
     ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
 
     if ontology is None:
@@ -179,6 +183,7 @@ def write_latex_file(ontology, resolve, enumerate):
         f.write("\\documentclass{article}\n")
 
         f.write("\\usepackage{amsmath,amssymb,hyperref}\n\n")
+        f.write("\\delimitershortfall = -0.5pt\n\n")
 
         printable_name = ontology.name.replace(os.sep, '/').replace("_","\_")
 
@@ -189,9 +194,9 @@ def write_latex_file(ontology, resolve, enumerate):
         for sentence in results:
             print(sentence)
             if enumerate:
-                f.write("\\item " + sentence + "\n\n")
+                f.write("\\item " + sentence + "\n")
             else:
-                f.write(sentence + "\n")
+                f.write(sentence + "\n\n")
         if enumerate:
             f.write("\\end{enumerate}\n")
         f.write("\\end{document}")

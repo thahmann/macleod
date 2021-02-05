@@ -7,7 +7,7 @@ import logging
 import functools
 
 from macleod.logical.logical import Logical
-from macleod.logical.connective import (Conjunction, Disjunction, Connective)
+from macleod.logical.connective import (Conjunction, Disjunction, Connective, Conditional, Biconditional)
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
 from macleod.logical.negation import Negation
 from macleod.logical.symbol import (Function, Predicate)
@@ -420,6 +420,12 @@ class Axiom(object):
             elif isinstance(logical, Disjunction):
                 return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
 
+            elif isinstance(logical, Conditional):
+                return "({} -> {})".format(logical.terms[0],logical.terms[1])
+
+            elif isinstance(logical, Biconditional):
+                return "({} <-> {})".format(logical.terms[0],logical.terms[1])
+
             elif isinstance(logical, Universal):
                 return "({} ({}))".format(("! [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))
 
@@ -445,8 +451,10 @@ class Axiom(object):
                 return logical
             elif isinstance(logical, Predicate):
                 return "{}({})".format(logical.name, ",".join([ladr_logical(t) for t in logical.variables]))
+
             elif isinstance(logical, Function):
                 return "{}({})".format(logical.name, ",".join(logical.variables))
+
             elif isinstance(logical, Negation):
                 if isinstance(logical.terms[0], Negation):
                     # get rid of double negation
@@ -456,14 +464,25 @@ class Axiom(object):
                     return "-({})".format(ladr_logical(logical.terms[0]))
                 else:
                     return "-{}".format(ladr_logical(logical.terms[0]))
+
             elif isinstance(logical, Conjunction):
                 return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
+
             elif isinstance(logical, Disjunction):
                 return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
+
+            elif isinstance(logical, Conditional):
+                return "({} -> {})".format(logical.terms[0],logical.terms[1])
+
+            elif isinstance(logical, Biconditional):
+                return "({} <-> {})".format(logical.terms[0],logical.terms[1])
+
             elif isinstance(logical, Universal):
                 return "({} {})".format(("all {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
+
             elif isinstance(logical, Existential):
                 return "({} {})".format(("exists {} " * len(logical.variables)).format(*logical.variables), ladr_logical(logical.terms[0]))
+
             else:
                 raise ValueError("Not a valid type for LADR output")
 
@@ -480,31 +499,45 @@ class Axiom(object):
 
             if isinstance(logical, str):
                 return logical
+
             elif isinstance(logical, Predicate):
                 return "{}({})".format("\\textrm{" + logical.name.replace('_','\_') +"}", ",".join([latex_logical(t) for t in logical.variables]))
+
             elif isinstance(logical, Function):
                 return "{}({})".format("\\textrm{" + logical.name.replace('_','\_') + "}", ",".join(logical.variables))
+
             elif isinstance(logical, Negation):
                 if isinstance(logical.terms[0], Negation):
                     # get rid of double negation
                     return latex_logical(logical.terms[0].terms[0])
                 elif isinstance(logical.terms[0], Predicate):
                     # put parentheses around single predicates to not mix them up with special-symbol predicates
-                    return "\\neg ({})".format(latex_logical(logical.terms[0]))
+                    return "\\neg \\left({}\\right)".format(latex_logical(logical.terms[0]))
                 else:
                     return "\\neg {}".format(latex_logical(logical.terms[0]))
+
             elif isinstance(logical, Conjunction):
-                return "({})".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
+                return "\\left({}\\right)".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
+
             elif isinstance(logical, Disjunction):
-                return "({})".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
+                return "\\left({}\\right)".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
+
+            elif isinstance(logical, Conditional):
+                return "\\left[ {} \\rightarrow {} \\right]".format(latex_logical(logical.terms[0]), latex_logical(logical.terms[1]))
+
+            elif isinstance(logical, Biconditional):
+                return "\\left[ {} \\leftrightarrow {} \\right]".format(latex_logical(logical.terms[0]), latex_logical(logical.terms[1]))
+
             elif isinstance(logical, Universal):
-                return "{} [{}]".format(("\\forall {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+                return "{} \\left[ {} \\right]".format(("\\forall {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+
             elif isinstance(logical, Existential):
-                return "{} [{}]".format(("\\exists {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+                return "{} \\left[ {} \\right]".format(("\\exists {}\\; " * len(logical.variables)).format(*logical.variables), latex_logical(logical.terms[0]))
+
             else:
                 raise ValueError("Not a valid type for LaTeX output")
 
-        return "{}.".format(latex_logical(self.sentence))
+        return "{}".format(latex_logical(self.sentence))
 
 
     def __repr__(self):
