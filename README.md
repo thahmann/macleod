@@ -143,11 +143,20 @@ fof(axiom100, axiom, (! [X] :  (((~(mindim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  (
 or to generate OWL approximation of an entire ontology:
 
 ```bash
-parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif --owl --resolve -o
+[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif --owl --resolve -o
 [the bulk of the output is omitted here]
 2021-02-02 17:25:07,571 macleod.scripts.parser         INFO     Approximating C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif as an OWL ontology
 2021-02-02 17:25:07,585 macleod.scripts.parser         INFO     Produced OWL file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\owl\codib_simple_curves.all.owl
 ```
+
+or to generate a LaTeX representation of an entire ontology:
+
+```bash
+[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_physcont\fullphyscont_full.clif --latex --resolve --enum
+[the bulk of the output is omitted here]
+2021-02-05 07:24:58,247 macleod.scripts.parser         INFO     Produced LaTeX file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_physcont\latex\fullphyscont_full.all.tex
+```
+
 
 To launch the GUI
 ```bash
