@@ -24,6 +24,9 @@ tptp_output = 'tptp'
 ladr_output = 'ladr'
 
 
+def deprec():
+    print("This script is no longer supported, please use the scripts clif_to_tptp, clif_to_owl, clif_to_ladr, or clif_to_owl instead.")
+
 def convert_single_clif_file(ontology, output, resolve, loc=default_dir, prefix=default_prefix):
 
     logging.getLogger(__name__).info("Converting " + ontology.name + " to " + output + " format")
@@ -77,7 +80,8 @@ def convert_all_clif_files(folder, output, resolve, loc=default_dir, prefix=defa
 
 
 def main():
-    licence.print_terms()
+    deprec()
+    #licence.print_terms()
 
     parser = argparse.ArgumentParser(description='Utility function to convert Common Logic Interchange Format (.clif) files to the TPTP or LADR syntax.')
     parser.add_argument('-f', '--file', type=str, help='Clif file or folder to parse', required=True)
@@ -101,3 +105,4 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
+

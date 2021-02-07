@@ -29,8 +29,13 @@ setup(name='macleod',
             'delete_output=macleod.scripts.delete_output:main',
             'prove_lemma=macleod.scripts.prove_lemma:main',
             'prove_lemma_all=macleod.scripts.prove_lemma_all:main',
-            'clif_converter=macleod.scripts.clif_converter:main',
-            'parse_clif=macleod.scripts.parser:main'
+            # clif_converter is now deprecated
+            'clif_converter=macleod.scripts.clif_converter:deprec',
+            'clif_to_tptp=macleod.scripts.parser:clif_to_tptp',
+            'clif_to_ladr=macleod.scripts.parser:clif_to_ladr',
+            'clif_to_latex=macleod.scripts.parser:clif_to_latex',
+            'clif_to_owl=macleod.scripts.parser:clif_to_owl',
+            'parse_clif=macleod.scripts.parser:parse_clif'
         ],
         'gui_scripts': [
             'macleod=macleod.gui.gui_beta.gui_main:main [GUI]'

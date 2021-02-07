@@ -11,14 +11,17 @@ import macleod.Filemgt as Filemgt
 default_dir = Filemgt.read_config('system', 'path')
 default_prefix = Filemgt.read_config('cl', 'prefix')
 
-def main():
+def parse_clif():
+    '''
+    Main entry point, makes all options available
+    '''
 
     LOGGER.info('Called script parse_clif')
     # Setup the command line arguments to the program
     parser = argparse.ArgumentParser(description='Utility function to read and translate Common Logic Interchange Format (.clif) files and print to stdout.')
 
     requiredArguments = parser.add_argument_group('required arguments')
-    requiredArguments.add_argument('-f', '--file', type=str, help='Path to Clif file to parse', required=True)
+    requiredArguments.add_argument('-f', '--file', type=str, help='Path or folder for Clif file(s) to parse', required=True)
 
     optionalArguments = parser.add_argument_group('optional arguments')
     optionalArguments.add_argument('--owl', action='store_true', help='Attempt to extract a subset OWL ontology, implies --ffpcnf', default=False)
@@ -36,6 +39,129 @@ def main():
 
     # Parse the command line arguments
     args = parser.parse_args()
+
+    main(args)
+
+def clif_to_tptp():
+    '''
+    Script to translate to TPTP
+    :return:
+    '''
+    LOGGER.info('Called script parse_clif')
+    # Setup the command line arguments to the program
+    parser = argparse.ArgumentParser(description='Read Common Logic Interchange Format (.clif) files and convert to TPTP format.')
+
+    requiredArguments = parser.add_argument_group('required arguments')
+    requiredArguments.add_argument('-f', '--file', type=str, help='Path or folder for Clif file(s) to parse', required=True)
+
+    optionalArguments = parser.add_argument_group('optional arguments')
+    optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
+    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    optionalArguments.add_argument('--nocond', action='store_true', help='Do not use conditionals (only applies to TPTP, LADR and LaTeX production)', default=False)
+    optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
+    optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+    args.tptp = True
+    args.ladr = False
+    args.latex = False
+    args.owl = False
+    args.ffpcnf = False
+    main(args)
+
+def clif_to_ladr():
+    '''
+    Script to translate to LADR
+    :return:
+    '''
+    LOGGER.info('Called script clif_to_ladr')
+    # Setup the command line arguments to the program
+    parser = argparse.ArgumentParser(description='Read Common Logic Interchange Format (.clif) files and convert to LADR format.')
+
+    requiredArguments = parser.add_argument_group('required arguments')
+    requiredArguments.add_argument('-f', '--file', type=str, help='Path or folder for Clif file(s) to parse', required=True)
+
+    optionalArguments = parser.add_argument_group('optional arguments')
+    optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
+    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    optionalArguments.add_argument('--nocond', action='store_true', help='Do not use conditionals (only applies to TPTP, LADR and LaTeX production)', default=False)
+    optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
+    optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+    args.ladr = True
+    args.tptp = False
+    args.latex = False
+    args.owl = False
+    args.ffpcnf = False
+    main(args)
+
+def clif_to_owl():
+    '''
+    Script to translate to LADR
+    :return:
+    '''
+    LOGGER.info('Called script clif_to_ladr')
+    # Setup the command line arguments to the program
+    parser = argparse.ArgumentParser(description='Read Common Logic Interchange Format (.clif) files and approximate them by OWL ontologies.')
+
+    requiredArguments = parser.add_argument_group('required arguments')
+    requiredArguments.add_argument('-f', '--file', type=str, help='Path or folder for Clif file(s) to parse', required=True)
+
+    optionalArguments = parser.add_argument_group('optional arguments')
+    optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
+    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
+    optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+    optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
+    optionalArguments.add_argument('--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+    args.owl = True
+    args.ladr = False
+    args.tptp = False
+    args.latex = False
+    main(args)
+
+def clif_to_latex():
+    '''
+    Script to translate to LaTeX
+    :return:
+    '''
+    LOGGER.info('Called script parse_clif')
+    # Setup the command line arguments to the program
+    parser = argparse.ArgumentParser(description='Read Common Logic Interchange Format (.clif) files and convert to LaTeX format.')
+
+    requiredArguments = parser.add_argument_group('required arguments')
+    requiredArguments.add_argument('-f', '--file', type=str, help='Path or folder for Clif file(s) to parse', required=True)
+
+    optionalArguments = parser.add_argument_group('optional arguments')
+    optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
+    optionalArguments.add_argument('--enum', action='store_true', help='Enumerate axioms in LaTeX output', default=False)
+    optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
+    optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
+    optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
+
+    # Parse the command line arguments
+    args = parser.parse_args()
+    args.latex = True
+    args.nocond = False
+    args.tptp = False
+    args.ladr = False
+    args.owl = False
+    args.ffpcnf = False
+    main(args)
+
+
+def main(args):
+    '''
+
+    :param args: arguments passed from customized entry points
+    :return:
+    '''
 
     # Parse out the ontology object then print it nicely
     default_basepath = Filemgt.get_ontology_basepath()
