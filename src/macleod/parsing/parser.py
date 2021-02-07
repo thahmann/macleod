@@ -8,7 +8,7 @@ from pathlib import Path
 
 import macleod.Ontology as Ontology
 from macleod.logical.logical import Logical
-from macleod.logical.connective import (Conjunction, Disjunction, Connective, Conditional, Biconditional)
+from macleod.logical.connective import (Conjunction, Disjunction, Connective, Implication, Biconditional)
 from macleod.logical.logical import Logical
 from macleod.logical.negation import Negation
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
@@ -194,7 +194,7 @@ def p_axiom(p):
           | existential
           | conjunction
           | disjunction
-          | conditional
+          | implication
           | biconditional
           | predicate
     """
@@ -259,26 +259,26 @@ def p_axiom_list(p):
         p[0] = [p[1]]
 
 
-def p_conditional(p):
+def p_implication(p):
     """
-    conditional : LPAREN IF axiom axiom RPAREN
+    implication : LPAREN IF axiom axiom RPAREN
     """
 
     if conditionals:
-        p[0] = Conditional([p[3], p[4]])
+        p[0] = Implication([p[3], p[4]])
     else:
         p[0] = Disjunction([Negation(p[3]), p[4]])
 
-def p_conditional_error(p):
+def p_implication_error(p):
     """
-    conditional : LPAREN IF error
-    conditional : LPAREN IF axiom error
+    implication : LPAREN IF error
+    implication : LPAREN IF axiom error
     """
 
     if is_error(p.slice[3]):
-        raise TypeError("Error in conditional: bad first axiom")
+        raise TypeError("Error in implication: bad first axiom")
 
-    raise TypeError("Error in conditional: bad second axiom")
+    raise TypeError("Error in implication: bad second axiom")
 
 
 def p_biconditional(p):

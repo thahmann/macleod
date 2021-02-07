@@ -6,7 +6,7 @@ Base class representing what is the object structure of Macleod. General idea
 is that the majority of the Logical operations should return new copies of
 stuff, alas that doesn't always work so you'll notice some state mutations.
 These mutating functions are meant to be called from some other utility
-structure that will appropiately copy as needed to keep the original structure
+structure that will appropriately copy as needed to keep the original structure
 normal
 """
 

@@ -10,13 +10,14 @@ import logging
 
 from macleod.logical.logical import Logical
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
+from macleod.logical.symbol import (Predicate, Function)
 
 LOGGER = logging.getLogger(__name__)
 
 class Connective(Logical):
     '''
-    Base class for Conjunctions and Disjunctions. Holds most of the business
-    logic.
+    Base class for Conjunctions, Disjunctions, Implications, and Biconditionals.
+    Business logic has been moved to the individual classes.
     '''
 
     def __init__(self, terms):
@@ -25,19 +26,6 @@ class Connective(Logical):
 
         if not isinstance(terms, list):
             raise ValueError("{} expects a list of terms".format(type(self)))
-
-        if len(terms) < 2:
-            LOGGER.debug(terms)
-            raise ValueError("{} requires at least two terms".format(type(self)))
-
-        for term in terms:
-
-            # Absorb like-connectives on initialization
-            if isinstance(term, type(self)):
-                self.terms.extend(copy.deepcopy(term.get_term()))
-
-            else:
-                self.terms.append(copy.deepcopy(term))
 
     def remove_term(self, term):
 
@@ -314,13 +302,42 @@ class Conjunction(Connective):
 
     def __init__(self, terms):
         '''
-        Expect that a conjunction is constructed with at least two terms.
+        Expect that a conjunction is constructed with at least one terms.
 
         :param list terms, List of LogicalObjects
         :return Conjunction
         '''
 
         super().__init__(terms)
+
+        if len(terms) > 0:
+            for term in terms:
+
+                # Absorb like-connectives on initialization
+                if isinstance(term, type(self)):
+                    self.terms.extend(copy.deepcopy(term.get_term()))
+
+                else:
+                    self.terms.append(copy.deepcopy(term))
+
+        # elif len(terms) == 1:
+        #     if isinstance(terms[0], Connective):
+        #         # if there is only one term, the new conjunction can be discarded and
+        #         # the term inside simply becomes a term of the outer construct (self)
+        #         self.terms.extend(copy.deepcopy(terms[0].get_term()))
+        #     elif isinstance(terms[0], Predicate) or isinstance(terms[0], Function):
+        #         # if the inner term is a Predicate or Function Symbol
+        #         # Would need to destroy the term and make the term a term of the parent logical object
+        #         self.terms = copy.deepcopy(terms[0])
+
+
+        else:
+            # TODO need to still handle the case of no terms: this is allowed by the Common Logic standard;
+            #  it represents a value of True
+            LOGGER.debug(terms)
+            raise ValueError("{} requires at least one term".format(type(self)))
+
+
 
     def __repr__(self):
         '''
@@ -404,6 +421,28 @@ class Disjunction(Connective):
 
         super().__init__(terms)
 
+        if len(terms) > 0:
+            for term in terms:
+
+                # Absorb like-connectives on initialization
+                if isinstance(term, type(self)):
+                    self.terms.extend(copy.deepcopy(term.get_term()))
+
+                else:
+                    self.terms.append(copy.deepcopy(term))
+
+        # elif len(terms) == 1:
+        #     # if there is only one term, the new conjunction can be discarded and
+        #     # the term inside simply becomes a term of the outer construct
+        #     self.terms.extend(copy.deepcopy(terms[0].get_term()))
+
+        else:
+            # TODO need to still handle the case of no terms: this is allowed by the Common Logic standard;
+            #  it represents a value of False
+            LOGGER.debug(terms)
+            raise ValueError("{} requires at least one term".format(type(self)))
+
+
     def __repr__(self):
         '''
         Allow nice printing of Disjunctions
@@ -468,25 +507,30 @@ class Disjunction(Connective):
 
         return distributed.to_onf()
 
-class Conditional(Connective):
+class Implication(Connective):
     '''
     Representation of a FOL conditional statement (if ... then ...)
     '''
 
     def __init__(self, terms):
         '''
-        Expect that a conditional is constructed with exactly two terms.
+        Expect that an implication is constructed with exactly two terms.
 
         :param list terms, List of LogicalObjects
-        :return Conditional
+        :return Implication
         '''
 
-        # making sure a maximum of 2 terms, the init function of the superclass already checks for a minimum of 2 terms
+        super().__init__(terms)
+
+        # making sure exactly 2 terms (antecedent and consequent) are provided, the init function of the superclass already checks for a minimum of 2 terms
         if len(terms) > 2:
             LOGGER.debug(terms)
             raise ValueError("{} cannot contain more than two terms".format(type(self)))
-
-        super().__init__(terms)
+        elif len(terms) < 2:
+            raise ValueError("{} needs two terms: a consequent and antecedent".format(type(self)))
+        else:
+            for term in terms:
+                self.terms.append(copy.deepcopy(term))
 
 
     def __repr__(self):
@@ -512,12 +556,16 @@ class Biconditional(Connective):
         :return Biconditional
         '''
 
-        # making sure a maximum of 2 terms, the init function of the superclass already checks for a minimum of 2 terms
-        if len(terms) > 2:
-            LOGGER.debug(terms)
-            raise ValueError("{} cannot contain more than two terms".format(type(self)))
-
         super().__init__(terms)
+
+        # making sure exactly 2 terms are present, the init function of the superclass already checks for a minimum of 2 terms
+        if len(terms) > 2 or len(terms) < 2:
+            LOGGER.debug(terms)
+            raise ValueError("{} needs exactly two terms".format(type(self)))
+        else:
+            for term in terms:
+                self.terms.append(copy.deepcopy(term))
+
 
     def __repr__(self):
         '''

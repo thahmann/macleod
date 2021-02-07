@@ -43,11 +43,27 @@ def main():
         args.sub = default_basepath[0]
     if args.base is None:
         args.base = default_basepath[1]
-    logging.getLogger(__name__).info("Starting to parse " + args.file)
 
     if (args.tptp or args.ladr or args.latex) and args.nocond is False:
         Parser.conditionals = True
-    ontology = Parser.parse_file(args.file, args.sub, args.base, args.resolve)
+
+    # TODO need to substitute base path
+    full_path = args.file
+
+    if os.path.isfile(full_path):
+        logging.getLogger(__name__).info("Starting to parse " + args.file)
+        convert_file(full_path, args=args)
+
+    elif os.path.isdir(full_path):
+        logging.getLogger(__name__).info("Starting to parse all CLIF files in folder " + args.file)
+        convert_folder(full_path, args=args)
+    else:
+        logging.getLogger(__name__).error("Attempted to parse non-existent file or directory: " + full_path)
+
+
+def convert_file(file, args):
+
+    ontology = Parser.parse_file(file, args.sub, args.base, args.resolve)
 
     if ontology is None:
         exit(-1)
@@ -66,18 +82,40 @@ def main():
 
         exit(0)
 
+    # producing TPTP ouput
     if args.tptp:
         to_tptp(ontology, args.resolve, args.output)
 
+    # producing LADR output
     if args.ladr:
         to_ladr(ontology, args.resolve, args.output)
 
+    # producing LaTeX output
     if args.latex:
         to_latex(ontology, args.resolve, args.output, args.enum)
 
+    # Just converting to Function-free Prenex-Conjunctive-Normalform
     if args.ffpcnf:
         print(ontology.to_ffpcnf())
 
+
+
+def convert_folder(folder, args):
+
+    tempfolder = Filemgt.read_config('converters', 'tempfolder')
+    ignores = [tempfolder]
+    cl_ending = Filemgt.read_config('cl', 'ending')
+    #logging.getLogger(__name__).info("Traversing folder " + folder)
+
+    for directory, subdirs, files in os.walk(folder):
+        if any(ignore in directory for ignore in ignores):
+            pass
+        else:
+            for single_file in files:
+                if single_file.endswith(cl_ending):
+                    file = os.path.join(directory, single_file)
+                    logging.getLogger(__name__).info("Parsing CLIF file " + file)
+                    convert_file(file, args=args)
 
 
 def to_tptp(ontology, resolve=False, output=True):

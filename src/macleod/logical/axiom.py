@@ -7,7 +7,7 @@ import logging
 import functools
 
 from macleod.logical.logical import Logical
-from macleod.logical.connective import (Conjunction, Disjunction, Connective, Conditional, Biconditional)
+from macleod.logical.connective import (Conjunction, Disjunction, Connective, Implication, Biconditional)
 from macleod.logical.quantifier import (Universal, Existential, Quantifier)
 from macleod.logical.negation import Negation
 from macleod.logical.symbol import (Function, Predicate)
@@ -415,12 +415,18 @@ class Axiom(object):
                     return "~{}".format(tptp_logical(logical.terms[0]))
 
             elif isinstance(logical, Conjunction):
-                return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
+                if len(logical.terms)>1:
+                    return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
 
             elif isinstance(logical, Disjunction):
-                return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
+                if len(logical.terms)>1:
+                    return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
 
-            elif isinstance(logical, Conditional):
+            elif isinstance(logical, Implication):
                 return "({} -> {})".format(logical.terms[0],logical.terms[1])
 
             elif isinstance(logical, Biconditional):
@@ -466,12 +472,18 @@ class Axiom(object):
                     return "-{}".format(ladr_logical(logical.terms[0]))
 
             elif isinstance(logical, Conjunction):
-                return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
+                if len(logical.terms)>1:
+                    return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
 
             elif isinstance(logical, Disjunction):
-                return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
+                if len(logical.terms)>1:
+                    return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
 
-            elif isinstance(logical, Conditional):
+            elif isinstance(logical, Implication):
                 return "({} -> {})".format(logical.terms[0],logical.terms[1])
 
             elif isinstance(logical, Biconditional):
@@ -517,12 +529,17 @@ class Axiom(object):
                     return "\\neg {}".format(latex_logical(logical.terms[0]))
 
             elif isinstance(logical, Conjunction):
-                return "\\left({}\\right)".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
-
+                if len(logical.terms)>1:
+                    return "\\left({}\\right)".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
             elif isinstance(logical, Disjunction):
-                return "\\left({}\\right)".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
+                if len(logical.terms)>1:
+                    return "\\left({}\\right)".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
+                else:
+                    return "{}".format(logical.terms[0])
 
-            elif isinstance(logical, Conditional):
+            elif isinstance(logical, Implication):
                 return "\\left[ {} \\rightarrow {} \\right]".format(latex_logical(logical.terms[0]), latex_logical(logical.terms[1]))
 
             elif isinstance(logical, Biconditional):
