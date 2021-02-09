@@ -191,7 +191,7 @@ def main(args):
 
 def convert_file(file, args):
 
-    ontology = Parser.parse_file(file, args.sub, args.base, args.resolve)
+    ontology = Parser.parse_file(file, args.sub, args.base, args.resolve, preserve_conditionals = not(args.ffpcnf))
 
     if ontology is None:
         # some error occured while parsing CLIF file(s)

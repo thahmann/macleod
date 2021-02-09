@@ -427,10 +427,10 @@ class Axiom(object):
                     return "{}".format(logical.terms[0])
 
             elif isinstance(logical, Implication):
-                return "({} -> {})".format(logical.terms[0],logical.terms[1])
+                return "({} => {})".format(tptp_logical(logical.terms[0]),tptp_logical(logical.terms[1]))
 
             elif isinstance(logical, Biconditional):
-                return "({} <-> {})".format(logical.terms[0],logical.terms[1])
+                return "({} <=> {})".format(tptp_logical(logical.terms[0]),tptp_logical(logical.terms[1]))
 
             elif isinstance(logical, Universal):
                 return "({} ({}))".format(("! [{}] : " * len(logical.variables)).format(*[str.upper(var) for var in logical.variables]), tptp_logical(logical.terms[0]))

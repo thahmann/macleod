@@ -20,7 +20,6 @@ global parser
 
 # Boolean switch to determine whether to maintain (True) or substitute (False) (bi)conditionals
 global conditionals
-conditionals = False
 
 class ParseError(Exception):
 	pass
@@ -500,7 +499,7 @@ def p_error(p):
     return p
 
 
-def parse_file(path, sub, base, resolve=False, name=None):
+def parse_file(path, sub, base, resolve=False, name=None, preserve_conditionals = True):
     """
     Accepts a path to a Common Logic file and parses it to return an Ontology object.
 
@@ -509,10 +508,13 @@ def parse_file(path, sub, base, resolve=False, name=None):
     :param base, new path component
     :param resolve, resolve imports?
     :param name, for overriding the default naming
+    :param preserve_conditionals, keep conditionals as it (True, default) or convert to disjunctions
     :return Ontology onto, newly constructed ontology object
     """
 
     global parser
+    global conditionals
+    conditionals = preserve_conditionals
 
     path = os.path.normpath(os.path.join(base, path))
 
