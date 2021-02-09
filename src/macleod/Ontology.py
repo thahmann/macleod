@@ -6,7 +6,7 @@ Top level container for an ontology parsed into the object structure
 import logging
 import os
 
-from macleod.ReasonerSet import *
+from macleod.ReasonerSet import ReasonerSet
 from macleod.dl.owl import Owl
 from macleod.logical.axiom import Axiom
 
@@ -25,38 +25,6 @@ CONTRADICTION = -100
 ERROR = -50
 
 
-def pretty_print(ontology, pcnf=False, tptp=False):
-    '''
-    Utility function to nicely print out an ontology and linked imports.
-    Optionally will transform any axioms to their function-free prenex conjunctive 
-    normal form (FF-PCNF).
-
-    :param Ontology ontology, An ontology object representing the top level file
-    :param Boolean pcnf, Flag to transform axioms to FF-PCNF form
-    '''
-
-    ontologies = set()
-    ontologies.add(ontology.name)
-
-    processing = [ontology]
-
-    while processing != []:
-
-        new = processing.pop()
-
-        if new is not None:
-
-            for onto in new.imports.keys():
-                if onto.name not in ontologies:
-                    ontologies.add(onto.name)
-                    processing.append(new.imports[onto])
-
-            if pcnf:
-                new.to_ffpcnf()
-
-            print(repr(new) + '\n')
-
-
 class Ontology(object):
     """
     The object to rule them all
@@ -64,7 +32,7 @@ class Ontology(object):
 
     imported = {}
 
-    def __init__(self, name, basepath=None):
+    def __init__(self, name, basepath=None, resolve=False):
 
         # The full path to the file
         self.name = os.path.abspath(name)
@@ -85,7 +53,15 @@ class Ontology(object):
             self.basepath = basepath
         #logging.getLogger(__name__).info('Using URI ' + self.basepath[0] + ' to substitute for path ' + self.basepath[1])
 
-        self.resolve = False
+        self.resolve = resolve
+
+        self.tptp_output = None
+        self.tptp_file = None
+        self.ladr_output = None
+        self.ladr_file = None
+        self.latex_output = None
+        self.latex_file = None
+        self.owl = None
 
 
     def to_ffpcnf(self):
@@ -106,13 +82,14 @@ class Ontology(object):
         self.axioms = temp_axioms
         return self.axioms
 
-    def resolve_imports(self, resolve=False):
+    def resolve_imports(self):
         """
         Look over our list of imports and tokenize and parse any that haven't
-        already been parsed
+        already been parsed;
+        Calling this method also sets self.resolve to True (which is False by default)
         """
 
-        self.resolve = resolve
+        self.resolve = True
 
         logging.getLogger(__name__).debug("Resolving imports")
 
@@ -137,7 +114,7 @@ class Ontology(object):
                     Ontology.imported[path] = None
                     try:
                         logging.getLogger(__name__).info("Starting to parse " + subbed_path)
-                        new_ontology = Parser.parse_file(subbed_path, sub, base, resolve)
+                        new_ontology = Parser.parse_file(subbed_path, sub, base, self.resolve)
                     except TypeError as e:
                         logging.getLogger(__name__).error("Error parsing + " + subbed_path + ": " + str(e))
 
@@ -207,51 +184,176 @@ class Ontology(object):
         """
 
         self.imports[path] = None
-        
-    def to_tptp(self, resolve=False):
+
+
+    def to_tptp(self):
         """
         Translates all axioms in the module and, if present, in any imported modules to the TPTP format
+        :return: TPTP conversions as a list of strings
         """
-        tptp_output = []
+        if self.tptp_output is None:
+            tptp_output = []
 
-        for (axiom, path) in self.get_all_axioms(resolve):
-            tptp_output.append(axiom.to_tptp())
+            for (axiom, path) in self.get_all_axioms():
+                tptp_output.append(axiom.to_tptp())
 
-        return tptp_output
+            self.tptp_output = tptp_output
+
+        return self.tptp_output
 
 
-
-    def to_ladr(self, resolve=True):
+    def to_ladr(self):
         """
         Translates all axioms in the module and, if present, in any imported modules to the LADR format supported by Prover9 and Mace4
+        :return: LADR conversions as a list of strings
         """
 
-        ladr_output = []
+        if self.ladr_output is None:
+            ladr_output = []
 
-        all_axioms = self.get_all_axioms(resolve)
-        for (axiom, path) in all_axioms:
-            ladr_output.append(axiom.to_ladr())
+            all_axioms = self.get_all_axioms()
+            for (axiom, path) in all_axioms:
+                ladr_output.append(axiom.to_ladr())
 
-        return ladr_output
+            self.ladr_output = ladr_output
 
-    def to_latex(self, resolve=True):
+        return self.ladr_output
+
+
+    def to_latex(self):
         """
         Translates all axioms in the module and, if present, in any imported modules to a LaTeX representation
         """
 
-        latex_output = []
+        if self.latex_output is None:
+            latex_output = []
 
-        all_axioms = self.get_all_axioms(resolve)
-        for (axiom, path) in all_axioms:
-            latex_output.append("$" + axiom.to_latex() +"$")
+            all_axioms = self.get_all_axioms()
+            for (axiom, path) in all_axioms:
+                latex_output.append("$" + axiom.to_latex() +"$")
 
-        return latex_output
+            self.latex_output = latex_output
 
+        return self.latex_output
+
+
+    def get_output_filename(self, output_type):
+
+        # the following assumes that the names of the configuration sections
+        # are the same as the names of the output (tptp/ladr/owl)
+        if self.resolve:
+            ending = Filemgt.read_config(output_type, 'all_ending')
+        else:
+            ending = ""
+
+        ending = ending + Filemgt.read_config(output_type, 'ending')
+
+        output_filename = Filemgt.get_full_path(self.name,
+                                                folder=Filemgt.read_config(output_type, 'folder'),
+                                                ending=ending)
+
+        return output_filename
+
+
+    def write_owl_file(self):
+
+        logging.getLogger(__name__).info("Approximating " + self.name + " as an OWL ontology")
+
+        self.to_owl()
+
+        output_filename = self.get_output_filename('owl')
+
+        with open(output_filename, "w") as f:
+            f.write(self.owl.tostring(pretty_print=True))
+        f.close()
+
+        return output_filename
+
+
+    def write_tptp_file(self):
+
+        if self.tptp_file is None:
+            logging.getLogger(__name__).info("Converting " + self.name + " to TPTP format")
+
+            results = self.to_tptp()
+
+            output_filename = self.get_output_filename('tptp')
+
+            with open(output_filename, "w") as f:
+                for sentence in results:
+                    print(sentence)
+                    f.write(sentence + "\n")
+                f.close()
+
+            # save results to prevent redo the TPTP conversion
+            self.tptp_file = output_filename
+
+        return self.tptp_file
+
+    def write_ladr_file(self):
+
+        if self.ladr_file is None:
+            logging.getLogger(__name__).info("Converting " + self.name + " to LADR format")
+
+            results = self.to_ladr()
+
+            output_filename = self.get_output_filename('ladr')
+
+            with open(output_filename, "w") as f:
+                if len(results) > 0:
+                    f.write("formulas(sos).\n")
+                    for sentence in results:
+                        print(sentence)
+                        f.write(sentence + "\n")
+                    f.write("end_of_list.\n")
+                f.close()
+
+            # save results to prevent redo the LADR conversion
+            self.ladr_file = output_filename
+
+        return self.ladr_file
+
+    def write_latex_file(self, enumerate):
+
+        if self.latex_file is None:
+            logging.getLogger(__name__).info("Converting " + self.name + " to LaTeX format")
+
+            results = self.to_latex()
+
+            output_filename = self.get_output_filename('latex')
+
+            with open(output_filename, "w") as f:
+                f.write("\\documentclass{article}\n")
+
+                f.write("\\usepackage{amsmath,amssymb,hyperref}\n\n")
+                f.write("\\delimitershortfall = -0.5pt\n\n")
+
+                printable_name = self.name.replace(os.sep, '/').replace("_", "\_")
+
+                f.write("\\begin{document}\n")
+                f.write("\\textbf{\\url{" + printable_name + "}}\n\n")
+                if enumerate:
+                    f.write("\\begin{enumerate}\n")
+                for sentence in results:
+                    print(sentence)
+                    if enumerate:
+                        f.write("\\item " + sentence + "\n")
+                    else:
+                        f.write(sentence + "\n\n")
+                if enumerate:
+                    f.write("\\end{enumerate}\n")
+                f.write("\\end{document}")
+                f.close()
+
+            self.latex_file = output_filename
+
+        return self.latex_file
 
     def check_consistency (self, resolve=True, options_files = None):
         """ test the input for consistency by trying to find a model or an inconsistency."""
         # want to create a subfolder for the output files
 
+        # TODO resolve argument currently not read
         reasoners = ReasonerSet()
         reasoners.constructAllCommands(self)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
@@ -326,7 +428,7 @@ class Ontology(object):
         """
 
         imported_axioms = []
-        self.resolve_imports(resolve=True)
+        self.resolve_imports()
 
         seen_paths = []
         unprocessed = [x for x in self.imports.items()]
@@ -342,7 +444,7 @@ class Ontology(object):
 
         return imported_axioms
 
-    def get_all_axioms(self, resolve=True):
+    def get_all_axioms(self):
         """
         Gets a list of all axioms found in the ontology itself or in its import closure
 
@@ -353,14 +455,14 @@ class Ontology(object):
         axioms = [(x, self.name) for x in self.axioms[:]]
         logging.getLogger(__name__).info("Found " + str(len(axioms)) + " axioms in " + self.name)
 
-        if resolve:
+        if self.resolve:
             axioms +=self.get_imported_axioms()
             logging.getLogger(__name__).info("Working from a total of " + str(len(axioms)) + " axioms (including imported ones)")
 
         return axioms
 
 
-    def to_owl(self, resolve=True):
+    def to_owl(self):
         """
         Return a string representation of this ontology in OWL format. If this ontology
         contains imports will translate those as well and concatenate all the axioms.
@@ -368,52 +470,41 @@ class Ontology(object):
         :return String onto, this ontology in OWL format
         """
 
-        # Create new OWL ontology instance
-        # need to use normalized path to work properly on Windows
-        onto = Owl(self.name,
-                   self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
+        if self.owl is None:
 
-        axioms = self.get_all_axioms(resolve)
+            # Create new OWL ontology instance
+            # need to use normalized path to work properly on Windows
+            onto = Owl(self.name,
+                       self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
 
-        # keeping track of classes (unary predicates) and properties (binary predicates) encountered
-        # to avoid redundant declarations
-        # predicates with the same arity and name are assumed to be identical
-        classes = set()
-        properties = set()
+            axioms = self.get_all_axioms()
 
-        # Loop over each Axiom and filter applicable patterns
-        for axiom, path in axioms:
+            # keeping track of classes (unary predicates) and properties (binary predicates) encountered
+            # to avoid redundant declarations
+            # predicates with the same arity and name are assumed to be identical
+            classes = set()
+            properties = set()
 
-            print('Axiom: {} from {}'.format(axiom, path))
-            pcnf = axiom.ff_pcnf()
-            print('FF-PCNF: {}'.format(pcnf))
+            # Loop over each Axiom and filter applicable patterns
+            for axiom, path in axioms:
 
-            for unary in axiom.unary():
-                if unary.name not in classes:
-                    classes.add(unary.name)
-                    onto.declare_class(unary.name)
+                print('Axiom: {} from {}'.format(axiom, path))
+                pcnf = axiom.ff_pcnf()
+                print('FF-PCNF: {}'.format(pcnf))
 
-            for binary in axiom.binary():
-                if binary.name not in properties:
-                    properties.add(binary.name)
-                    onto.declare_property(binary.name)
+                for unary in axiom.unary():
+                    if unary.name not in classes:
+                        classes.add(unary.name)
+                        onto.declare_class(unary.name)
 
-            for pruned in Translation.translate_owl(pcnf):
+                for binary in axiom.binary():
+                    if binary.name not in properties:
+                        properties.add(binary.name)
+                        onto.declare_property(binary.name)
 
-                tmp_axiom = Axiom(pruned)
-                pattern_set = Filter.filter_axiom(tmp_axiom)
+                for pruned in Translation.translate_owl(pcnf):
 
-                #Collector for extracted patterns
-                for pattern in pattern_set:
-
-                    extraction = pattern(tmp_axiom)
-                    if extraction is not None:
-                        print('     - pattern', extraction[0])
-                        Translation.produce_construct(extraction, onto)
-
-            for extra in pcnf.extra_sentences:
-                for extra_pruned in Translation.translate_owl(extra):
-                    tmp_axiom = Axiom(extra_pruned)
+                    tmp_axiom = Axiom(pruned)
                     pattern_set = Filter.filter_axiom(tmp_axiom)
 
                     #Collector for extracted patterns
@@ -421,17 +512,62 @@ class Ontology(object):
 
                         extraction = pattern(tmp_axiom)
                         if extraction is not None:
-                            print('     - (extra) pattern', extraction[0])
+                            print('     - pattern', extraction[0])
                             Translation.produce_construct(extraction, onto)
 
-            print()
+                for extra in pcnf.extra_sentences:
+                    for extra_pruned in Translation.translate_owl(extra):
+                        tmp_axiom = Axiom(extra_pruned)
+                        pattern_set = Filter.filter_axiom(tmp_axiom)
 
-        # TODO: Find another way to do this instead of case by case
-        # etree.ElementTree html encodes special characters. Protege does not like this.
-        # return onto.tostring()
-        return onto
+                        #Collector for extracted patterns
+                        for pattern in pattern_set:
 
+                            extraction = pattern(tmp_axiom)
+                            if extraction is not None:
+                                print('     - (extra) pattern', extraction[0])
+                                Translation.produce_construct(extraction, onto)
 
+                print()
+
+            # TODO: Find another way to do this instead of case by case
+            # etree.ElementTree html encodes special characters. Protege does not like this.
+            # return onto.tostring()
+
+            self.owl = onto
+
+        return self.owl
+
+    def pretty_print(self, pcnf=False, tptp=False):
+        '''
+        Utility function to nicely print out an ontology and linked imports.
+        Optionally will transform any axioms to their function-free prenex conjunctive
+        normal form (FF-PCNF).
+
+        :param Ontology ontology, An ontology object representing the top level file
+        :param Boolean pcnf, Flag to transform axioms to FF-PCNF form
+        '''
+
+        ontologies = set()
+        ontologies.add(self.name)
+
+        processing = [self]
+
+        while processing != []:
+
+            new = processing.pop()
+
+            if new is not None:
+
+                for onto in new.imports.keys():
+                    if onto.name not in ontologies:
+                        ontologies.add(onto.name)
+                        processing.append(new.imports[onto])
+
+                if pcnf:
+                    new.to_ffpcnf()
+
+                print(repr(new) + '\n')
 
     def __repr__(self):
         """

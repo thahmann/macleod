@@ -3,11 +3,11 @@ Created on 2010-11-26
 
 @author: Torsten Hahmann
 '''
+import macleod.Ontology as Ontology
 import macleod.Filemgt as filemgt
 import macleod.Ladr as ladr
 import os, logging
 
-from macleod.scripts import clif_converter
 
 options_files = []
 
@@ -36,7 +36,7 @@ def get_p9_cmd (ontology):
     args.append(filemgt.read_config('prover9','command'))
     args.append('-t' + filemgt.read_config('prover9','timeout'))
     args.append('-f')
-    args.append(clif_converter.convert_single_clif_file(ontology,clif_converter.ladr_output,True))
+    args.append(ontology.write_ladr_file())
 
     # check for possible options file (to change predicate order or other parameters)
     options_file = filemgt.read_config('prover9', 'options')
@@ -59,7 +59,7 @@ def get_m4_cmd (ontology):
     args.append('-n' + filemgt.read_config('mace4','start_size'))
     args.append('-N' + filemgt.read_config('mace4','end_size'))
     args.append('-f')
-    args.append(clif_converter.convert_single_clif_file(ontology,clif_converter.ladr_output,True))
+    args.append(ontology.write_ladr_file())
 
     return args
 
@@ -79,7 +79,7 @@ def get_paradox_cmd (ontology):
     args.append('2')
     args.append('--model')
     args.append('--tstp')
-    args.append(clif_converter.convert_single_clif_file(ontology,clif_converter.tptp_output,True))
+    args.append(ontology.write_tptp_file())
 
     return args
 
@@ -95,7 +95,7 @@ def get_vampire_cmd (ontology):
     args.append(filemgt.read_config('vampire','timeout'))
     # needed for Windows
     args.append('--input_file')
-    args.append(clif_converter.convert_single_clif_file(ontology,clif_converter.tptp_output,True))
+    args.append(ontology.write_tptp_file())
     #logging.getLogger(__name__).debug("COMMAND FOR vampire IS " + str(args))
     # works for linux, not for Windows
     #return (args, [list(imports)[0].get_module_set(imports).get_single_tptp_file(imports)])

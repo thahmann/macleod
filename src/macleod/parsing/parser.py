@@ -6,7 +6,7 @@ import re
 
 from pathlib import Path
 
-import macleod.Ontology as Ontology
+from macleod.Ontology import Ontology
 from macleod.logical.logical import Logical
 from macleod.logical.connective import (Conjunction, Disjunction, Connective, Implication, Biconditional)
 from macleod.logical.logical import Logical
@@ -520,7 +520,7 @@ def parse_file(path, sub, base, resolve=False, name=None):
         LOGGER.warning("Attempted to parse non-existent file: " + path)
         return None
 
-    ontology = Ontology.Ontology(path)
+    ontology = Ontology(path)
 
     if name is not None:
         ontology.name = name
@@ -551,7 +551,7 @@ def parse_file(path, sub, base, resolve=False, name=None):
 
     if resolve:
 
-        ontology.resolve_imports(resolve)
+        ontology.resolve_imports()
 
     return ontology
 
