@@ -81,7 +81,7 @@ def consistent(filename, args):
 
     if args.full:
         # Run the parsing script first to translate to TPTP and LADR
-        ontology = parser_script.convert_file(filename,args)
+        ontology = parser_script.convert_file(filename,args,preserve_conditionals=True)
         ontology.check_consistency(resolve=not(args.resolve))
         #results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
     if args.simple:

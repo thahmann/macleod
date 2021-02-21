@@ -41,6 +41,8 @@ def parse_clif():
 
     # Parse the command line arguments
     args = parser.parse_args()
+    if (args.owl):
+        args.nocond = True
 
     main(args)
 
@@ -117,12 +119,13 @@ def clif_to_owl():
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
     optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
     optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
-    optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=False)
+    optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=True)
     optionalArguments.add_argument('--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
 
     # Parse the command line arguments
     args = parser.parse_args()
     args.owl = True
+    args.nocond = True
     args.ladr = False
     args.tptp = False
     args.latex = False
@@ -172,8 +175,11 @@ def main(args):
     if args.base is None:
         args.base = default_basepath[1]
 
-    if (args.tptp or args.ladr or args.latex) and args.nocond is False:
-        Parser.conditionals = True
+    # setting global variable to preserve (or not) conditionals connectives
+    print("ELIMINATING CONDITIONALS " + str(args.nocond))
+    global conditionals
+    conditionals = not(args.nocond)
+
 
     # TODO need to substitute base path
     full_path = args.file
@@ -189,12 +195,16 @@ def main(args):
         logging.getLogger(__name__).error("Attempted to parse non-existent file or directory: " + full_path)
 
 
-def convert_file(file, args):
+def convert_file(file, args, preserve_conditionals = None):
 
-    ontology = Parser.parse_file(file, args.sub, args.base, args.resolve, preserve_conditionals = not(args.ffpcnf))
+    # need to check whether to set or reset the global variable
+    if preserve_conditionals is not None:
+        conditionals = preserve_conditionals
+
+    ontology = Parser.parse_file(file, args.sub, args.base, args.resolve, preserve_conditionals = conditionals)
 
     if ontology is None:
-        # some error occured while parsing CLIF file(s)
+        # some error occurred while parsing CLIF file(s)
         exit(-1)
 
     # producing OWL output

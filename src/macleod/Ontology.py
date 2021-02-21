@@ -32,7 +32,7 @@ class Ontology(object):
 
     imported = {}
 
-    def __init__(self, name, basepath=None, resolve=False):
+    def __init__(self, name, basepath=None, resolve=False, preserve_conditionals = True):
 
         # The full path to the file
         self.name = os.path.abspath(name)
@@ -63,6 +63,8 @@ class Ontology(object):
         self.latex_file = None
         self.owl = None
 
+        global conditionals
+        conditionals = preserve_conditionals
 
     def to_ffpcnf(self):
         """
@@ -114,7 +116,7 @@ class Ontology(object):
                     Ontology.imported[path] = None
                     try:
                         logging.getLogger(__name__).info("Starting to parse " + subbed_path)
-                        new_ontology = Parser.parse_file(subbed_path, sub, base, self.resolve)
+                        new_ontology = Parser.parse_file(subbed_path, sub, base, self.resolve, preserve_conditionals=conditionals)
                     except TypeError as e:
                         logging.getLogger(__name__).error("Error parsing + " + subbed_path + ": " + str(e))
 

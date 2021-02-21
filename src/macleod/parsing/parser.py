@@ -512,17 +512,22 @@ def parse_file(path, sub, base, resolve=False, name=None, preserve_conditionals 
     :return Ontology onto, newly constructed ontology object
     """
 
-    global parser
-    global conditionals
-    conditionals = preserve_conditionals
-
     path = os.path.normpath(os.path.join(base, path))
 
     if not os.path.isfile(path):
         LOGGER.warning("Attempted to parse non-existent file: " + path)
         return None
 
-    ontology = Ontology(path)
+    global parser
+    global conditionals
+    conditionals = preserve_conditionals
+    #if conditionals:
+    #    LOGGER.info("Preserving all conditionals")
+    #else:
+    #    LOGGER.info("Eliminating all conditionals")
+
+
+    ontology = Ontology(path, preserve_conditionals = conditionals)
 
     if name is not None:
         ontology.name = name
