@@ -197,6 +197,8 @@ def main(args):
 
 def convert_file(file, args, preserve_conditionals = None):
 
+    global conditionals
+
     # need to check whether to set or reset the global variable
     if preserve_conditionals is not None:
         conditionals = preserve_conditionals
