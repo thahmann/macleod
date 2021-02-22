@@ -6,29 +6,28 @@ Top level container for an ontology parsed into the object structure
 import logging
 import os
 
-from macleod.ReasonerSet import ReasonerSet
-from macleod.dl.owl import Owl
-from macleod.logical.axiom import Axiom
+import macleod.ReasonerSet
+import macleod.dl.owl
+import macleod.logical.axiom
 
-import macleod.Filemgt as Filemgt
-import macleod.Process as Process
-import macleod.dl.filters as Filter
-import macleod.dl.translation as Translation
-import macleod.dl.utilities as Util
-
-CONSISTENT = 1
-INCONSISTENT = -1
-PROOF = -1
-COUNTEREXAMPLE = 1
-UNKNOWN = 0
-CONTRADICTION = -100
-ERROR = -50
+import macleod.Filemgt
+import macleod.Process
+import macleod.dl.filters
+import macleod.dl.translation
 
 
 class Ontology(object):
     """
     The object to rule them all
     """
+
+    CONSISTENT = 1
+    INCONSISTENT = -1
+    PROOF = -1
+    COUNTEREXAMPLE = 1
+    UNKNOWN = 0
+    CONTRADICTION = -100
+    ERROR = -50
 
     imported = {}
 
@@ -48,7 +47,7 @@ class Ontology(object):
 
         # Dict with [URI] : [filepath] to serve as the substitution string
         if basepath is None:
-            self.basepath = Filemgt.get_ontology_basepath()
+            self.basepath = macleod.Filemgt.get_ontology_basepath()
         else:
             self.basepath = basepath
         #logging.getLogger(__name__).info('Using URI ' + self.basepath[0] + ' to substitute for path ' + self.basepath[1])
@@ -163,7 +162,7 @@ class Ontology(object):
         :return None
         """
 
-        self.axioms.append(Axiom(logical))
+        self.axioms.append(macleod.logical.axiom.Axiom(logical))
 
     def add_conjecture(self, logical):
         """
@@ -174,7 +173,7 @@ class Ontology(object):
         :return None
         """
 
-        self.conjecture.append(Axiom.Axiom(logical))
+        self.conjecture.append(macleod.logical.axiom.Axiom(logical))
 
     def add_import(self, path):
         """
@@ -244,14 +243,14 @@ class Ontology(object):
         # the following assumes that the names of the configuration sections
         # are the same as the names of the output (tptp/ladr/owl)
         if self.resolve:
-            ending = Filemgt.read_config(output_type, 'all_ending')
+            ending = macleod.Filemgt.read_config(output_type, 'all_ending')
         else:
             ending = ""
 
-        ending = ending + Filemgt.read_config(output_type, 'ending')
+        ending = ending + macleod.Filemgt.read_config(output_type, 'ending')
 
-        output_filename = Filemgt.get_full_path(self.name,
-                                                folder=Filemgt.read_config(output_type, 'folder'),
+        output_filename = macleod.Filemgt.get_full_path(self.name,
+                                                folder=macleod.Filemgt.read_config(output_type, 'folder'),
                                                 ending=ending)
 
         return output_filename
@@ -356,12 +355,12 @@ class Ontology(object):
         # want to create a subfolder for the output files
 
         # TODO resolve argument currently not read
-        reasoners = ReasonerSet()
+        reasoners = macleod.ReasonerSet.ReasonerSet()
         reasoners.constructAllCommands(self)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))
 
         # run provers and modelfinders simultaneously and wait until one returns
-        reasoners = Process.raceProcesses(reasoners)
+        reasoners = macleod.Process.raceProcesses(reasoners)
 
         # this captures our return code (consistent/inconsistent/unknown), not the reasoning processes return code
         (return_value, fastest_reasoner) = self.consolidate_results(reasoners)
@@ -398,10 +397,10 @@ class Ontology(object):
                 return_value = r.output
                 logging.getLogger(__name__).info("TERMINATED WITH ERROR (" + str(r.output) + "): " + r.name)
             if r.terminatedSuccessfully():
-                if return_value == ERROR:
+                if return_value == Ontology.ERROR:
                     # Another prover found an error (likely syntax error), thus the result is not meaningful
                    continue
-                if return_value == UNKNOWN:
+                if return_value == Ontology.UNKNOWN:
                     return_value = r.output
                     logging.getLogger(__name__).info("TERMINATED SUCCESSFULLY (" + str(r.output) + "): " + r.name)
                     successful_reasoner = r.name
@@ -412,7 +411,7 @@ class Ontology(object):
                     if (r.time<fastest_reasoner.time):
                         fastest_reasoner = r
                 elif return_value != r.output:
-                    return_value = CONTRADICTION
+                    return_value = Ontology.CONTRADICTION
                     #print "CONTRADICTION: " + str(return_value)
                     logging.getLogger(__name__).warning("CONTRADICTORY RESULTS from " + self.name +': ' + r.name + ' and ' + successful_reasoner + ' disagree')
             if r.terminatedUnknowingly():
@@ -476,7 +475,7 @@ class Ontology(object):
 
             # Create new OWL ontology instance
             # need to use normalized path to work properly on Windows
-            onto = Owl(self.name,
+            onto = macleod.dl.owl.Owl(self.name,
                        self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
 
             axioms = self.get_all_axioms()
@@ -504,10 +503,10 @@ class Ontology(object):
                         properties.add(binary.name)
                         onto.declare_property(binary.name)
 
-                for pruned in Translation.translate_owl(pcnf):
+                for pruned in macleod.dl.translation.translate_owl(pcnf):
 
-                    tmp_axiom = Axiom(pruned)
-                    pattern_set = Filter.filter_axiom(tmp_axiom)
+                    tmp_axiom = macleod.logical.axiom.Axiom(pruned)
+                    pattern_set = macleod.dl.filters.filter_axiom(tmp_axiom)
 
                     #Collector for extracted patterns
                     for pattern in pattern_set:
@@ -515,12 +514,12 @@ class Ontology(object):
                         extraction = pattern(tmp_axiom)
                         if extraction is not None:
                             print('     - pattern', extraction[0])
-                            Translation.produce_construct(extraction, onto)
+                            macleod.dl.translation.produce_construct(extraction, onto)
 
                 for extra in pcnf.extra_sentences:
-                    for extra_pruned in Translation.translate_owl(extra):
-                        tmp_axiom = Axiom(extra_pruned)
-                        pattern_set = Filter.filter_axiom(tmp_axiom)
+                    for extra_pruned in macleod.dl.translation.translate_owl(extra):
+                        tmp_axiom = macleod.logical.axiom.Axiom(extra_pruned)
+                        pattern_set = macleod.dl.filters.filter_axiom(tmp_axiom)
 
                         #Collector for extracted patterns
                         for pattern in pattern_set:
@@ -528,7 +527,7 @@ class Ontology(object):
                             extraction = pattern(tmp_axiom)
                             if extraction is not None:
                                 print('     - (extra) pattern', extraction[0])
-                                Translation.produce_construct(extraction, onto)
+                                macleod.dl.translation.produce_construct(extraction, onto)
 
                 print()
 

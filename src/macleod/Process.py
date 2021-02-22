@@ -3,8 +3,7 @@ from multiprocessing import Queue
 import os, sys, logging
 import time, re, signal, subprocess
 
-import macleod.Filemgt as filemgt
-import macleod.Ontology as Ontology
+import macleod
 
 class ReasonerProcess(multiprocessing.Process):
 
@@ -61,7 +60,7 @@ class ReasonerProcess(multiprocessing.Process):
         #print "total CPU time of " + self.args[0] + " = " + str(self.cputime)
 
     def enforce_limits (self, pid):
-        limit = int(filemgt.read_config('system', 'memory_limit')) # read custom memory limit from configuration file
+        limit = int(macleod.Filemgt.read_config('system', 'memory_limit')) # read custom memory limit from configuration file
         if limit is None:
             logging.getLogger(__name__).debug("USING DEFAULT MEMORY LIMIT OF 2GB FOR EACH REASONER")
             limit = 2048 # default memory limit for each reasoner is 2GB
@@ -380,14 +379,14 @@ def raceProcesses (reasoners):
             if r.terminatedWithError():
                 logging.getLogger(__name__).error("TERMINATED WITH ERROR (LIKELY DURING PARSING): " + name)
             elif r.terminatedSuccessfully():
-                if r.output==Ontology.INCONSISTENT:
+                if r.output==macleod.Ontology.INCONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND PROOF: " + name)
                         status = 'PROOF'
                     else:
                         logging.getLogger(__name__).info("PROVED INCONSISTENCY: " + name)
                         status = 'INCONSISTENT'
-                elif r.output==Ontology.CONSISTENT:
+                elif r.output==macleod.Ontology.CONSISTENT:
                     if r.isProver():
                         logging.getLogger(__name__).info("FOUND COUNTEREXAMPLE: " + name)
                         status = 'COUNTEREXAMPLE'

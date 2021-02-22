@@ -1,7 +1,6 @@
-import macleod.Filemgt as Filemgt
-import macleod.Commands as commands
-import macleod.Ontology as Ontology
+import macleod
 import logging
+
 
 class Reasoner (object):
 
@@ -40,7 +39,7 @@ class Reasoner (object):
         else:
             self.identifier = name
 
-        self.timeout = Filemgt.read_config(self.name,'timeout')
+        self.timeout = macleod.Filemgt.read_config(self.name,'timeout')
         
         logging.getLogger(__name__).debug('Finished initializing ' + name)
         
@@ -62,19 +61,19 @@ class Reasoner (object):
     def constructCommand (self, ontology):
         import os
         """Return the command (includes constructing it if necessary) to invoke the reasoner."""
-        self.args = commands.get_system_command(self.name, ontology)
+        self.args = macleod.Commands.get_system_command(self.name, ontology)
 
         ending = None
 
         if ontology.resolve:
-            ending = Filemgt.read_config(self.name, 'all_ending')
+            ending = macleod.Filemgt.read_config(self.name, 'all_ending')
         if ending is None:
             ending = ""
 
-        ending = ending + Filemgt.read_config(self.name, 'ending')
+        ending = ending + macleod.Filemgt.read_config(self.name, 'ending')
 
-        self.output_file = Filemgt.get_full_path(ontology.name,
-                                           folder=Filemgt.read_config('output','folder'),
+        self.output_file = macleod.Filemgt.get_full_path(ontology.name,
+                                           folder=macleod.Filemgt.read_config('output','folder'),
                                            ending=ending)
         self.ontology = ontology
         logging.getLogger(__name__).debug('Reasoner command: ' + str(self.args))
@@ -95,42 +94,42 @@ class Reasoner (object):
 
     def terminatedSuccessfully (self):
         mapping = {
-            Ontology.PROOF: True,
-            Ontology.COUNTEREXAMPLE: True,
-            Ontology.CONSISTENT: True,
-            Ontology.INCONSISTENT: True,
-            Ontology.ERROR : False,
-            Ontology.UNKNOWN : False,
+            macleod.Ontology.PROOF: True,
+            macleod.Ontology.COUNTEREXAMPLE: True,
+            macleod.Ontology.CONSISTENT: True,
+            macleod.Ontology.INCONSISTENT: True,
+            macleod.Ontology.ERROR : False,
+            macleod.Ontology.UNKNOWN : False,
             None: False
         }
 
         def paradox_status(line):
             if 'Theorem' in line:
                 #print "PARADOX SZS status found: THEOREM"
-                return Ontology.PROOF
+                return macleod.Ontology.PROOF
             elif 'Unsatisfiable' in line:
-                return Ontology.INCONSISTENT
+                return macleod.Ontology.INCONSISTENT
             elif 'CounterSatisfiable' in line:
-                return Ontology.COUNTEREXAMPLE
+                return macleod.Ontology.COUNTEREXAMPLE
             elif 'Satisfiable' in line:
-                return Ontology.CONSISTENT
+                return macleod.Ontology.CONSISTENT
             else: # Timeout, GaveUp
-                return Ontology.UNKNOWN
+                return macleod.Ontology.UNKNOWN
 
         def vampire_status(line):
             if 'Refutation not found' in line:
-                return Ontology.UNKNOWN
+                return macleod.Ontology.UNKNOWN
             elif 'Refutation' in line:
                 #print "VAMPIRE SZS status found: THEOREM"
-                return Ontology.PROOF
+                return macleod.Ontology.PROOF
             elif 'Unsatisfiable' in line:
-                return Ontology.INCONSISTENT
+                return macleod.Ontology.INCONSISTENT
             elif 'CounterSatisfiable' in line:
-                return Ontology.COUNTEREXAMPLE
+                return macleod.Ontology.COUNTEREXAMPLE
             elif 'Satisfiable' in line:
-                return Ontology.CONSISTENT
+                return macleod.Ontology.CONSISTENT
             else: # Timeout, GaveUp
-                return Ontology.UNKNOWN
+                return macleod.Ontology.UNKNOWN
 
         def success_default (self):
             return False
@@ -141,7 +140,7 @@ class Reasoner (object):
             out_file.close()
             output_lines = [x for x in lines if x.startswith('THEOREM PROVED')]
             if len(output_lines)>0:
-                self.output = Ontology.PROOF
+                self.output = macleod.Ontology.PROOF
 
             return mapping[self.output]
 
@@ -154,17 +153,17 @@ class Reasoner (object):
             output_lines = [x for x in lines if x.startswith('% Termination reason:')]
             l = len(output_lines)
             if l==0:
-                self.output = Ontology.UNKNOWN
+                self.output = macleod.Ontology.UNKNOWN
             # at least one line has a termination reason, so this might be an intermediate line (since Vampire in competition mode restarts several times)
             else:
                 # examine the last output line
                 self.output = vampire_status(output_lines[l-1])
-                if self.output == Ontology.UNKNOWN:
+                if self.output == macleod.Ontology.UNKNOWN:
                     # Handle exceptions during parsing
                     #print(str(lines))
                     output_lines = [x for x in lines if x.startswith('Parser exception:')]
                     if len(output_lines)>0:
-                        self.output = Ontology.ERROR
+                        self.output = macleod.Ontology.ERROR
 
             return mapping[self.output]
 
@@ -178,9 +177,9 @@ class Reasoner (object):
                 output_lines = [x for x in lines if x.startswith('*** Unexpected:')]
                 #print(str(lines))
                 if len(output_lines)>0:
-                    self.output = Ontology.ERROR
+                    self.output = macleod.Ontology.ERROR
                 else:
-                    self.output = Ontology.UNKNOWN
+                    self.output = macleod.Ontology.UNKNOWN
             else:
                 self.output = paradox_status(output_lines[0])
                 #logging.getLogger(self.__module__ + "." + self.__class__.__name__).debug('Paradox terminated successfully : ' + str(self.output))
@@ -193,10 +192,10 @@ class Reasoner (object):
             out_file.close()
             output_lines = [x for x in lines if x.startswith('Exiting with 1 model.')]
             if len(output_lines)==0:
-                self.output = Ontology.UNKNOWN
+                self.output = macleod.Ontology.UNKNOWN
             else:
-                self.output = Ontology.CONSISTENT
-                self.output = Ontology.CONSISTENT
+                self.output = macleod.Ontology.CONSISTENT
+                self.output = macleod.Ontology.CONSISTENT
 
             return mapping[self.output]
 
@@ -214,7 +213,7 @@ class Reasoner (object):
         # need to involve terminatedSuccessfully to make sure the self.output is set
         self.terminatedSuccessfully()
 
-        if self.output==Ontology.ERROR:
+        if self.output==macleod.Ontology.ERROR:
             return True
         else:
             return False

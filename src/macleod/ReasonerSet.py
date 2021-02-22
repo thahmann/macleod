@@ -1,6 +1,5 @@
-import macleod.Filemgt as filemgt
-import macleod.Commands as commands
-from macleod.Reasoner import Reasoner
+import macleod.Filemgt
+import macleod.Reasoner
 
 import logging
 
@@ -16,8 +15,8 @@ class ReasonerSet (list):
         """Read the active provers from the configuration file."""
 
         # local variables        
-        provers = filemgt.read_config('active','provers').split(',')
-        finders = filemgt.read_config('active','modelfinders').split(',')
+        provers = macleod.Filemgt.read_config('active','provers').split(',')
+        finders = macleod.Filemgt.read_config('active','modelfinders').split(',')
 
         provers = [ s.strip() for s in provers ]
         finders = [ s.strip() for s in finders ]
@@ -25,8 +24,8 @@ class ReasonerSet (list):
         provers = [x for x in provers if len(x)>0]
         finders = [x for x in finders if len(x)>0]
 
-        self.extend([Reasoner(r) for r in provers])
-        self.extend([Reasoner(r, reasoner_type=Reasoner.MODEL_FINDER) for r in finders])
+        self.extend([macleod.Reasoner.Reasoner(r) for r in provers])
+        self.extend([macleod.Reasoner.Reasoner(r, reasoner_type=macleod.Reasoner.Reasoner.MODEL_FINDER) for r in finders])
 
         logging.getLogger(__name__).debug("REASONER SET: " + str(provers+finders))
 
