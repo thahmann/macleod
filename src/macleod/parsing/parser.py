@@ -6,8 +6,7 @@ import re
 
 from pathlib import Path
 
-from macleod.Ontology import Ontology
-from macleod.logical.logical import Logical
+import macleod.Ontology
 from macleod.logical.connective import (Conjunction, Disjunction, Connective, Implication, Biconditional)
 from macleod.logical.logical import Logical
 from macleod.logical.negation import Negation
@@ -527,7 +526,7 @@ def parse_file(path, sub, base, resolve=False, name=None, preserve_conditionals 
     #    LOGGER.info("Eliminating all conditionals")
 
 
-    ontology = Ontology(path, preserve_conditionals = conditionals)
+    ontology = macleod.Ontology(path, preserve_conditionals = conditionals)
 
     if name is not None:
         ontology.name = name

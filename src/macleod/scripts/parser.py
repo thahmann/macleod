@@ -6,10 +6,10 @@ import sys, os
 LOGGER = logging.getLogger(__name__)
 
 import macleod.parsing.parser as Parser
-import macleod.Filemgt as Filemgt
+import macleod.Filemgt
 
-default_dir = Filemgt.read_config('system', 'path')
-default_prefix = Filemgt.read_config('cl', 'prefix')
+default_dir = macleod.Filemgt.read_config('system', 'path')
+default_prefix = macleod.Filemgt.read_config('cl', 'prefix')
 
 def parse_clif():
     '''
@@ -169,7 +169,7 @@ def main(args):
     '''
 
     # Parse out the ontology object then print it nicely
-    default_basepath = Filemgt.get_ontology_basepath()
+    default_basepath = macleod.Filemgt.get_ontology_basepath()
     if args.sub is None:
         args.sub = default_basepath[0]
     if args.base is None:
@@ -260,9 +260,9 @@ def convert_file(file, args, preserve_conditionals = None):
 
 def convert_folder(folder, args):
 
-    tempfolder = Filemgt.read_config('converters', 'tempfolder')
+    tempfolder = macleod.Filemgt.read_config('converters', 'tempfolder')
     ignores = [tempfolder]
-    cl_ending = Filemgt.read_config('cl', 'ending')
+    cl_ending = macleod.Filemgt.read_config('cl', 'ending')
     #logging.getLogger(__name__).info("Traversing folder " + folder)
 
     for directory, subdirs, files in os.walk(folder):

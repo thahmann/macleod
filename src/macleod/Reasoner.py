@@ -1,4 +1,6 @@
 import macleod
+import macleod.Commands
+import macleod.Filemgt
 import logging
 
 
@@ -12,7 +14,7 @@ class Reasoner (object):
     def __init__(self, name, reasoner_type=None, reasoner_id=None):
         
         logging.getLogger(__name__).debug('Initializing ' + name)
-        
+
         self.identifier = ''
 
         self.type = Reasoner.PROVER
@@ -32,6 +34,7 @@ class Reasoner (object):
         self.output = None
 
         self.name = name
+
         if reasoner_type:
             self.type = reasoner_type
         if reasoner_id:
