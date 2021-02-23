@@ -52,22 +52,6 @@ def consistent(filename, m, options=[]):
 
 
 if __name__ == '__main__':
-    licence.print_terms()
-
-    parser = argparse.ArgumentParser(description='Function to check the consistency of a Common Logic ontology.')
-    parser.add_argument('-f', '--file', type=str, help='Clif file', required=True)
-    parser.add_argument('-n', '--noresolve', action="store_false", help='Prevent from automatically resolving imports', default=True)
-    parser.add_argument('--loc', type=str, help='Path to directory containing ontology files', default=default_dir)
-    parser.add_argument('--prefix', type=str, help='String to replace with basepath found in imports', default=default_prefix)
-    args = parser.parse_args()
-
-    path = os.path.normpath(os.path.join(args.loc, args.file))
-
-    ontology = Parser.parse_file(args.file, args.prefix, args.loc, args.noresolve)
-
-    if not(os.path.isfile(path)):
-        logging.getLogger(__name__).error("Attempted to check consistency of non-existent file: " + path)
-    else:
-        ontology.check_consistency(resolve=not(args.noresolve))
-
+    print("This script is deprecated, please use check_consistency instead")
+    exit(-1)
 

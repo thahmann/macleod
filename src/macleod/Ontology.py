@@ -350,11 +350,10 @@ class Ontology(object):
 
         return self.latex_file
 
-    def check_consistency (self, resolve=True, options_files = None):
+    def check_consistency (self, options_files = None):
         """ test the input for consistency by trying to find a model or an inconsistency."""
         # want to create a subfolder for the output files
 
-        # TODO resolve argument currently not read
         reasoners = macleod.ReasonerSet.ReasonerSet()
         reasoners.constructAllCommands(self)
         logging.getLogger(__name__).info("USING " + str(len(reasoners)) + " REASONERS: " + str([r.name for r in reasoners]))

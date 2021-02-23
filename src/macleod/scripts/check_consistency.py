@@ -5,18 +5,15 @@ import sys, os
 
 LOGGER = logging.getLogger(__name__)
 
-import macleod.parsing.parser as Parser
-import macleod.Filemgt as Filemgt
+import macleod.Filemgt
 import macleod.scripts.parser as parser_script
 
 #print(os.path.dirname(os.path.abspath(__file__)))
 #sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
-from macleod.ClifModuleSet import ClifModuleSet
 
-
-default_dir = Filemgt.read_config('system', 'path')
-default_prefix = Filemgt.read_config('cl', 'prefix')
+default_dir = macleod.Filemgt.read_config('system', 'path')
+default_prefix = macleod.Filemgt.read_config('cl', 'prefix')
 
 def main():
     '''
@@ -37,10 +34,10 @@ def main():
     optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
 
     exclusiveArguments = parser.add_mutually_exclusive_group()
-    exclusiveArguments.add_argument('--full', action='store_true', help='Do a regular full consistency check', default=True)
-    exclusiveArguments.add_argument('--simple', action='store_true', help='Do a simple consistency check', default=False)
-    exclusiveArguments.add_argument('--module', action='store_true', help='Check recursively using importation structure', default=False)
-    exclusiveArguments.add_argument('--depth', action='store_true', help='Check with iteratively increasing depths', default=False)
+    exclusiveArguments.add_argument('--simple', action='store_true', help='Do a simple consistency check', default=True)
+    exclusiveArguments.add_argument('--full', action='store_true', help='Do a full resursive consistency check in case the entire ontology is not provably consistent', default=False)
+    exclusiveArguments.add_argument('--module', action='store_true', help='Check each module individually', default=False)
+    #exclusiveArguments.add_argument('--depth', action='store_true', help='Check with iteratively increasing depths', default=False)
 
     # Parse the command line arguments
     args = parser.parse_args()
@@ -53,7 +50,7 @@ def main():
     args.ffpcnf = False
 
     # Parse out the ontology object then print it nicely
-    default_basepath = Filemgt.get_ontology_basepath()
+    default_basepath = macleod.Filemgt.get_ontology_basepath()
     if args.sub is None:
         args.sub = default_basepath[0]
     if args.base is None:
@@ -79,49 +76,52 @@ def main():
 
 def consistent(filename, args):
 
-    if args.full:
+    if args.simple:
+        # Run the parsing script first to translate to TPTP and LADR
+        # as part of the args, it is communicated whether to resolve the ontology or not
+        ontology = parser_script.convert_file(filename,args,preserve_conditionals=True)
+        (return_value, fastest_reasoner) = ontology.check_consistency()
+
+        if return_value == macleod.Ontology.CONSISTENT:
+            print(fastest_reasoner.name + " proved consistency of " + ontology.name)
+
+        exit(0)
+    elif args.full:
+        # TODO not yet working again
         # Run the parsing script first to translate to TPTP and LADR
         ontology = parser_script.convert_file(filename,args,preserve_conditionals=True)
-        ontology.check_consistency(resolve=not(args.resolve))
+        ontology.check_consistency()
         #results = m.run_full_consistency_check(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
-    if args.simple:
-        # TODO not yet working again
-        #results = m.run_simple_consistency_check()
         exit(-1)
     elif args.module:
         # TODO not yet working again
         #results = m.run_consistency_check_by_subset(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
         exit(-1)
-    elif args.depth:
-        # TODO not yet working again
-        #results = m.run_consistency_check_by_depth(abort=True, abort_signal=ClifModuleSet.CONSISTENT)
-        exit(-1)
 
-    # TODO remove temporary stop and fix following code
-    exit(0)
 
-    if len(results)==0:
-        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")
-    else:
-        for (r, value, _) in results:
-            if value==-1:
-                logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
-                return (False, m)
-        result_sets = [r[0] for r in results]
-        result_sets.sort(key=lambda x: len(x))
-        #print result_sets[0]
-        #print results
-        #print "+++++" + str(value)
-        if results[0][1]==1:
-            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
-            return (True, m)
-        else:
-            logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
-            if len(result_sets)>1:
-                for (r, value, _) in results:
-                    if value==1:
-                        logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
-    return (None, m)
+    # the following code block is about preseting the results from multiple modules
+    # if len(results)==0:
+    #     logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO MODULES FOUND IN " +str(m.get_imports()) +"\n")
+    # else:
+    #     for (r, value, _) in results:
+    #         if value==-1:
+    #             logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: INCONSISTENCY FOUND IN " +str(r) +"\n")
+    #             return (False, m)
+    #     result_sets = [r[0] for r in results]
+    #     result_sets.sort(key=lambda x: len(x))
+    #     #print result_sets[0]
+    #     #print results
+    #     #print "+++++" + str(value)
+    #     if results[0][1]==1:
+    #         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF " +str(result_sets[0]) +"\n")
+    #         return (True, m)
+    #     else:
+    #         logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: NO RESULT FOR CONSISTENCY OF " +str(result_sets[0]) +"\n")
+    #         if len(result_sets)>1:
+    #             for (r, value, _) in results:
+    #                 if value==1:
+    #                     logging.getLogger(__name__).info("+++ CONSISTENCY CHECK TERMINATED: PROVED CONSISTENCY OF SUBONTOLOGY " +str(r[0]) +"\n")
+    # return (None, m)
 
 
 if __name__ == '__main__':
