@@ -54,6 +54,14 @@ class Ontology(object):
 
         self.resolve = resolve
 
+        # for keeping track of the terminology
+        self.unary_predicates = set()
+        self.binary_predicates = set()
+        self.nary_predicates = set()
+        self.consts = set()
+        self.functs = set()
+
+
         self.tptp_output = None
         self.tptp_file = None
         self.ladr_output = None
@@ -64,6 +72,10 @@ class Ontology(object):
 
         global conditionals
         conditionals = preserve_conditionals
+
+        # enumerator for creating unique constants
+        global const_enum
+        const_enum = 0
 
     def to_ffpcnf(self):
         """
@@ -185,6 +197,115 @@ class Ontology(object):
         """
 
         self.imports[path] = None
+
+    def analyze_ontology(self):
+        """
+        Analyzes all axioms of the ontology and stores lists of predicates, etc.
+
+        :return:
+        """
+
+        class WrappedSymbol(object):
+            """
+            Wrapping predicates and function symbols in a new class to make comparing, merging, etc. easier
+            """
+            def __init__(self, symbol):
+                self.symbol = symbol
+
+            def __eq__(self, other):
+                if isinstance(self.symbol, str):
+                    return self==other
+                else:
+                    return self.symbol.same_symbol(other.symbol)
+
+            def __hash__(self):
+                if isinstance(self.symbol, str):
+                    return hash(self.symbol)
+                else:
+                    return hash(self.symbol.name)
+
+            def __repr__(self):
+                if isinstance(self.symbol, str):
+                    return self.symbol + "(0)"
+                else:
+                    return self.symbol.name + "(" + str(len(self.symbol.variables)) + ")"
+
+        axioms = self.get_all_axioms()
+
+        for (axiom, _) in axioms:
+            axiom.analyze_logical()
+
+            self.unary_predicates.update(set(WrappedSymbol(p) for p in axiom.unary_predicates))
+            self.binary_predicates.update(set(WrappedSymbol(p) for p in axiom.binary_predicates))
+            self.nary_predicates.update(set(WrappedSymbol(p) for p in axiom.nary_predicates))
+            self.consts.update(set(WrappedSymbol(p) for p in axiom.consts))
+            self.functs.update(set(WrappedSymbol(p) for p in axiom.functs))
+
+        print("Unary predicates: {}".format(", ".join([repr(p) for p in self.unary_predicates])))
+        print("Binary predicates: {}".format(", ".join([repr(p) for p in self.binary_predicates])))
+        print("N-ary predicates: {}".format(", ".join([repr(p) for p in self.nary_predicates])))
+        print("Constants: {}".format(", ".join([repr(p) for p in self.consts])))
+        print("Functions: {}".format(", ".join([repr(p) for p in self.functs])))
+
+
+
+    def get_explicit_definitions(self):
+        """
+        Gets all explicit definitions form this ontology;
+        need to make sure to call resolve_imports() first if all imported axioms should be included
+        :return:
+        """
+        axioms = self.get_all_axioms()
+
+        logging.getLogger(__name__).info("Looking for explicit definitions among " + str(len(axioms)) + " axioms")
+        definitions = []
+        for (axiom, _) in axioms:
+            defined_term = axiom.is_explicit_definition()
+            if defined_term is not False:
+                definitions.append(axiom)
+                logging.getLogger(__name__).info("Found explicitly defined predicate " + repr(defined_term) + " in axiom " + repr(axiom))
+
+    def add_nontrivial_axioms(self):
+        """
+
+        :return:
+        """
+
+        axioms = self.get_all_axioms()
+
+        logging.getLogger(__name__).info("Creating existential axioms to enforce nontrivial consistency")
+
+        # TODO complete
+
+
+    def add_predicate_satisfiability_axiom(self, symbol, positive_polarity=True):
+        """
+        Creates and adds an axiom that ascertains the existence of a predicate
+        (i.e. class, binary relation or n-ary predicate)
+        :param symbol:
+        :return:
+        """
+
+        arity = len(symbol.variables)
+        # Create new constants for each variable
+        vars = []
+        for v in symbol.variables:
+            const_enum += 1
+            vars.append("var"+str(const_enum))
+
+        atomic_term = macleod.symbol.Predicate(symbol.name, vars)
+        terms = [atomic_term]
+
+        # create set of disjointness constraints
+        for i in range(1,len(vars)):
+            for j in range(i,len(vars)):
+                var_pair = [vars[i],vars[j]]
+                disjointness_term = macleod.negation.Negation(macleod.symbol.Predicate("=",var_pair))
+                terms.append(disjointness_term)
+
+        conjunction = macleod.connective.Conjunction(terms)
+        axiom = macleod.logical.axiom.Axiom(macleod.logical.quantifier.Existential(vars,conjunction))
+        self.axioms.append(axiom)
 
 
     def to_tptp(self):
@@ -446,7 +567,9 @@ class Ontology(object):
 
     def get_all_axioms(self):
         """
-        Gets a list of all axioms found in the ontology itself or in its import closure
+        Gets a list of all axioms found in the ontology itself and,
+        if resolve is set (i.e. by calling resolve_imports()),
+        also in its import closure
 
         :param resolve: Boolean that indicates whether to include all axioms from the import closure as well
         :return: axioms: list of all axioms (concatenation of axioms from the ontology and the imported axioms)

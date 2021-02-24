@@ -63,7 +63,7 @@ class Predicate(Logical):
             if not isinstance(var, str) and not isinstance(var, Function):
                 raise ValueError('Predicate variables must be strings or Functions!')
 
-        # Do predicate name substitution to eliminate any special symbols (lile <, >= not accepted by reasoners)
+        # Do predicate name substitution to eliminate any special symbols (like <, >= not accepted by reasoners)
         self.name = self.SYMBOL_TRANSLATIONS.get(name, name)
 
         # Make sure you make a COPY of everything, no references!
@@ -71,9 +71,33 @@ class Predicate(Logical):
 
         self.variable_generator = generator()
 
+    def same_symbol(self, other):
+        '''
+        Compare against another predicate symbol and report whether they have the same name and arity;
+        the variable names therein are NOT compared
+
+        :param Predicate other, predicate to compare against
+        :return Boolean
+        '''
+
+        if not isinstance(other, Predicate):
+
+            LOGGER.warning('Should only compare predicates to predicates')
+            return False
+
+        if len(other.variables) != len(self.variables):
+            return False
+
+        if other.name == self.name:
+            return True
+
+        return False
+
+
     def compare(self, other):
         '''
-        Compare against another Predicate and report different, same, or inverse
+        Compare against another Predicate and report different, same, or inverse variables;
+        the predicate names are NOT compared
 
         :param Predicate other, predicate to compare against
         '''
@@ -260,6 +284,29 @@ class Function(Logical):
                 return True
 
         return False
+
+    def same_symbol(self, other):
+        '''
+        Compare against another Function symbol and report whether they have the same name and arity;
+        the variable names therein are NOT compared
+
+        :param Predicate other, predicate to compare against
+        :return Boolean
+        '''
+
+        if not isinstance(other, Function):
+
+            LOGGER.warning('Should only compare function symbols to other function symbols')
+            return False
+
+        if len(other.variables) != len(self.variables):
+            return False
+
+        if other.name == self.name:
+            return True
+
+        return False
+
 
     def __repr__(self):
         '''

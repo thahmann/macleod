@@ -48,6 +48,7 @@ class Axiom(object):
         self.exi_quantifiers = None
         self.exi_variables = None
         self.consts = None
+        self.functs = None
 
         self.id = Axiom.axiom_id
         Axiom.axiom_id = Axiom.axiom_id + 1
@@ -298,70 +299,46 @@ class Axiom(object):
 
         return cnf
 
+    def is_explicit_definition(self):
+        """
+        Check whether the axiom is in the form of an explicit definition
+        :return: Predicate if this is an explicit definition, False otherwise
+        """
+        term = self.sentence
+        # strip universal quantifiers
+        while isinstance(term, Universal):
+            term = term.terms[0]
+        # once all universal quantifiers are stripped, check whether this is a binconditional
+        if not isinstance(term, Biconditional):
+            return False
+        else:
+            defined_term = term.terms[0]
+            if not(isinstance(defined_term, Predicate)):
+                # left side is not an atomic term (i.e. a single predicate)
+                return False
+            else:
+                if defined_term.has_functions():
+                    return False
+                else:
+                    LOGGER.debug("Possibly defined predicate " + repr(defined_term))
+                definiens = term.terms[1]
+                analysis = __analyze_logical__(definiens)
+                #print("Positive predicates in definiens: " + str(analysis[6]))
+                #print("Negated predicates in definiens: " + str(analysis[5]))
+                for predicate in analysis[6]+analysis[5]:
+                    if defined_term.same_symbol(predicate):
+                        return False
+                # if the defined predicate is not found among the positive or negated predicates in the definiens
+                return defined_term
+
+
     def analyze_logical(self):
         """
         Build a cache of useful information about the contained Logical.
         """
 
-        def analyze_logical(term, accumulator, parent):
-            """
-            Utility function which searches a Logical and returns a tuple of
-            lists with indexed data. Returns a list of universals,
-            existentials, unary, binary, n-ary, negated, and non-negated
-            predicates as well as any non-quantified variables (constants).
-
-            :param Logical term, current item in the search
-            :param Tuple accumulator, our tuple of lists
-            :param Logical parent, parent of current DFS node
-            :return None
-            """
-
-            if isinstance(term, Predicate) or isinstance(term, Function):
-
-                # Don't count negations or binary, unary, n-ary with functions
-                if not isinstance(term, Function):
-
-                    if isinstance(parent, Negation):
-                        accumulator[5].append(term)
-                    else:
-                        accumulator[6].append(term)
-
-                    if len(term.variables) == 1:
-                        accumulator[2].append(term)
-                    elif len(term.variables) == 2:
-                        accumulator[3].append(term)
-                    else:
-                        accumulator[4].append(term)
-
-                for var in term.variables:
-
-                    if isinstance(var, Function):
-                        analyze_logical(var, accumulator, term)
-
-                    else:
-                        # TODO: Bug here if a constant with the same name as a variable appears
-                        #       in a quantified + un-quantified portion of the same logical. Really
-                        #       should never happen, but still will need to fix at some point.
-                        if var not in accumulator[7] and var not in accumulator[8]:
-                            accumulator[9].append(var)
-
-            elif isinstance(term, Quantifier):
-
-                if isinstance(term, Universal):
-                    accumulator[0].append(term)
-                    accumulator[7].extend(term.variables)
-                else:
-                    accumulator[1].append(term)
-                    accumulator[8].extend(term.variables)
-
-                _ = [analyze_logical(x, accumulator, term) for x in term.get_term()]
-
-            else:
-
-                _ = [analyze_logical(x, accumulator, term) for x in term.get_term()]
-
-        analysis = [[], [], [], [], [], [], [], [], [], []]
-        analyze_logical(self.sentence, analysis, None)
+        # TODO need to store information about functions as well
+        analysis = __analyze_logical__(self.sentence)
 
         self.uni_quantifiers = analysis[0]
         self.exi_quantifiers = analysis[1]
@@ -373,6 +350,8 @@ class Axiom(object):
         self.uni_variables = analysis[7]
         self.exi_variables = analysis[8]
         self.consts = analysis[9]
+        self.functs = analysis[10]
+
 
     def to_tptp(self):
         """
@@ -393,7 +372,10 @@ class Axiom(object):
             """
 
             if isinstance(logical, str):
-                return str.upper(logical)
+                if logical in self.consts:
+                    return str.lower(logical)
+                else:
+                    return str.upper(logical)
 
             elif isinstance(logical, Predicate):
                 if logical.is_equality():
@@ -560,3 +542,81 @@ class Axiom(object):
     def __repr__(self):
 
         return repr(self.sentence)
+
+def __analyze_logical__(term):
+    """
+    Utility function which searches a Logical and returns a tuple of
+    lists with indexed data. Returns a list of universals,
+    existentials, unary, binary, n-ary, negated, and non-negated
+    predicates as well as any non-quantified variables (constants).
+
+    :param Logical term, current item in the search
+    :return None accumulator, our tuple of lists
+    """
+
+    def analyze_logical(term, accumulator, parent):
+        """
+        Utility function which searches a Logical and returns a tuple of
+        lists with indexed data. Returns a list of universals,
+        existentials, unary, binary, n-ary, negated, and non-negated
+        predicates as well as any non-quantified variables (constants).
+
+        :param Logical term, current item in the search
+        :param Tuple accumulator, our tuple of lists
+        :param Logical parent, parent of current DFS node
+        :return None
+        """
+
+        if isinstance(term, Predicate) or isinstance(term, Function):
+
+            # Don't count negations or binary, unary, n-ary with functions
+            if not isinstance(term, Function):
+
+                if isinstance(parent, Negation):
+                    accumulator[5].append(term)
+                else:
+                    accumulator[6].append(term)
+
+                if len(term.variables) == 1:
+                    accumulator[2].append(term)
+                elif len(term.variables) == 2:
+                    accumulator[3].append(term)
+                else:
+                    accumulator[4].append(term)
+
+            else:
+                # keeping track of all functions that are not constants
+                accumulator[10].append(term)
+
+            for var in term.variables:
+
+                if isinstance(var, Function):
+                    analyze_logical(var, accumulator, term)
+
+                else:
+                    # TODO: Bug here if a constant with the same name as a variable appears
+                    #       in a quantified + un-quantified portion of the same logical. Really
+                    #       should never happen, but still will need to fix at some point.
+                    if var not in accumulator[7] and var not in accumulator[8]:
+                        # keeping track of all constants
+                        accumulator[9].append(var)
+
+        elif isinstance(term, Quantifier):
+
+            if isinstance(term, Universal):
+                accumulator[0].append(term)
+                accumulator[7].extend(term.variables)
+            else:
+                accumulator[1].append(term)
+                accumulator[8].extend(term.variables)
+
+            _ = [analyze_logical(x, accumulator, term) for x in term.get_term()]
+
+        else:
+
+            _ = [analyze_logical(x, accumulator, term) for x in term.get_term()]
+
+
+    analysis = [[], [], [], [], [], [], [], [], [], [], []]
+    analyze_logical(term, analysis, None)
+    return analysis
