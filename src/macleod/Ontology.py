@@ -241,11 +241,46 @@ class Ontology(object):
             self.consts.update(set(WrappedSymbol(p) for p in axiom.consts))
             self.functs.update(set(WrappedSymbol(p) for p in axiom.functs))
 
-        print("Unary predicates: {}".format(", ".join([repr(p) for p in self.unary_predicates])))
-        print("Binary predicates: {}".format(", ".join([repr(p) for p in self.binary_predicates])))
-        print("N-ary predicates: {}".format(", ".join([repr(p) for p in self.nary_predicates])))
-        print("Constants: {}".format(", ".join([repr(p) for p in self.consts])))
-        print("Functions: {}".format(", ".join([repr(p) for p in self.functs])))
+        logging.getLogger(__name__).info("Unary predicates: {}".format(", ".join([repr(p) for p in self.unary_predicates])))
+        logging.getLogger(__name__).info("Binary predicates: {}".format(", ".join([repr(p) for p in self.binary_predicates])))
+        logging.getLogger(__name__).info("N-ary predicates: {}".format(", ".join([repr(p) for p in self.nary_predicates])))
+        logging.getLogger(__name__).info("Functions: {}".format(", ".join([repr(p) for p in self.functs])))
+        logging.getLogger(__name__).info("Constants: {}".format(", ".join([repr(p) for p in self.consts])))
+
+        # do some sanity checks
+        # need to compare names; identity alone doesn't work
+        intersection = self.unary_predicates & self.binary_predicates
+        if bool(intersection):
+            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and a binary predicate (relation)")
+
+        intersection = self.unary_predicates & self.nary_predicates
+        if bool(intersection):
+            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and an n-ary predicate (relation)")
+
+        intersection = self.binary_predicates & self.nary_predicates
+        if bool(intersection):
+            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as binary and an n-ary predicate (relation)")
+
+        all_predicates = self.unary_predicates.union(self.binary_predicates).union(self.nary_predicates)
+        intersection = self.functs & all_predicates
+        if bool(intersection):
+            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning(repr(i.symbol.name) + " used as predicate and a function symbol")
+
+        # TODO comparing against constants needs to be done differently because they are just strings
+        #intersection = self.consts & all_predicates
+        #if bool(intersection):
+        #    logging.getLogger(__name__).warning(intersection + " used as predicate and a constant")
+        #intersection = self.consts & self.functs
+        #if bool(intersection):
+        #    logging.getLogger(__name__).warning(intersection + " used as a function symbol and a constant")
 
 
 

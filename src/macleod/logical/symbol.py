@@ -73,20 +73,20 @@ class Predicate(Logical):
 
     def same_symbol(self, other):
         '''
-        Compare against another predicate symbol and report whether they have the same name and arity;
-        the variable names therein are NOT compared
+        Compare against another predicate symbol and report whether they have the same name;
+        the arity and variable names are NOT compared
 
         :param Predicate other, predicate to compare against
         :return Boolean
         '''
 
-        if not isinstance(other, Predicate):
+        if not isinstance(other, Predicate) and not isinstance(other, Function):
 
-            LOGGER.warning('Should only compare predicates to predicates')
+            LOGGER.warning('Should only compare predicates to predicates or function symbols')
             return False
 
-        if len(other.variables) != len(self.variables):
-            return False
+        #if len(other.variables) != len(self.variables):
+        #    return False
 
         if other.name == self.name:
             return True
@@ -294,9 +294,9 @@ class Function(Logical):
         :return Boolean
         '''
 
-        if not isinstance(other, Function):
+        if not isinstance(other, Function) and not isinstance(other, Predicate):
 
-            LOGGER.warning('Should only compare function symbols to other function symbols')
+            LOGGER.warning('Should only compare function symbols to other function or predicate symbols')
             return False
 
         if len(other.variables) != len(self.variables):
