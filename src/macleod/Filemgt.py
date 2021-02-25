@@ -123,25 +123,21 @@ def get_full_path (module_name, ending='', folder=None):
         if folder:
             path = os.path.abspath(os.path.join(path, folder))
             # create this folder if it does not exist yet
-        if not os.path.exists(path):
-            try:
-                os.mkdir(path)
-                logging.getLogger(__name__).info('CREATED FOLDER: ' + path)
-            except OSError as e:
-                logging.getLogger(__name__).warn('COULD NOT CREATE FOLDER: ' + path + ' Error: ' + str(e))
-
-        if module_name.endswith(ending):
-            return os.path.abspath(os.path.join(path, module_name))
-        else:
-            module_name = module_name.rsplit('.',1)
-            return os.path.abspath(os.path.join(path, module_name[0] + ending))
     else:
         if folder:
             path = os.path.abspath(os.path.join(read_config('system','path'), folder))
         else:
             path = os.path.abspath(read_config('system','path'))
 
-        return os.path.abspath(os.path.join(path, module_name + ending))
+    if not os.path.exists(path):
+        try:
+            os.mkdir(path)
+            logging.getLogger(__name__).info('CREATED FOLDER: ' + path)
+        except OSError as e:
+            logging.getLogger(__name__).warn('COULD NOT CREATE FOLDER: ' + path + ' Error: ' + str(e))
+
+    return os.path.abspath(os.path.join(path, module_name+ending))
+
 
 def get_canonical_relative_path (path):
     """determines the path of a module relative to the path specified in the configuration"""
@@ -160,9 +156,10 @@ def get_canonical_relative_path (path):
         path = path.rsplit(read_config('cl','ending'),1)[0]
     return os.path.normcase(path)
 
-
 def get_path_with_ending_for_nontrivial_consistency_checks (module_name):
-    """determines and returns the path of the module that checks for nontrivial consistency of the module named module_name.""" 
+    """
+    determines and returns the path of the module that checks for nontrivial consistency of the module named module_name.
+    """
     subfolder=read_config('cl','consistency_subfolder')
     if module_is_definition_set(module_name):
         module_name = "".join(module_name.rsplit(read_config('cl','definitions_subfolder')+os.sep,1))

@@ -87,6 +87,8 @@ def consistent(filename, args):
         ontology.analyze_ontology()
         ontology.get_explicit_definitions()
 
+    if args.nontrivial:
+        ontology.add_nontrivial_axioms()
 
     if args.simple:
         # Run the parsing script first to translate to TPTP and LADR
@@ -96,8 +98,11 @@ def consistent(filename, args):
         (return_value, fastest_reasoner) = ontology.check_consistency()
 
         if return_value == macleod.Ontology.CONSISTENT:
-            print(fastest_reasoner.name + " proved consistency of " + ontology.name)
-
+            if args.nontrivial:
+                print(fastest_reasoner.name + " proved nontrivial consistency of " + ontology.name)
+            else:
+                print(fastest_reasoner.name + " proved consistency of " + ontology.name)
+            print("Results saved to " + fastest_reasoner.output_file)
         exit(0)
     elif args.full:
         # TODO not yet working again

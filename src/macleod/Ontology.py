@@ -58,6 +58,7 @@ class Ontology(object):
         self.unary_predicates = set()
         self.binary_predicates = set()
         self.nary_predicates = set()
+        self.all_predicates = set()
         self.consts = set()
         self.functs = set()
 
@@ -70,12 +71,18 @@ class Ontology(object):
         self.latex_file = None
         self.owl = None
 
+        # store whether existential axioms for nontrivial consistency are added;
+        # need to write output to different files then
+        self.nontrivial = False
+
+        # global variable to keep track of whether to preserve or eliminate conditionals
+        # (applies to all subsequent instantiations of Ontology as well, when imports are processed)
         global conditionals
         conditionals = preserve_conditionals
 
         # enumerator for creating unique constants
-        global const_enum
-        const_enum = 0
+        global var_enum
+        var_enum = 0
 
     def to_ffpcnf(self):
         """
@@ -247,6 +254,8 @@ class Ontology(object):
         logging.getLogger(__name__).info("Functions: {}".format(", ".join([repr(p) for p in self.functs])))
         logging.getLogger(__name__).info("Constants: {}".format(", ".join([repr(p) for p in self.consts])))
 
+        self.all_predicates = self.unary_predicates.union(self.binary_predicates).union(self.nary_predicates)
+
         # do some sanity checks
         # need to compare names; identity alone doesn't work
         intersection = self.unary_predicates & self.binary_predicates
@@ -257,20 +266,19 @@ class Ontology(object):
 
         intersection = self.unary_predicates & self.nary_predicates
         if bool(intersection):
-            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            full_intersection = self.unary_predicates.intersection(self.nary_predicates)
             for i in full_intersection:
                 logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and an n-ary predicate (relation)")
 
         intersection = self.binary_predicates & self.nary_predicates
         if bool(intersection):
-            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            full_intersection = self.binary_predicates.intersection(self.nary_predicates)
             for i in full_intersection:
                 logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as binary and an n-ary predicate (relation)")
 
-        all_predicates = self.unary_predicates.union(self.binary_predicates).union(self.nary_predicates)
-        intersection = self.functs & all_predicates
+        intersection = self.all_predicates & self.functs
         if bool(intersection):
-            full_intersection = self.unary_predicates.intersection(self.binary_predicates)
+            full_intersection = self.all_predicates.intersection(self.functs)
             for i in full_intersection:
                 logging.getLogger(__name__).warning(repr(i.symbol.name) + " used as predicate and a function symbol")
 
@@ -281,8 +289,6 @@ class Ontology(object):
         #intersection = self.consts & self.functs
         #if bool(intersection):
         #    logging.getLogger(__name__).warning(intersection + " used as a function symbol and a constant")
-
-
 
     def get_explicit_definitions(self):
         """
@@ -302,15 +308,28 @@ class Ontology(object):
 
     def add_nontrivial_axioms(self):
         """
+        Creates existentially quantified axioms that ascertain the satisfiability of each predicate
 
         :return:
         """
 
         axioms = self.get_all_axioms()
 
+        self.analyze_ontology()
+
         logging.getLogger(__name__).info("Creating existential axioms to enforce nontrivial consistency")
 
-        # TODO complete
+        for pred in self.all_predicates:
+            if pred.symbol.name=="=":
+                # skip the equality predicate
+                continue
+            else:
+                self.add_predicate_satisfiability_axiom(pred.symbol,True)
+                self.add_predicate_satisfiability_axiom(pred.symbol,False)
+        # TODO complete also for functions??
+
+        # Remember that nontrivial axioms have been created
+        self.nontrivial = True
 
 
     def add_predicate_satisfiability_axiom(self, symbol, positive_polarity=True):
@@ -321,27 +340,36 @@ class Ontology(object):
         :return:
         """
 
+        from macleod.logical.symbol import (Function, Predicate)
+        from macleod.logical.connective import Conjunction
+        from macleod.logical.quantifier import Existential
+        from macleod.logical.negation import Negation
+        from macleod.logical.axiom import Axiom
+
+        global var_enum
+
         arity = len(symbol.variables)
         # Create new constants for each variable
         vars = []
         for v in symbol.variables:
-            const_enum += 1
-            vars.append("var"+str(const_enum))
+            var_enum += 1
+            vars.append("var" + str(var_enum))
 
-        atomic_term = macleod.symbol.Predicate(symbol.name, vars)
+        atomic_term = Predicate(symbol.name, vars)
+        if not positive_polarity:
+            atomic_term = Negation(atomic_term)
         terms = [atomic_term]
 
         # create set of disjointness constraints
-        for i in range(1,len(vars)):
-            for j in range(i,len(vars)):
+        for i in range(0,len(vars)):
+            for j in range(i+1,len(vars)):
                 var_pair = [vars[i],vars[j]]
-                disjointness_term = macleod.negation.Negation(macleod.symbol.Predicate("=",var_pair))
+                disjointness_term = Negation(Predicate("=",var_pair))
                 terms.append(disjointness_term)
 
-        conjunction = macleod.connective.Conjunction(terms)
-        axiom = macleod.logical.axiom.Axiom(macleod.logical.quantifier.Existential(vars,conjunction))
+        conjunction = Conjunction(terms)
+        axiom = Axiom(Existential(vars,conjunction))
         self.axioms.append(axiom)
-
 
     def to_tptp(self):
         """
@@ -357,7 +385,6 @@ class Ontology(object):
             self.tptp_output = tptp_output
 
         return self.tptp_output
-
 
     def to_ladr(self):
         """
@@ -376,7 +403,6 @@ class Ontology(object):
 
         return self.ladr_output
 
-
     def to_latex(self):
         """
         Translates all axioms in the module and, if present, in any imported modules to a LaTeX representation
@@ -393,24 +419,34 @@ class Ontology(object):
 
         return self.latex_output
 
-
-    def get_output_filename(self, output_type):
-
+    def get_output_filename(self, output_type, out=False):
         # the following assumes that the names of the configuration sections
         # are the same as the names of the output (tptp/ladr/owl)
+        ending = ""
+
+        module_name = self.name.rsplit('.', 1)[0]
+
+        if self.nontrivial:
+            # attach something before the ending if the output is for a nontrivial consistency check
+            module_name += "_nontrivial"
+
         if self.resolve:
-            ending = macleod.Filemgt.read_config(output_type, 'all_ending')
+            ending += macleod.Filemgt.read_config('output', 'all_ending')
+
+        ending += macleod.Filemgt.read_config(output_type, 'ending')
+
+        if out:
+            ending += macleod.Filemgt.read_config("output", 'ending')
+            folder_name = macleod.Filemgt.read_config("output", 'folder')
         else:
-            ending = ""
+            folder_name = macleod.Filemgt.read_config(output_type, 'folder')
 
-        ending = ending + macleod.Filemgt.read_config(output_type, 'ending')
-
-        output_filename = macleod.Filemgt.get_full_path(self.name,
-                                                folder=macleod.Filemgt.read_config(output_type, 'folder'),
+        output_filename = macleod.Filemgt.get_full_path(module_name,
+                                                folder=folder_name,
                                                 ending=ending)
 
+        #print("OUTPUT FILE TO BE WRITTEN TO: " + str(output_filename))
         return output_filename
-
 
     def write_owl_file(self):
 

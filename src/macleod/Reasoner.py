@@ -21,8 +21,6 @@ class Reasoner (object):
 
         self.args = []
 
-        self.modules = []
-
         self.input_files = ''
 
         self.output_file = ''
@@ -66,19 +64,10 @@ class Reasoner (object):
         """Return the command (includes constructing it if necessary) to invoke the reasoner."""
         self.args = macleod.Commands.get_system_command(self.name, ontology)
 
-        ending = None
-
-        if ontology.resolve:
-            ending = macleod.Filemgt.read_config(self.name, 'all_ending')
-        if ending is None:
-            ending = ""
-
-        ending = ending + macleod.Filemgt.read_config(self.name, 'ending')
-
-        self.output_file = macleod.Filemgt.get_full_path(ontology.name,
-                                           folder=macleod.Filemgt.read_config('output','folder'),
-                                           ending=ending)
         self.ontology = ontology
+        self.output_file = ontology.get_output_filename(self.name, out=True)
+        logging.getLogger(__name__).info(self.name + " writes output to " + self.output_file)
+
         logging.getLogger(__name__).debug('Reasoner command: ' + str(self.args))
         return self.args
 
