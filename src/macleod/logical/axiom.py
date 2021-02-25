@@ -400,13 +400,13 @@ class Axiom(object):
                 if len(logical.terms)>1:
                     return "({})".format(" & ".join([tptp_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(tptp_logical(logical.terms[0]))
 
             elif isinstance(logical, Disjunction):
                 if len(logical.terms)>1:
                     return "({})".format(" | ".join([tptp_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(tptp_logical(logical.terms[0]))
 
             elif isinstance(logical, Implication):
                 return "({} => {})".format(tptp_logical(logical.terms[0]),tptp_logical(logical.terms[1]))
@@ -457,13 +457,13 @@ class Axiom(object):
                 if len(logical.terms)>1:
                     return "({})".format(" & ".join([ladr_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(ladr_logical(logical.terms[0]))
 
             elif isinstance(logical, Disjunction):
                 if len(logical.terms)>1:
                     return "({})".format(" | ".join([ladr_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(ladr_logical(logical.terms[0]))
 
             elif isinstance(logical, Implication):
                 return "({} -> {})".format(ladr_logical(logical.terms[0]),ladr_logical(logical.terms[1]))
@@ -514,12 +514,12 @@ class Axiom(object):
                 if len(logical.terms)>1:
                     return "\\left({}\\right)".format(" \\land ".join([latex_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(latex_logical(logical.terms[0]))
             elif isinstance(logical, Disjunction):
                 if len(logical.terms)>1:
                     return "\\left({}\\right)".format(" \\lor ".join([latex_logical(t) for t in logical.terms]))
                 else:
-                    return "{}".format(logical.terms[0])
+                    return "{}".format(latex_logical(logical.terms[0]))
 
             elif isinstance(logical, Implication):
                 return "\\left[ {} \\rightarrow {} \\right]".format(latex_logical(logical.terms[0]), latex_logical(logical.terms[1]))
