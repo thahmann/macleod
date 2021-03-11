@@ -3,6 +3,7 @@ import itertools
 import xml.etree.ElementTree as ET
 import enum as Enum
 import xml.dom.minidom
+import logging
 
 class Owl(object):
     """
@@ -61,20 +62,18 @@ class Owl(object):
         self.root = ET.fromstring(start)
 
         # TODO keeping track of more advanced constructs
-        self.disjointclasses = []
-        self.subclass_of_class_union = []
-        self.subclass_of_single_class = []
+        # want a set to not have to manually deal with duplicates
+        self.disjointclasses = set()
+        self.simple_subclasses = set()
+        self.complex_subclasses = []
 
         self.disjoints_processed = False
         self.equivalents_processed = False
 
     def tostring(self, pretty_print=False):
 
-        if not self.disjoints_processed:
-            self.infer_disjoint_classes()
-        if not self.equivalents_processed:
-            self.infer_equivalent_classes()
-
+        # make sure that the simple subclasses are added (if it hasn't been done yet) before producing XML
+        self.add_simple_subclasses()
         xmlstring = ET.tostring(self.root, encoding="unicode", short_empty_elements=False)
         if not pretty_print:
             return xmlstring
@@ -99,7 +98,7 @@ class Owl(object):
 
     def declare_property(self, property_name):
         """
-        Add a class to the OWL ontology
+        Add a property to the OWL ontology
 
         :param str property_name
         :return Element property
@@ -169,6 +168,7 @@ class Owl(object):
         """
 
         saved_subclass = None
+        #print(repr(subclass) + " is a subclass of " + repr(superclass))
 
         if len(subclass) > 1:
             # TODO where does this come from? Is it an intersection or indeed a set of subclass relations
@@ -176,24 +176,22 @@ class Owl(object):
         else:
             # single subclass
             subclass_element = self.classes[subclass[0]]
-            saved_subclass = subclass[0]
 
         if len(superclass) > 1:
             superclass_element = self._get_object_union(superclass)
             # TODO: really want to check whether this makes an EquivalentClass construct
-            if saved_subclass is not None:
-                #print("Found Object Union in Superclass to " + repr(saved_subclass))
-                self.subclass_of_class_union.append((saved_subclass, superclass))
+            #print("Found Object Union in Superclass to " + repr(saved_subclass))
         else:
             superclass_element = self.classes[superclass[0]]
-            if saved_subclass:
-                self.subclass_of_single_class.append((saved_subclass, superclass[0]))
+            #self.subclass_of_single_class.append((saved_subclass, superclass[0]))
 
-        subclass_declaration = ET.Element("SubClassOf")
-        subclass_declaration.append(subclass_element)
-        subclass_declaration.append(superclass_element)
-        self.root.append(subclass_declaration)
-        return subclass_declaration
+        if len(subclass)== 1 and len(superclass)==1:
+            self.simple_subclasses.add((subclass[0], superclass[0]))
+        elif len(subclass)== 1 or len(superclass)==1:
+            self.complex_subclasses.append((subclass, superclass))
+        # do not keep track of n-to-m subclass relationships (intersection subclass of union)
+
+        return None
 
     def add_subproperty(self, subproperty, superproperty):
         """
@@ -230,17 +228,17 @@ class Owl(object):
                 # Sign information provided
                 name, sign = c
                 if sign == Owl.Relations.NORMAL:
-                    print(name, 'This one')
+                    #print(name, 'This one')
                     union.append(self.classes[name])
                 elif sign == Owl.Relations.INVERSE:
                     union.append(self._get_object_complement(name))
                 else:
-                    print(sign, name)
+                    #print(sign, name)
                     raise ValueError("HUH")
             else:
                 union.append(self.classes[c])
 
-        print(union_classes, ET.tostring(union))
+        #print(union_classes, ET.tostring(union))
 
         return union
 
@@ -321,7 +319,7 @@ class Owl(object):
 
     def add_equivalent_properties(self, equivalent_properties):
         """
-        Add an axiom declaring equivalence among a list of classes. If the list
+        Add an axiom declaring equivalence among a list of properties. If the list
         contains a tuple then proceed with the correct connective
 
         :param List(Tuple(str, int)), list of tuples for properties
@@ -348,19 +346,22 @@ class Owl(object):
 
         new = True
         # keeping track of SETS of disjoint classes (multiple pairs)
-        for d in self.disjointclasses:
-            if disjoint_pair[0] in d:
-                if not (disjoint_pair[1] in d):
-                    d.append(disjoint_pair[1])
-                new = False
-                break
-            elif disjoint_pair[1] in d:
-                if not (disjoint_pair[0] in d):
-                    d.append(disjoint_pair[0])
-                new = False
-                break
-        if new:
-            self.disjointclasses.append([disjoint_pair[0], disjoint_pair[1]])
+        self.disjointclasses.add((disjoint_pair[0], disjoint_pair[1]))
+        self.disjointclasses.add((disjoint_pair[1], disjoint_pair[0]))
+
+        # for d in self.disjointclasses:
+        #     if disjoint_pair[0] in d:
+        #         if not (disjoint_pair[1] in d):
+        #             d.append(disjoint_pair[1])
+        #         new = False
+        #         break
+        #     elif disjoint_pair[1] in d:
+        #         if not (disjoint_pair[0] in d):
+        #             d.append(disjoint_pair[0])
+        #         new = False
+        #         break
+        # if new:
+        #     self.disjointclasses.append([disjoint_pair[0], disjoint_pair[1]])
 
         # do nothing immediately --> only processed at the very end
         # disjoint = ET.Element('DisjointClasses')
@@ -565,14 +566,62 @@ class Owl(object):
         :return:
         """
 
-        print("Sets of Disjoint Classes = " + str(len(self.disjointclasses)))
+        if not self.disjoints_processed:
 
-        for s in self.disjointclasses:
-            disjoint = ET.Element('DisjointClasses')
-            for c in s:
-                disjoint.append(self.classes[c])
-            self.root.append(disjoint)
-        self.disjoints_processed = True
+            #print(repr(self.disjointclasses))
+
+            disjoints = list(self.disjointclasses)
+
+            disjointsets = []
+
+            while len(disjoints)>0:
+                (c1, c2) = disjoints.pop()
+                #print("Processing disjoint classes " + c1 + ", " + c2)
+                #print ("Current disjoint set " + repr(disjointsets))
+                # check if c1 is in any set in disjointsets
+                sets = [c for c in disjointsets if c1 in c]
+                #print (repr(sets))
+                # now check whether c2 is also in the set in disjointsets
+                if len(sets)==0:
+                    disjointsets.append([c1, c2])
+                else:
+                    create_set = True
+                    for aset in sets:
+                        if c2 in aset:
+                            # do nothing: c1 and c2 are already part of the same set
+                            create_set = False
+                            continue
+                        elif len([c for c in aset if (c2,c) not in self.disjointclasses])==0:
+                            # check whether c2 is disjoint with all other classes in set
+                            #print("Appending " + c2 + " to set " + repr(set))
+                            aset.append(c2)
+                            create_set = False
+                            break
+                    if create_set:
+                        #print("Creating new disjoint set")
+                        disjointsets.append([c1,c2])
+
+            #print("Resulting Lists of Disjoint Classes = " + str(len(disjointsets)))
+
+            # convert disjointsets to a set of sets to eliminate duplicates
+            disjointsets = [set(x) for x in disjointsets]
+            dsets = []
+            for d in disjointsets:
+                if d not in dsets:
+                    dsets.append(d)
+            logging.getLogger(__name__).info("Reduced {0} pairs to {1} sets of disjoint classes".format(int(len(self.disjointclasses)/2),len(dsets)))
+            #print("Pairs of Disjoint Classes = " + str(len(self.disjointclasses)/2))
+            #print("Resulting Sets of Disjoint Classes = " + str(len(dsets)))
+
+            for d in dsets:
+                #print(repr(d))
+                disjoint = ET.Element('DisjointClasses')
+                for c in d:
+                    disjoint.append(self.classes[c])
+                self.root.append(disjoint)
+
+
+            self.disjoints_processed = True
 
     def infer_equivalent_classes(self):
         """
@@ -580,32 +629,91 @@ class Owl(object):
         :return:
         """
         #print("Sets of Subclasses of Class Unions = " + str(len(self.subclass_of_class_union)))
-        for (sub, super) in self.subclass_of_class_union:
-            #print(sub + " subclass of " + str(super))
-            equivalent = 0
-            for s in super:
-                # need to check that for every s a pair (c[0],s) exists in self.subclass_of_single_class
-                #print(len(self.subclass_of_single_class))
-                if len([(x, y) for (x, y) in self.subclass_of_single_class if x == s and y==sub])>0:
-                    continue
+        #print("Starting with " + str(len(self.simple_subclasses)) + " sets of Simple Subclasses")
+
+        if not self.equivalents_processed:
+
+            for (sub, super) in self.complex_subclasses:
+                #print("Processing complex subclass relation: " + str(sub) + " subclass of " + str(super))
+                equivalent = 0
+
+                if len(super)> 1:
+
+                    equivalent = 0
+                    for s in super:
+                        # need to check that for every s a pair (c[0],s) exists in self.simple_subclasses
+                        #print(len(self.simple_subclasses))
+                        equivalent = len([(x, y) for (x, y) in self.simple_subclasses if x == s and y==sub[0]])>0
+                        if equivalent==0:
+                            break
+                    # create equivalent class statement
+                    if equivalent==0:
+                        subclass_declaration = ET.Element("SubClassOf")
+                        subclass_declaration.append(self.classes[sub[0]])
+                        subclass_declaration.append(self._get_object_union(super))
+                        self.root.append(subclass_declaration)
+                    else:
+                        logging.getLogger(__name__).info("Found equivalent classes: {0} and  {1} ".format(
+                            sub[0], repr(super)))
+                        equivalent_declaration = ET.Element("EquivalentClasses")
+                        equivalent_declaration.append(self.classes[sub[0]])
+                        equivalent_declaration.append(self._get_object_union(super))
+                        self.root.append(equivalent_declaration)
+
+                        # check whether the union of classes on the super side are pairwise disjoint as well
+                        filtered_classes = [c for c in self.disjointclasses if super[0] in c]
+                        for s in super:
+                            filtered_classes = [c for c in filtered_classes if s in c]
+                        if len(filtered_classes)>0:
+                            # classes are all disjoint
+                            disjoint_declaration = ET.Element("DisjointUnion")
+                            disjoint_declaration.append(self.classes[sub[0]])
+                            for s in super:
+                                disjoint_declaration.append(self.classes[s])
+                            self.root.append(disjoint_declaration)
+
+                elif len(sub)>1:
+                    equivalent = 0
+                    for s in sub:
+                        # need to check that for every s a pair (s,super) exists in self.simple_subclasses
+                        #print(len(self.simple_subclasses))
+                        equivalent = len([(x, y) for (x, y) in self.simple_subclasses if x == super[0] and y==s])>0
+                        if equivalent==0:
+                            break
+                    # create equivalent class statement
+                    if equivalent==0:
+                        subclass_declaration = ET.Element("SubClassOf")
+                        subclass_declaration.append(self._get_object_intersection(sub))
+                        subclass_declaration.append(self.classes[super[0]])
+                        self.root.append(subclass_declaration)
+                    else:
+                        equivalent_declaration = ET.Element("EquivalentClasses")
+                        equivalent_declaration.append(self._get_object_intersection(sub))
+                        equivalent_declaration.append(self.classes[super[0]])
+                        self.root.append(equivalent_declaration)
+
+            self.add_simple_subclasses()
+            self.equivalents_processed = True
+
+    def add_simple_subclasses(self):
+        if self.equivalents_processed:
+            return
+        else:
+            #print(str(len(self.simple_subclasses)) + " sets of Simple Subclasses to be Processed")
+            #print(repr(self.simple_subclasses))
+
+            while len(self.simple_subclasses)>0:
+                (sub, super) = self.simple_subclasses.pop()
+                #print("Checking whether " + super + " is a subclass of " + sub)
+                #print ((super,sub) in self.simple_subclasses)
+                if (super,sub) in self.simple_subclasses:
+                    self.simple_subclasses.remove((super,sub))
+                    logging.getLogger(__name__).info("Found equivalent classes: {0} and  {1} ".format(
+                        sub, super))
+                    # the inverse is a subclass as well, thus they are equivalent
+                    subclass_declaration = ET.Element("EquivalentClasses")
                 else:
-                    break
-            # create equivalent class statement
-            equivalent_declaration = ET.Element("EquivalentClasses")
-            equivalent_declaration.append(self.classes[sub])
-            equivalent_declaration.append(self._get_object_union(super))
-            self.root.append(equivalent_declaration)
-
-            # check whether the union of classes on the super side are pairwise disjoint as well
-            filtered_classes = [c for c in self.disjointclasses if super[0] in c]
-            for s in super:
-                filtered_classes = [c for c in filtered_classes if s in c]
-            if len(filtered_classes)>0:
-                # classes are all disjoint
-                disjoint_declaration = ET.Element("DisjointUnion")
-                disjoint_declaration.append(self.classes[sub])
-                for s in super:
-                    disjoint_declaration.append(self.classes[s])
-                self.root.append(disjoint_declaration)
-
-        self.equivalents_processed = True
+                    subclass_declaration = ET.Element("SubClassOf")
+                subclass_declaration.append(self.classes[sub])
+                subclass_declaration.append(self.classes[super])
+                self.root.append(subclass_declaration)
