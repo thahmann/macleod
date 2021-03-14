@@ -9,9 +9,6 @@ import os, sys, datetime
 #print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../")
 
-from macleod.ClifModuleSet import ClifModuleSet
-import macleod.scripts.check_consistency
-import macleod.scripts.licence 
 import macleod.Clif as clif
 import macleod.Filemgt as filemgt
 
@@ -20,6 +17,9 @@ import macleod.Filemgt as filemgt
 # TODO: eventually, these need to be extracted from the parser
 functions = ["intersection","difference","sum"]
 
+
+def deprec():
+    print("This script is no longer supported, please use the scripts check_consistency with the --nontrivial (short: -n) option.")
 
 def nontrivially_consistent(filename, m, options=[]):
     (consistent, m) = check_consistency.consistent(filename, m, options)
@@ -187,18 +187,7 @@ def print_options ():
 
 
 def main():
-    licence.print_terms()
-    # global variables
-    options = sys.argv
-    options.reverse()
-    options.pop()
-    if not options:
-        print_options()
-        sys.exit()
-    filename = options.pop()
-
-    m = ClifModuleSet(filename)
-    nontrivially_consistent(filename, m, options)
+    deprec()
 
 if __name__ == '__main__':
     sys.exit(main())

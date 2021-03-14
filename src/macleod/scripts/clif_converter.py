@@ -61,6 +61,7 @@ def convert_single_clif_file(ontology, output, resolve, loc=default_dir, prefix=
 
 def convert_all_clif_files(folder, output, resolve, loc=default_dir, prefix=default_prefix):
 
+    # TODO move this functionality to the new check_consistency script
     tempfolder = Filemgt.read_config('converters', 'tempfolder')
     ignores = [tempfolder]
     cl_ending = Filemgt.read_config('cl', 'ending')
@@ -81,27 +82,6 @@ def convert_all_clif_files(folder, output, resolve, loc=default_dir, prefix=defa
 
 def main():
     deprec()
-    #licence.print_terms()
-
-    parser = argparse.ArgumentParser(description='Utility function to convert Common Logic Interchange Format (.clif) files to the TPTP or LADR syntax.')
-    parser.add_argument('-f', '--file', type=str, help='Clif file or folder to parse', required=True)
-    parser.add_argument('-o', '--output', type=str, help='Output format (currently supported are tptp and ladr)', default=tptp_output)
-    parser.add_argument('-n', '--noresolve', action="store_true", help='Prevent from automatically resolving imports', default=False)
-    parser.add_argument('--loc', type=str, help='Path to directory containing ontology files', default=default_dir)
-    parser.add_argument('--prefix', type=str, help='String to replace with basepath found in imports', default=default_prefix)
-    args = parser.parse_args()
-
-    path = os.path.normpath(os.path.join(args.loc, args.file))
-
-    print( not(args.noresolve))
-
-    if os.path.isfile(path):
-        ontology = Parser.parse_file(args.file, args.prefix, args.loc, not(args.noresolve))
-        convert_single_clif_file(ontology, args.output, not(args.noresolve), args.loc, args.prefix)
-    elif os.path.isdir(path):
-        convert_all_clif_files(path, args.output, not(args.noresolve), args.loc, args.prefix)
-    else:
-        logging.getLogger(__name__).error("Attempted to parse non-existent file or directory: " + path)
 
 if __name__ == '__main__':
     sys.exit(main())
