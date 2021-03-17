@@ -42,7 +42,8 @@ class Predicate(Logical):
     SAME = 1
     INVERTED = 2
     OTHER = 3
-    
+    CHAIN = 4
+
     # TODO: need to read translations from file
     SYMBOL_TRANSLATIONS = {'<': 'lt',
                            '>': 'gt',
@@ -96,7 +97,7 @@ class Predicate(Logical):
 
     def compare(self, other):
         '''
-        Compare against another Predicate and report different, same, or inverse variables;
+        Compare against another Predicate and report different, same, inverse, or chained variables;
         the predicate names are NOT compared
 
         :param Predicate other, predicate to compare against
@@ -113,6 +114,10 @@ class Predicate(Logical):
 
         if list(reversed(other.variables)) == self.variables:
             return Predicate.INVERTED
+
+        # both are length 2, not inverted but the other's first variable matches this second ones, we have a chain
+        if len(self.variables)==2 and len(other.variables)==2 and self.variables[1]==other.variables[0]:
+            return Predicate.CHAIN
 
         return Predicate.OTHER
 

@@ -39,18 +39,29 @@ def inverse_subproperty_relation(axiom):
 
 def subproperty_relation(axiom):
     '''
-    Assumes that all predicates are unary, it's a disjunction, and there exists
+    Assumes that all predicates are binary, it's a disjunction, and there exists
     at least one negative term and one positive term. Only a single universally
     quantified variable.
     '''
 
     # Filter conflict symmetric, need to ensure at least two unique predicates
-    if len({p.name for p in axiom.predicates()}) < 2:
+    #if len({p.name for p in axiom.predicates()}) < 2:
+    #    return None
+    # More precisely: need to make sure that no predicate occurs in negated and positive form
+    positive_names = [p.name for p in axiom.positive()]
+    negated_names = [p.name for p in axiom.negated()]
+
+    if len(set(positive_names).intersection(negated_names)) > 0:
         return None
 
+    # gets the first negated predicate (which is binary by assumption)
     base = axiom.negated()[0]
+    # compare the variables inside the predicate with the base one: same, inverted or different
     subset = [(s, base.compare(s)) for s in axiom.negated()]
-    superset = [(x, base.compare(x)) for x in axiom.binary() if x not in [y[0] for y in subset]]
+    # the positive predicates become part of the superset
+    superset = [(x, base.compare(x)) for x in axiom.positive()]
+
+    # need to check whether any predicate is in the sub- and superset, then this is no subproperty relation
 
     return ('subproperty', subset, superset)
 
@@ -60,7 +71,8 @@ def disjoint_classes(axiom):
     only two negated terms. Only a single universally quantified variable.
     '''
 
-    # TODO: Need to handle inverse cases
+    # TODO: Need to handle inverse cases:
+    #   this method doesn't currently get called if any positive predicates are present
 
     # Filter conflict irreflexive, need to ensure at least two unique predicates
     if len({p.name for p in axiom.predicates()}) < 2:
@@ -91,29 +103,29 @@ def disjoint_properties(axiom):
 
 def reflexive_relation(axiom):
     '''
-    Assumes that the predicate is binary and only a single universally
-    quantified variable is used.
+    Assumes that the predicate is binary and positive and
+    only a single universally quantified variable is used.
     '''
 
-    # TODO: Add extra check to ensure only reflexive
-    reflexive_property = [p for p in axiom.binary()]
+    reflexive_property = [p for p in axiom.binary() if p.variables[0]==p.variables[1]]
 
-    return ('reflexive', reflexive_property)
+    if len(reflexive_property)==1:
+        return ('reflexive', reflexive_property)
+    else:
+        return None
 
 def irreflexive_relation(axiom):
     '''
-    Assumes that the predicate is binary and only a single universally
-    quantified variable is used.
+    Assumes that the predicate is binary and negated and
+    only a single universally quantified variable is used.
     '''
 
-    # Filter conflict disjoint, need a single predicate
-    if len({p.name for p in axiom.predicates()}) == 1:
+    irreflexive_property = [p for p in axiom.binary() if p.variables[0]==p.variables[1]]
+
+    if len(irreflexive_property)==1:
+        return ('irreflexive', irreflexive_property)
+    else:
         return None
-
-    # TODO: Add extra check to ensure only reflexive
-    irreflexive_property = [p for p in axiom.binary()]
-
-    return ('irreflexive', irreflexive_property)
 
 def symmetric_relation(axiom):
     '''
@@ -122,10 +134,7 @@ def symmetric_relation(axiom):
     '''
 
     # TODO: Check for inverse
-
-    # Filter conflict disjoint subproperty, need a single predicate
-    if len({p.name for p in axiom.predicates()}) != 1:
-        return None
+    # TODO check for variables in reverse order
 
     return ('symmetric', axiom.binary())
 
@@ -136,10 +145,7 @@ def asymmetric_relation(axiom):
     '''
 
     # TODO: Check for inverse
-
-    # Filter conflict disjoint property, need a single predicate
-    if len({p.name for p in axiom.predicates()}) != 1:
-        return None
+    # TODO check for variables in reverse order
 
     return ('asymmetric', axiom.binary())
 
@@ -149,23 +155,18 @@ def transitive_relation(axiom):
     three times twice negated.
     '''
 
-    # Filter conflict functional property, need a three predicates
-    if len({p.name for p in axiom.predicates()}) != 3:
-        return None
-
     # Ensure we have three properties to define transitive
     properties = [p for p in axiom.binary()]
     if len(properties) != 3:
         return None
 
+    # Ensure a single predicate name is used (already done in filter)
+    #if len({p.name for p in axiom.predicates()}) != 1:
+    #    return None
+
     # Ensure the two negated forms appear
     negated = [p for p in axiom.negated()]
     if len(negated) != 2:
-        return None
-
-    # Ensure the three properties are all the same
-    name = properties[0].name
-    if not all([x.name == name for x in properties]):
         return None
 
     # Follow the rainbow for the transitive

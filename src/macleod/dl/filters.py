@@ -100,6 +100,7 @@ def filter_on_variables(axiom):
 
         return {Pattern.functional_relation,
                 Pattern.inverse_functional_relation,
+                Pattern.subproperty_relation,
                 Pattern.transitive_relation}
 
 
@@ -125,17 +126,32 @@ def filter_on_predicates(axiom):
     # Axiom is composed of only binary predicates
     if axiom.binary() and not axiom.unary() and not axiom.nary():
 
-        return {Pattern.asymmetric_relation,
-                Pattern.disjoint_properties,
-                Pattern.functional_relation,
-                Pattern.inverse_functional_relation,
-                Pattern.inverse_subproperty_relation,
-                Pattern.irreflexive_relation,
-                Pattern.reflexive_relation,
-                Pattern.subproperty_relation,
-                Pattern.symmetric_relation,
-                Pattern.transitive_relation,
-                Pattern.property_assertion}
+        if len(axiom.binary())==1:
+            return {Pattern.irreflexive_relation,
+                    Pattern.reflexive_relation,
+                    Pattern.property_assertion}
+
+        elif len(axiom.binary()) == 2:
+            if len({p.name for p in axiom.predicates()}) == 1:
+                # only a single predicate name is used twice
+                return {Pattern.asymmetric_relation,
+                        Pattern.symmetric_relation,
+                        Pattern.property_assertion}
+            else:
+                return {Pattern.disjoint_properties,
+                        Pattern.inverse_subproperty_relation,
+                        Pattern.subproperty_relation,
+                        Pattern.property_assertion}
+        else:
+            if len({p.name for p in axiom.predicates()}) == 1:
+                return {Pattern.transitive_relation}
+            else:
+                return {Pattern.disjoint_properties,
+                        Pattern.functional_relation,
+                        Pattern.inverse_functional_relation,
+                        Pattern.inverse_subproperty_relation,
+                        Pattern.subproperty_relation,
+                        Pattern.property_assertion}
 
     # Axiom is composed of a mixture of unary and binary predicates
     if axiom.binary() and axiom.unary() and not axiom.nary():

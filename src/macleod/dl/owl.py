@@ -195,17 +195,20 @@ class Owl(object):
 
     def add_subproperty(self, subproperty, superproperty):
         """
-        Adds a subproperty property to the OWL ontology. Assumes that both the subproperty has already been added.
+        Adds a subproperty property to the OWL ontology. Assumes that both subproperties have already been added.
 
         :param Tuple(str, Owl.Relations) subproperty
         :param Tuple(str, Owl.Relations) superproperty
         """
-
-        sub_name, sub_state = subproperty
         sup_name, sup_state = superproperty
-
-        sub_element = self._get_object_inverse(sub_name) if sub_state == Owl.Relations.INVERSE else self.properties[sub_name]
         sup_element = self._get_object_inverse(sup_name) if sup_state == Owl.Relations.INVERSE else self.properties[sup_name]
+
+        # need to distinguish simple subproperties from subproperty chains
+        if isinstance(subproperty, tuple):
+            sub_name, sub_state = subproperty
+            sub_element = self._get_object_inverse(sub_name) if sub_state == Owl.Relations.INVERSE else self.properties[sub_name]
+        else:
+            sub_element = self._get_property_chain(subproperty)
 
         subproperty_declaration = ET.Element('SubObjectPropertyOf')
 
@@ -265,12 +268,34 @@ class Owl(object):
 
         return intersection
 
+    def _get_property_chain(self, properties):
+        """
+        Utility method which returns an ObjectUnionOf property for use in
+        declarations.  Assumes that each class name provided has already been created.
+
+        :param lst(str) union, list of class names part of the union
+        """
+
+        chain = ET.Element('ObjectPropertyChain')
+        for p in properties:
+            if isinstance(p, tuple):
+                # Sign information provided
+                name, sign = p
+                if sign == Owl.Relations.NORMAL:
+                    chain.append(self.properties[name])
+                elif sign == Owl.Relations.INVERSE:
+                    chain.append(self._get_object_inverse([name]))
+            else:
+                raise ValueError("HUH")
+
+        return chain
+
     def _get_object_inverse(self, inverted_property):
         """
         Utility method which returns an ObjectInverseOf property for use in
-        declarations.  Assumes that the class name provided has already been created. 
+        declarations.  Assumes that the property name provided has already been created.
 
-        :param lst(str) inverted_class, class to obtain the inverse of
+        :param lst(str) inverted_property, prperty to obtain the inverse of
         """
 
         inverse = ET.Element('ObjectInverseOf')
@@ -280,7 +305,7 @@ class Owl(object):
 
     def _get_object_complement(self, inverted_class):
         """
-        Utility method which returns an ObjectInverseOf property for use in
+        Utility method which returns an ObjectComplementOf class for use in
         declarations.  Assumes that the class name provided has already been created. 
 
         :param lst(str) inverted_class, class to obtain the inverse of
@@ -392,14 +417,14 @@ class Owl(object):
         reflexive.append(self.properties[reflexive_property])
         self.root.append(reflexive)
 
-    def declare_irreflexive_property(self, reflexive_property):
+    def declare_irreflexive_property(self, irreflexive_property):
         """
         Add a declaration that a property is reflexive
         """
 
-        reflexive = ET.Element('ReflexiveObjectProperty')
-        reflexive.append(self.properties[reflexive_property])
-        self.root.append(reflexive)
+        irreflexive = ET.Element('IrreflexiveObjectProperty')
+        irreflexive.append(self.properties[irreflexive_property])
+        self.root.append(irreflexive)
 
     def declare_symmetric_property(self, symmetric_property):
         """

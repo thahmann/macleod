@@ -326,7 +326,6 @@ class Ontology(object):
             else:
                 self.add_predicate_satisfiability_axiom(pred.symbol,True)
                 self.add_predicate_satisfiability_axiom(pred.symbol,False)
-        # TODO complete also for functions??
 
         # Remember that nontrivial axioms have been created
         self.nontrivial = True
@@ -474,7 +473,7 @@ class Ontology(object):
 
             with open(output_filename, "w") as f:
                 for sentence in results:
-                    print(sentence)
+                    #print(sentence)
                     f.write(sentence + "\n")
                 f.close()
 
@@ -496,7 +495,7 @@ class Ontology(object):
                 if len(results) > 0:
                     f.write("formulas(sos).\n")
                     for sentence in results:
-                        print(sentence)
+                        #print(sentence)
                         f.write(sentence + "\n")
                     f.write("end_of_list.\n")
                 f.close()
@@ -686,11 +685,13 @@ class Ontology(object):
                 pcnf = axiom.ff_pcnf()
                 print('FF-PCNF: {}'.format(pcnf))
 
+                # for completeness: declare all unary predicates as classes
                 for unary in axiom.unary():
                     if unary.name not in classes:
                         classes.add(unary.name)
                         onto.declare_class(unary.name)
 
+                # for completeness: declare all binary predicates as object properties
                 for binary in axiom.binary():
                     if binary.name not in properties:
                         properties.add(binary.name)
@@ -728,6 +729,11 @@ class Ontology(object):
             # etree.ElementTree html encodes special characters. Protege does not like this.
             # return onto.tostring()
 
+            # add specialized constructs: disjoint union and equivalent classes
+            # these are inferred from existing constructs (subclass and pairwise disjoint classes)
+            onto.infer_disjoint_classes()
+            onto.infer_equivalent_classes()
+            
             self.owl = onto
 
         return self.owl

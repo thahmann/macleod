@@ -75,7 +75,7 @@ def produce_construct(pattern, ontology):
     elif pattern[0] == 'reflexive':
         reflexive_property(pattern, ontology)
     elif pattern[0] == 'irreflexive':
-        reflexive_property(pattern, ontology)
+        irreflexive_property(pattern, ontology)
     elif pattern[0] == 'symmetric':
         symmetric_property(pattern, ontology)
     elif pattern[0] == 'asymmetric':
@@ -167,10 +167,11 @@ def subclass(pattern, ontology):
     classes = [*ontology.classes]
 
     # Create any missing classes found in the pattern
-    for c in pattern[1] + pattern[2]:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+    # TODO is this still necessary? Seems like all classes are now declared directly from Ontology.to_owl()
+    #for c in pattern[1] + pattern[2]:
+    #    if c.name not in classes:
+    #        ontology.declare_class(c.name)
+    #        classes.append(c.name)
 
     subclass = [x.name for x in pattern[1]]
     superclass = [x.name for x in pattern[2]]
@@ -192,33 +193,51 @@ def subproperty(pattern, ontology):
     # Existing properties
     properties = [*ontology.properties]
 
-    # Create any missing classes found in the pattern
+    # Create any missing properties found in the pattern
     for p, state in pattern[1] + pattern[2]:
         if p.name not in properties:
             ontology.declare_property(p.name)
             properties.append(p.name)
 
 
-    # Need to create implicit union class
-    if len(pattern[1]) > 1:
+    # if more than one propertiy appears on the super side and more than three on the subside, no subproperty axiom can be generated
+    # we do not support chains of more than 2 properties
+    if len(pattern[1]) > 2 or len(pattern[2]) > 1:
         return None
 
-    if len(pattern[2]) > 1:
-        return None
+    sup, state = pattern[2][0]
+    superproperty = (sup.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL)
 
-    if len(pattern[1]) == 1:
+    if len(pattern[1]) == 2:
+        # check whether there is a property chain
+        sub1, state1 = pattern[1][0]
+        sub2, state2 = pattern[1][1]
+        chain_vars = []
+        if sub1.compare(sub2)==Predicate.CHAIN:
+            subproperty = []
+            subproperty.append((sub1.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL))
+            chain_vars.append(sub1.variables[0])
+            subproperty.append((sub2.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL))
+            chain_vars.append(sub2.variables[1])
+        elif sub2.compare(sub1)==Predicate.CHAIN:
+            subproperty = []
+            subproperty.append((sub2.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL))
+            chain_vars.append(sub2.variables[0])
+            subproperty.append((sub1.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL))
+            chain_vars.append(sub1.variables[1])
+        else:
+            return None
+        # Finally check whether the variables in the chain match the super variables
+        if (chain_vars!=sup.variables):
+            return None
+
+    elif len(pattern[1]) == 1:
         sub, state = pattern[1][0]
         subproperty = (sub.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL)
-    else:
-        subproperty = (union_subproperty_name, Owl.Relations.NORMAL)
-
-    if len(pattern[2]) == 1:
-        sup, state = pattern[2][0]
-        superproperty = (sup.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL)
-    else:
-        superproperty = (union_property_name, Owl.Relations.NORMAL)
 
     ontology.add_subproperty(subproperty, superproperty)
+
+
 
 def disjoint_classes(pattern, ontology):
     '''
@@ -246,7 +265,7 @@ def disjoint_properties(pattern, ontology):
     # Existing classes
     properties = [*ontology.properties]
 
-    # Create any missing classes found in the pattern
+    # Create any missing properties found in the pattern
     for p, _ in pattern[1]:
         if p.name not in properties:
             ontology.declare_property(p.name)
@@ -264,7 +283,7 @@ def reflexive_property(pattern, ontology):
     # Existing classes
     properties = [*ontology.properties]
 
-    # Create any missing classes found in the pattern
+    # Create any missing properties found in the pattern
     for p in pattern[1]:
         if p.name not in properties:
             ontology.declare_property(p.name)
@@ -281,14 +300,13 @@ def irreflexive_property(pattern, ontology):
     # Existing classes
     properties = [*ontology.properties]
 
-    # Create any missing classes found in the pattern
+    # Create any missing properties found in the pattern
     for p in pattern[1]:
         if p.name not in properties:
             ontology.declare_property(p.name)
             properties.append(p.name)
 
-    prop = map(lambda x: x.name, pattern[1])
-
+    prop = pattern[1][0].name
     ontology.declare_irreflexive_property(prop)
 
 def symmetric_property(pattern, ontology):
