@@ -91,10 +91,11 @@ class Owl(object):
         :return Element class
         """
 
-        declaration = ET.SubElement(self.root, 'Declaration')
-        owl_class = ET.SubElement(declaration, 'Class', attrib={'IRI': self.uri + class_name})
-        self.classes[class_name] = owl_class
-        return owl_class
+        if class_name not in self.classes:
+            declaration = ET.SubElement(self.root, 'Declaration')
+            owl_class = ET.SubElement(declaration, 'Class', attrib={'IRI': self.uri + class_name})
+            self.classes[class_name] = owl_class
+            return owl_class
 
     def declare_property(self, property_name):
         """
@@ -104,10 +105,11 @@ class Owl(object):
         :return Element property
         """
 
-        declaration = ET.SubElement(self.root, 'Declaration')
-        owl_property = ET.SubElement(declaration, 'ObjectProperty', attrib={'IRI': self.uri + property_name})
-        self.properties[property_name] = owl_property
-        return owl_property
+        if property_name not in self.properties:
+            declaration = ET.SubElement(self.root, 'Declaration')
+            owl_property = ET.SubElement(declaration, 'ObjectProperty', attrib={'IRI': self.uri + property_name})
+            self.properties[property_name] = owl_property
+            return owl_property
 
     def declare_individual(self, individual_name):
         """
@@ -423,7 +425,6 @@ class Owl(object):
         """
 
         irreflexive = ET.Element('IrreflexiveObjectProperty')
-        irreflexive.append(self.properties[irreflexive_property])
         self.root.append(irreflexive)
 
     def declare_symmetric_property(self, symmetric_property):

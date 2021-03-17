@@ -109,16 +109,13 @@ def class_assertion(pattern, ontology):
     '''
 
     # Existing classes
-    classes = [*ontology.classes]
     individuals = [*ontology.individuals]
 
     class_name = pattern[1][0].name
     individual = pattern[1][0].variables[0]
 
     # Create any missing classes found in the pattern
-    if class_name not in classes:
-        ontology.declare_class(class_name)
-        classes.append(class_name)
+    ontology.declare_class(class_name)
 
     if individual not in individuals:
         ontology.declare_individual(individual)
@@ -133,7 +130,6 @@ def property_assertion(pattern, ontology, negated=False):
     '''
 
     # Existing classes
-    properties = [*ontology.properties]
     individuals = [*ontology.individuals]
 
     property_name = pattern[1][0].name
@@ -141,9 +137,7 @@ def property_assertion(pattern, ontology, negated=False):
     individual_two = pattern[1][0].variables[1]
 
     # Create any missing classes found in the pattern
-    if property_name not in properties:
-        ontology.declare_property(property_name)
-        properties.append(property_name)
+    ontology.declare_property(property_name)
 
     if individual_one not in individuals:
         ontology.declare_individual(individual_one)
@@ -163,15 +157,8 @@ def subclass(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-
-    # Create any missing classes found in the pattern
-    # TODO is this still necessary? Seems like all classes are now declared directly from Ontology.to_owl()
-    #for c in pattern[1] + pattern[2]:
-    #    if c.name not in classes:
-    #        ontology.declare_class(c.name)
-    #        classes.append(c.name)
+    for c in pattern[1] + pattern[2]:
+        ontology.declare_class(c.name)
 
     subclass = [x.name for x in pattern[1]]
     superclass = [x.name for x in pattern[2]]
@@ -190,15 +177,10 @@ def subproperty(pattern, ontology):
     :param Owl ontology, ontology class to add subproperty details
     '''
 
-    # Existing properties
-    properties = [*ontology.properties]
 
     # Create any missing properties found in the pattern
     for p, state in pattern[1] + pattern[2]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
-
+        ontology.declare_property(p.name)
 
     # if more than one propertiy appears on the super side and more than three on the subside, no subproperty axiom can be generated
     # we do not support chains of more than 2 properties
@@ -244,14 +226,9 @@ def disjoint_classes(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-
     # Create any missing classes found in the pattern
     for c in pattern[1]:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     class_one, class_two = map(lambda x: x.name, pattern[1])
 
@@ -262,14 +239,9 @@ def disjoint_properties(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing properties found in the pattern
     for p, _ in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop_one, prop_two = map(lambda x: (x[0].name, Owl.Relations.INVERSE if x[1] == Predicate.INVERTED else Owl.Relations.NORMAL), pattern[1])
 
@@ -280,14 +252,9 @@ def reflexive_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing properties found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
     ontology.declare_reflexive_property(prop)
@@ -297,14 +264,9 @@ def irreflexive_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing properties found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
     ontology.declare_irreflexive_property(prop)
@@ -314,14 +276,9 @@ def symmetric_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing classes found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
 
@@ -332,14 +289,9 @@ def asymmetric_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing classes found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
 
@@ -350,14 +302,9 @@ def transitive_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing classes found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
 
@@ -368,14 +315,9 @@ def functional_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing classes found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
 
@@ -386,14 +328,9 @@ def inverse_functional_property(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    properties = [*ontology.properties]
-
     # Create any missing classes found in the pattern
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     prop = pattern[1][0].name
 
@@ -404,20 +341,12 @@ def range_restriction(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-    properties = [*ontology.properties]
-
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     # Create any missing classes found in the pattern
     for c in pattern[2] + pattern[3]:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     property_name = pattern[1][0].name
 
@@ -437,20 +366,12 @@ def domain_restriction(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-    properties = [*ontology.properties]
-
     for p in pattern[1]:
-        if p.name not in properties:
-            ontology.declare_property(p.name)
-            properties.append(p.name)
+        ontology.declare_property(p.name)
 
     # Create any missing classes found in the pattern
     for c in pattern[2] + pattern[3]:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     prop = pattern[1][0].name
 
@@ -470,22 +391,12 @@ def all_values_from(pattern, ontology):
     :param pattern Tuple(str, [], [], [])
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-    properties = [*ontology.properties]
-
     _, relation, subclass, limit = pattern
     property_name = relation[0].name
-
-    # Ensure that properties and classes already exist 
-    if property_name not in properties:
-        ontology.declare_property(property_name)
-        properties.append(property_name)
+    ontology.declare_property(property_name)
 
     for c in subclass + limit:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     # Create any union classes for subclass or limit
     union_classes = []
@@ -506,22 +417,13 @@ def some_values_from(pattern, ontology):
     :param pattern Tuple(str, [], [], [])
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-    properties = [*ontology.properties]
-
     _, relation, subclass, limit = pattern
     property_name = relation[0].name
 
-    # Ensure that properties and classes already exist 
-    if property_name not in properties:
-        ontology.declare_property(property_name)
-        properties.append(property_name)
+    ontology.declare_property(property_name)
 
     for c in subclass + limit:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     # Create any union classes for subclass or limit
     union_classes = []
@@ -542,14 +444,9 @@ def universe(pattern, ontology):
     TODO: Actually write these
     '''
 
-    # Existing classes
-    classes = [*ontology.classes]
-
     # Create any missing classes found in the pattern
     for c in pattern[1]:
-        if c.name not in classes:
-            ontology.declare_class(c.name)
-            classes.append(c.name)
+        ontology.declare_class(c.name)
 
     universe_names = [x.name for x in pattern[1]]
 
