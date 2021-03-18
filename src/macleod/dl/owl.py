@@ -425,6 +425,7 @@ class Owl(object):
         """
 
         irreflexive = ET.Element('IrreflexiveObjectProperty')
+        irreflexive.append(self.properties[irreflexive_property])
         self.root.append(irreflexive)
 
     def declare_symmetric_property(self, symmetric_property):
