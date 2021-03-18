@@ -133,10 +133,20 @@ def symmetric_relation(axiom):
     should be in reversed positions in each predicate.
     '''
 
-    # TODO: Check for inverse
-    # TODO check for variables in reverse order
+    negated = [p for p in axiom.negated()]
+    if len(negated) != 1:
+        return None
 
-    return ('symmetric', axiom.binary())
+    positive = [p for p in axiom.positive()]
+    if len(positive) != 1:
+        return None
+
+    x_one, y_one = negated[0].variables
+    x_two, y_two = positive[0].variables
+    if x_one==y_two and x_two==y_one:
+        return ('symmetric', axiom.binary())
+    else:
+        return None
 
 def asymmetric_relation(axiom):
     '''
@@ -144,10 +154,16 @@ def asymmetric_relation(axiom):
     should be in reversed positions in each predicate.
     '''
 
-    # TODO: Check for inverse
-    # TODO check for variables in reverse order
+    negated = [p for p in axiom.negated()]
+    if len(negated) != 2:
+        return None
 
-    return ('asymmetric', axiom.binary())
+    x_one, y_one = negated[0].variables
+    x_two, y_two = negated[1].variables
+    if x_one==y_two and x_two==y_one:
+        return ('asymmetric', axiom.binary())
+    else:
+        return None
 
 def transitive_relation(axiom):
     '''
@@ -194,11 +210,11 @@ def range_restriction(axiom):
     unary predicates. Only universally quantified predicates are used.
     '''
     
-    prop = [p for p in axiom.binary()]
+    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1]]
     range_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
     range_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
 
-    if len(prop) > 1:
+    if len(prop) != 1:
         return None
 
     #if len([c for c in axiom.unary() if c in axiom.negated()]) > 1:
@@ -216,11 +232,11 @@ def domain_restriction(axiom):
     unary predicates. Only universally quantified predicates are used.
     '''
     
-    prop = [p for p in axiom.binary()]
+    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1]]
     domain_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
     domain_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
 
-    if len(prop) > 1:
+    if len(prop) != 1:
         return None
 
     #if len([c for c in axiom.unary() if c in axiom.negated()]) > 1:
@@ -306,6 +322,7 @@ def all_values(axiom):
 
     -U(a) | -B(a, b) | U2(b)
 
+
     forall [U subclass B.U2]
     '''
 
@@ -337,7 +354,7 @@ def all_values(axiom):
 
 def some_values(axiom):
     '''
-    Assumes that the setence is both universally and existentially quantified.
+    Assumes that the sentence is both universally and existentially quantified.
     Contains a binary and unary predicate, detect the placement of the variable
     to see if it's R^(-1).C or Regular R.C.
     '''
