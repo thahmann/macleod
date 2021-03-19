@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 def split_logical(logical, axioms, prenex, u_vars, e_vars):
     """
     Splits a logical across conjuncts and returns list of new logicals with the
-    approriate prenexes. This operation maintains logical equivalency of the
+    appropriate prenexes. This operation maintains logical equivalency of the
     splits and their original conjunction. Note that this means some
     conjunctions cannot be split
 
@@ -51,7 +51,9 @@ def split_logical(logical, axioms, prenex, u_vars, e_vars):
 
         else:
 
-            # Time to look through the children
+            # Now we have a Conjunction
+            #print("Processing conjunct " + repr(logical))
+            # Time to look through the children (the disjunctions)
             for conjunct in logical.get_term():
 
                 # Short circuit flag
@@ -64,7 +66,9 @@ def split_logical(logical, axioms, prenex, u_vars, e_vars):
                     
                     for var in term.variables:
                         # If we have a single term with e_vars scrap this conjunct
-                        if var in e_vars:
+                        # CHANGED: if there is only a single e_var (i.e. some existential variable but no nested ones),
+                        #  we could still split and distribute the existential quantifiers on each
+                        if len(e_vars)>1 and var in e_vars:
                             ditch = True
                             break
 
@@ -84,7 +88,9 @@ def split_logical(logical, axioms, prenex, u_vars, e_vars):
                     
                     for var in term.variables:
                         # If we have a single term with e_vars scrap this conjunct
-                        if var in e_vars:
+                        # CHANGED: if there is only a single e_var (i.e. some existential variable but no nested ones),
+                        #  we could still split and distribute the existential quantifiers on each
+                        if len(e_vars)>1 and var in e_vars:
                             ditch = True
                             break
 
