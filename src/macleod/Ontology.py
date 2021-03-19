@@ -221,7 +221,7 @@ class Ontology(object):
 
             def __eq__(self, other):
                 if isinstance(self.symbol, str):
-                    return self==other
+                    return self.symbol==other.symbol
                 else:
                     return self.symbol.same_symbol(other.symbol)
 
