@@ -107,7 +107,7 @@ def clif_to_owl():
     Script to translate to LADR
     :return:
     '''
-    LOGGER.info('Called script clif_to_ladr')
+    LOGGER.info('Called script clif_to_owl')
     # Setup the command line arguments to the program
     parser = argparse.ArgumentParser(description='Read Common Logic Interchange Format (.clif) files and approximate them by OWL ontologies.')
 
