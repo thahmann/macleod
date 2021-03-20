@@ -31,7 +31,7 @@ class Quantifier(Logical):
 
     def is_onf(self):
         '''
-        A Quantifier can only be in ONF if it is applied to another Quantifer
+        A Quantifier can only be in ONF if it is applied to another Quantifier
         and if it's term is in ONF.
         '''
 
@@ -275,7 +275,12 @@ class Quantifier(Logical):
         if isinstance(self, Universal):
             ret = type(self)(more.variables, Conjunction(terms))
         else:
-            ret = type(self)(more.variables, Disjunction(terms))
+            disjunction = Disjunction(terms)
+            if len(disjunction.get_term())>0:
+                ret = type(self)(more.variables, Disjunction(terms))
+            else:
+                # empty disjunction
+                ret = True
 
         return ret
 

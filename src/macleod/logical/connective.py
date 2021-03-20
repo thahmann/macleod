@@ -27,6 +27,11 @@ class Connective(Logical):
         if not isinstance(terms, list):
             raise ValueError("{} expects a list of terms".format(type(self)))
 
+        self.is_true = False
+        self.is_false = False
+
+
+
     def remove_term(self, term):
 
         return self.terms.remove(term)
@@ -34,11 +39,16 @@ class Connective(Logical):
     def set_term(self, term):
 
         if isinstance(term, type(self)):
-            self.terms.extend(copy.deepcopy(term.get_term()))
+            for t in term.get_term():
+                if t not in self.terms:
+                    self.terms.append(copy.deepcopy(t))
         elif isinstance(term, list):
-            self.terms.extend(copy.deepcopy(term))
+            for t in term:
+                if t not in self.terms:
+                    self.terms.append(copy.deepcopy(t))
         else:
-            self.terms.append(copy.deepcopy(term))
+            if term not in self.terms:
+                self.terms.append(copy.deepcopy(term))
 
 
     def distribute(self, t_one, t_two):
@@ -91,8 +101,12 @@ class Connective(Logical):
 
             other_terms = copy.deepcopy(t_two.get_term())
             new_term = other([local([copy.deepcopy(t_one), t]) for t in other_terms])
-
-            self.set_term(new_term)
+            new_term.terms = [t for t in new_term.terms if len(t.terms)>0]
+            if len(new_term.terms)==0:
+                print ("Trying to create an empty outer {} during distribution".format(other))
+                return None
+            else:
+               self.set_term(new_term)
 
         # Save off edited self
         altered_self = copy.deepcopy(self)
@@ -334,8 +348,52 @@ class Conjunction(Connective):
         else:
             # TODO need to still handle the case of no terms: this is allowed by the Common Logic standard;
             #  it represents a value of True
-            LOGGER.debug(terms)
-            raise ValueError("{} requires at least one term".format(type(self)))
+            LOGGER.debug("Trying to create a conjunction with no terms")
+            self.is_true = True
+            #raise ValueError("{} requires at least one term".format(type(self)))
+
+        self.remove_redundant_terms()
+
+    def remove_redundant_terms(self):
+
+        from macleod.logical.negation import Negation
+        #LOGGER.debug("Term to remove duplicate terms from: " + repr(self))
+        new_terms = []
+        negated_terms = []
+        duplicate = False
+        for term in self.terms:
+            if isinstance(term, Negation):
+                negations = [t for t in new_terms if term.is_negation_of(t)]
+                if len(negations)>0:
+                    duplicate = True
+                    LOGGER.debug("Removing opposing terms " + repr(term) + " and " + repr(negations[0]) + "from " +repr(self))
+                    new_terms.remove(negations[0])
+                    self.is_false = True
+                    break
+                else:
+                    negated_terms.append(term)
+            elif term not in new_terms:
+                negations = [t for t in negated_terms if t.is_negation_of(term)]
+                if len(negations)>0:
+                    duplicate = True
+                    LOGGER.debug("Removing opposing terms " + repr(term) + " and " + repr(negations[0]) + "from " +repr(self))
+                    negated_terms.remove(negations[0])
+                    break
+                else:
+                    new_terms.append(term)
+            else:
+                duplicate = True
+                LOGGER.debug("Removing duplicate term " + repr(term) + "from " +repr(self))
+
+        if duplicate:
+            #LOGGER.debug("Positive terms: " + repr(new_terms))
+            #LOGGER.debug("Negated terms: " + repr(negated_terms))
+            if self.is_false:
+                self.terms = []
+            else:
+                new_terms.extend(negated_terms)
+                self.terms = new_terms
+            LOGGER.debug("Term after removal of duplicate and opposing terms: " + repr(self))
 
 
 
@@ -345,8 +403,12 @@ class Conjunction(Connective):
 
         :return self.__repr__() method
         '''
-
-        return "({})".format(" & ".join([repr(t) for t in self.terms]))
+        if self.is_true:
+            return "True"
+        elif self.is_false:
+            return "False"
+        else:
+            return "({})".format(" & ".join([repr(t) for t in self.terms]))
 
     def is_onf(self):
         '''
@@ -355,10 +417,38 @@ class Conjunction(Connective):
 
         :return Conjunction, New ONF conjunction
         '''
+        #print("Checking whether {} is in ONF".format(self))
+
+        if self.is_false or self.is_true:
+            LOGGER.debug("Special case: The conjunction {} is not in ONF".format(self))
+            return False
 
         for term in self.get_term():
 
-            if isinstance(term, Quantifier):
+            #print("Checking whether term {} is in ONF".format(term))
+
+            if isinstance(term, Disjunction):
+
+                if term.is_false:
+                    self.terms = []
+                    self.is_false = True
+                    LOGGER.debug("{} is in ONF because it is False".format(term))
+                    return True
+
+                elif term.is_true:
+                    if len(self.get_term()) == 1:
+                        self.terms = []
+                        self.is_true = True
+                        return True
+                        LOGGER.debug("{} is in ONF because it is True".format(term))
+                    elif len(self.get_term()) > 1:
+                        self.remove_term(term)
+
+                elif term.is_onf() == False:
+                    #print("{} ({}) is NOT in ONF because {} is not".format(self, type(self), term))
+                    return False
+
+            elif isinstance(term, Quantifier):
 
                 raise ValueError("Quantifier within connective during ONF")
 
@@ -366,10 +456,13 @@ class Conjunction(Connective):
 
                 raise ValueError("Has a conjunction nested in a conjunction")
 
-            elif term.is_onf() == False:
+            else:
+                if term.is_onf() == False:
+                    #print("{} ({}) is NOT in ONF because {} is not".format(self, type(self), term))
+                    return False
+                #print("Term {} is in ONF".format(term))
 
-                return False
-
+        #print("{} is in ONF because all terms are".format(self))
         return True
 
     def to_onf(self):
@@ -379,29 +472,46 @@ class Conjunction(Connective):
         '''
 
         if self.is_onf():
+            # make sure that redundant terms are removed (we can assume that each term is a predicate)
+            # print("{} is already in ONF".format(self))
+            for term in self.terms:
+                if term is None:
+                    self.terms.remove(term)
+            if len(self.terms)>1:
+                return copy.deepcopy(self)
 
-            return copy.deepcopy(self)
+        if len(self.terms) == 1:
+            # Need to remove this conjunction and replace it by whatever is inside
+            LOGGER.debug("{} contains a single term ({}) of type {}".format(self,self.terms[0],type(self.terms[0])))
+            return copy.deepcopy(self.terms[0].to_onf())
 
-        else:
+        if len(self.terms) == 0:
+            # TODO what to do now?
+            LOGGER.debug("Found empty conjunction!")
+            self.is_true = True
+            return None
 
-            LOGGER.debug("Conjunction: " + repr(self) + " not in CNF!")
-            
-            new_terms = []
+        LOGGER.debug("Conjunction: " + repr(self) + " is not in CNF")
 
-            for term in copy.deepcopy(self.terms):
+        new_terms = []
 
-                if term.is_onf():
+        for term in copy.deepcopy(self.terms):
 
-                    new_terms.append(term)
+            if not term.is_onf():
+                LOGGER.debug("Culprit non-CNF term is: " + repr(term))
+                term = term.to_onf()
 
-                else:
+            if term is None:
+                LOGGER.debug("Skipping empty disjunction inside " + repr(self.terms))
+            elif term.is_true:
+                LOGGER.debug("Skipping true disjunction " + repr(self.terms))
+            else:
+                new_terms.append(term)
 
-                    LOGGER.debug("Culprit non-CNF term is: " + repr(term))
-                    new_terms.append(term.to_onf())
-
-            ret = Conjunction(new_terms)
-            LOGGER.debug("Returning new Conjunction : " + repr(ret))
-            return ret
+        #print("Creating new conjunction of {} terms {}".format(len(new_terms),new_terms))
+        ret = Conjunction(new_terms)
+        LOGGER.debug("Returning new Conjunction : " + repr(ret))
+        return ret
 
 
 
@@ -439,9 +549,51 @@ class Disjunction(Connective):
         else:
             # TODO need to still handle the case of no terms: this is allowed by the Common Logic standard;
             #  it represents a value of False
-            LOGGER.debug(terms)
-            raise ValueError("{} requires at least one term".format(type(self)))
+            LOGGER.debug("Trying to create a disjunction with no terms")
+            self.is_false = True
+            #raise ValueError("{} requires at least one term".format(type(self)))
 
+        self.remove_redundant_terms()
+
+    def remove_redundant_terms(self):
+
+        from macleod.logical.negation import Negation
+        #LOGGER.debug("Term to remove duplicate terms from: " + repr(self))
+        new_terms = []
+        negated_terms = []
+        duplicate = False
+        for term in self.terms:
+            if isinstance(term, Negation):
+                negations = [t for t in new_terms if term.is_negation_of(t)]
+                if len(negations)>0:
+                    duplicate = True
+                    LOGGER.debug("Removing opposing terms " + repr(term) + " and " + repr(negations[0]) + "from disjunction " +repr(self))
+                    # opposing terms make disjunction vacuously true
+                    self.is_true = True
+                    break
+                else:
+                    negated_terms.append(term)
+            elif term not in new_terms:
+                negations = [t for t in negated_terms if t.is_negation_of(term)]
+                if len(negations)>0:
+                    duplicate = True
+                    LOGGER.debug("Removing opposing terms " + repr(term) + " and " + repr(negations[0]) + "from " +repr(self))
+                    negated_terms.remove(negations[0])
+                else:
+                    new_terms.append(term)
+            else:
+                duplicate = True
+                LOGGER.debug("Removing duplicate term " + repr(term) + "from " +repr(self))
+
+        if duplicate:
+            #LOGGER.debug("Positive terms: " + repr(new_terms))
+            #LOGGER.debug("Negated terms: " + repr(negated_terms))
+            if self.is_true:
+                self.terms = []
+            else:
+                new_terms.extend(negated_terms)
+                self.terms = new_terms
+            LOGGER.debug("Term after removal of duplicate and opposing terms: " + repr(self))
 
     def __repr__(self):
         '''
@@ -449,25 +601,47 @@ class Disjunction(Connective):
 
         :return self.__repr__() method
         '''
+        if self.is_true:
+            return "True"
+        elif self.is_false:
+            return "False"
+        else:
+            return "({})".format(" | ".join([repr(t) for t in self.terms]))
 
-        return "({})".format(" | ".join([repr(t) for t in self.terms]))
 
     def is_onf(self):
         '''
         If we have a nested conjunction we have a problem.
         '''
+        #print("Checking whether {} is in ONF".format(self))
+
+        if self.is_false or self.is_true:
+            print("Special case: The disjunction {} is not in ONF".format(self))
+            return False
 
         for term in self.get_term():
 
-            if isinstance(term, Conjunction):
-                return False
+            #print("Checking whether term {} is in ONF".format(term))
 
-            elif isinstance(term, Quantifier):
-                raise ValueError("Found nested quantifier in disjunction!")
+            if isinstance(term, Conjunction):
+
+                LOGGER.debug("{} ({}) is NOT in ONF because it contains a conjunction ({})".format(self, type(self), term))
+                return False
 
             elif isinstance(term, Disjunction):
                 raise ValueError("Found nested disjunction within disjunction")
 
+            elif isinstance(term, Quantifier):
+                raise ValueError("Found nested quantifier in disjunction!")
+
+            else:
+                if term.is_onf() == False:
+                    #print("{} ({}) is NOT in ONF because {} is not".format(self, type(self), term))
+                    return False
+                #print("Term {} is in ONF".format(term))
+
+
+        #print("{} is in ONF because all terms are".format(self))
         return True
 
     def to_onf(self):
@@ -478,34 +652,58 @@ class Disjunction(Connective):
         conjunction.
         '''
 
-        working = copy.deepcopy(self)
 
         if self.is_onf():
+            # make sure that redundant terms are removed (we can assume that each term is a predicate)
+            if len(self.terms)>1:
+                return copy.deepcopy(self)
 
-            return copy.deepcopy(self)
+        if len(self.terms) == 1:
+            # Need to remove the disjunction and replace it by whatever is inside
+            LOGGER.debug("{} contains a single term ({}) of type {}".format(self,self.terms[0],type(self.terms[0])))
+            return copy.deepcopy(self.terms[0].to_onf())
+
+        if len(self.terms) == 0:
+            # TODO what to do now?
+            LOGGER.debug("Found empty disjunction!")
+            self.is_false = True
+            return None
 
         LOGGER.debug("Disjunction: " + repr(self) + " is not in CNF")
 
+        working = copy.deepcopy(self)
 
         conjunct = None
         terms = working.get_term()
 
         # Search for the nested conjunction
         for term in terms:
-            if isinstance(term, Conjunction):
+            if term is None:
+                if term.is_false:
+                    terms.remove(term)
+                elif term.is_true:
+                    terms = [None]
+            elif isinstance(term, Conjunction):
                 LOGGER.debug("Culprit is nested conjunction: " + repr(term))
                 conjunct = term
                 break
 
         # Pick a distribute term that isn't our conjunct
         # TODO: Heuristic, always pick the smallest other term first
-        distributive_term = terms[0] if terms[0] != conjunct else terms[1] 
+        if len(terms)<2:
+            # we got an issue here
+            LOGGER.debug("Encountered disjunction {} with only one term: {}".format(working, terms[0]))
+            return terms[0].to_onf()
+        distributive_term = terms[0] if terms[0] != conjunct else terms[1]
 
         other_terms = [x for x in terms if (x != conjunct and x != distributive_term)]
 
         distributed = working.distribute(distributive_term, conjunct)
 
-        return distributed.to_onf()
+        # if the distribution actually resulting in a meaningful, not-none term:
+        if distributed is not None:
+            distributed = distributed.to_onf()
+        return distributed
 
 class Implication(Connective):
     '''

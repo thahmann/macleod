@@ -54,6 +54,23 @@ class Negation(Logical):
 
         return copy.deepcopy(self.terms[0])
 
+    def is_negation_of(self, other):
+
+        if isinstance(other, Negation):
+            return False
+
+        if not isinstance(other, Predicate):
+            return False
+
+        if not isinstance(self.term(), Predicate):
+            return False
+
+        if self.term().same_symbol(other):
+            if self.term().compare(other)==Predicate.SAME:
+                return True
+
+        return False
+
     def push(self):
         '''
         Push negation inwards and apply to all children
