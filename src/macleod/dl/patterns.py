@@ -85,11 +85,11 @@ def disjoint_classes(axiom):
 
 def disjoint_properties(axiom):
     '''
-    Assumes that all predicates are binary, it's a disjunction, and there exists
-    at least two negative terms. Only a single universally quantified variable.
+    Assumes that all predicates are binary and negated, and there exists
+    at least two (negative) terms. Only a single universally quantified variable.
     '''
 
-    # TODO: Need to handle inverse cases
+    # Use of inverse relations in disjoint property statements is not allowed in OWL2
 
     # Filter conflict asymmetric, need to ensure at least two unique predicates
     if len({p.name for p in axiom.predicates()}) < 2:
@@ -99,7 +99,12 @@ def disjoint_properties(axiom):
     base = axiom.negated()[0]
     disjoint_props = [(p, base.compare(p)) for p in axiom.binary() if p in axiom.negated()]
 
-    return ('disjoint_properties', disjoint_props)
+    if all([sign==Predicate.SAME for (_, sign) in disjoint_props]):
+        # all predicates need to have the variables in the same order, otherwise an inverse relation is created,
+        #  which is not allowed in OWL2
+        return ('disjoint_properties', disjoint_props)
+    else:
+        return None
 
 def reflexive_relation(axiom):
     '''
