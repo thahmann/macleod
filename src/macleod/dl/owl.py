@@ -524,18 +524,32 @@ class Owl(object):
         #       that the produced ontology will fall into.
         subclass_element = ET.Element('SubClassOf')
 
-        if len(subclass) > 1:
-            subclass_element.append(self._get_object_union(subclass))
+        if len(subclass) == 0:
+            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
+            subclass_element.append(owl_class)
+        elif len(subclass) == 1:
+            if subclass[0][1] == Owl.Relations.NORMAL:
+                subclass_element.append(self.classes[subclass[0][0]])
+            else:
+                subclass_element.append(self._get_object_complement(subclass[0][0]))
         else:
-            subclass_element.append(self.classes[subclass[0]])
+            subclass_element.append(self._get_object_intersection(subclass))
 
         all_values_from = ET.Element('ObjectAllValuesFrom')
-        all_values_from.append(self.properties[relation])
-
-        if len(limit) > 1:
-            all_values_from.append(self._get_object_union(limit))
+        (property, inverted) = relation
+        if inverted == Owl.Relations.INVERSE:
+            all_values_from.append(self._get_object_inverse(property))
         else:
-            all_values_from.append(self.classes[limit[0]])
+            all_values_from.append(self.properties[property])
+
+        # limit need to have at least one element
+        if len(limit) == 1:
+            if limit[0][1] == Owl.Relations.NORMAL:
+                all_values_from.append(self.classes[limit[0][0]])
+            else:
+                all_values_from.append(self._get_object_complement(limit[0][0]))
+        elif len(limit) > 1:
+            all_values_from.append(self._get_object_union(limit))
 
         subclass_element.append(all_values_from)
         self.root.append(subclass_element)
@@ -552,7 +566,7 @@ class Owl(object):
 
 
         if len(subclass) > 1:
-            subclass_element.append(self._get_object_union(subclass))
+            subclass_element.append(self._get_object_intersection(subclass))
         else:
             subclass_element.append(self.classes[subclass[0]])
 

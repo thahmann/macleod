@@ -92,6 +92,8 @@ def produce_construct(pattern, ontology):
         domain_restriction(pattern, ontology)
     elif pattern[0] == 'all_values':
         all_values_from(pattern, ontology)
+    elif pattern[0] == 'inverse-all_values':
+        inverse_all_values_from(pattern, ontology)
     elif pattern[0] == 'some_values':
         some_values_from(pattern, ontology)
     elif pattern[0] == 'universe':
@@ -182,7 +184,7 @@ def subproperty(pattern, ontology):
     for p, state in pattern[1] + pattern[2]:
         ontology.declare_property(p.name)
 
-    # if more than one propertiy appears on the super side and more than three on the subside, no subproperty axiom can be generated
+    # if more than one property appears on the super side and more than three on the subside, no subproperty axiom can be generated
     # we do not support chains of more than 2 properties
     if len(pattern[1]) > 2 or len(pattern[2]) > 1:
         return None
@@ -323,6 +325,7 @@ def functional_property(pattern, ontology):
 
     ontology.declare_functional_property(prop)
 
+
 def inverse_functional_property(pattern, ontology):
     '''
     TODO: Actually write these
@@ -335,6 +338,7 @@ def inverse_functional_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_inverse_functional_property(prop)
+
 
 def range_restriction(pattern, ontology):
     '''
@@ -361,6 +365,7 @@ def range_restriction(pattern, ontology):
 
     ontology.declare_range_restriction(property_name, restriction)
 
+
 def domain_restriction(pattern, ontology):
     '''
     TODO: Actually write these
@@ -386,31 +391,32 @@ def domain_restriction(pattern, ontology):
 
     ontology.declare_domain_restriction(prop, restriction)
 
+
 def all_values_from(pattern, ontology):
     '''
-    :param pattern Tuple(str, [], [], [])
+    :param pattern Tuple(str, [], [(predicate, bool)], [(predicate, bool)])
     '''
 
     _, relation, subclass, limit = pattern
-    property_name = relation[0].name
-    ontology.declare_property(property_name)
+    (property, invert) = relation
+    #print("Looking for a all_values pattern involving the property " + property_name)
+    ontology.declare_property(property.name)
 
-    for c in subclass + limit:
+    for (c, _) in subclass + limit:
         ontology.declare_class(c.name)
 
-    # Create any union classes for subclass or limit
     union_classes = []
+
     for class_list in [subclass, limit]:
-        if len(class_list) > 1:
-            union_class_name = [c.name for c in class_list]
-            union_classes.append(union_class_name)
+        if len(class_list) == 1:
+            union_classes.append([(class_list[0][0].name, Owl.Relations.NORMAL if class_list[0][1] else Owl.Relations.INVERSE)])
         else:
-            union_classes.append(None)
+            union_classes.append([(c.name, Owl.Relations.NORMAL if sign else Owl.Relations.INVERSE) for (c, sign) in class_list])
 
-    subclass_name = union_classes[0] or [subclass[0].name]
-    limit_name = union_classes[1] or [limit[0].name]
+    ontology.declare_all_values_from_subclass((property.name,
+                                               Owl.Relations.INVERSE if invert == Predicate.INVERTED else Owl.Relations.NORMAL),
+                                              union_classes[0], union_classes[1])
 
-    ontology.declare_all_values_from_subclass(property_name, subclass_name, limit_name)
 
 def some_values_from(pattern, ontology):
     '''

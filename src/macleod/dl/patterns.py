@@ -314,7 +314,8 @@ def functional(axiom):
 
 def all_values(axiom):
     '''
-    Assumes that the setence is both universally and existentially quantified.
+    Assumes that the sentence is both universally and existentially quantified.
+    Contains exactly two variables.
     Contains a binary and two unary predicates, detect the placement of the variable
     to see if it's R^(-1).C or Regular R.C.
 
@@ -327,30 +328,33 @@ def all_values(axiom):
     '''
 
     relation = axiom.binary()
-    subclass = [s for s in axiom.unary() if s in axiom.negated()]
-    limit = [s for s in axiom.unary() if s not in axiom.negated()]
 
-    # Should be a single binary
-    if not relation or len(relation) > 1:
+    #print("Checking whether property {} can be used to construct all_values pattern using concepts {}".format(relation, axiom.unary()))
+
+    # Should be a single negated binary, otherwise it is not an AllValuesFrom construct
+    if len(relation) != 1 or relation[0] not in axiom.negated():
         return None
 
-    # Should be at least one subclass
-    if not subclass:
+    #print("Found property {} for potential all_values pattern using concepts {}".format(relation, axiom.unary()))
+
+    subclass = [(c, c in axiom.negated()) for c in axiom.unary() if c.variables[0] == relation[0].variables[0]]
+    limit = [(c, c not in axiom.negated()) for c in axiom.unary() if c.variables[0] == relation[0].variables[1]]
+
+    if not subclass or not limit:
+        # empty subclass is covered by the PropertyRange construct
+        # empty limit is not meaningful
         return None
 
-    # Every subclass predicate must be over the same variables
-    if not all([s.variables == subclass[0].variables for s in subclass]):
-        return None
+    if not all([sign for (_, sign) in subclass]) and all([not sign for (_, sign) in limit]):
+            print("Constructing all-values pattern with inverse property {} with subclass {} and limit {}".format(relation[0],subclass, limit))
+            # TODO use inverse relation, switch subclass and limit
+            return ('all_values',
+                    (relation[0], Predicate.INVERTED),
+                    [(c, not sign) for (c, sign) in limit],
+                    [(c, not sign) for (c, sign) in subclass])
+    else:
+        return ('all_values', (relation[0], Predicate.SAME), subclass, limit)
 
-    # Should be at least one limiting class
-    if not limit:
-        return None
-
-    # Every limit class must be over the same variables
-    if not all([l.variables == limit[0].variables for l in limit]):
-        return None
-
-    return ('all_values', relation, subclass, limit)
 
 def some_values(axiom):
     '''
