@@ -104,7 +104,7 @@ def clif_to_ladr():
 
 def clif_to_owl():
     '''
-    Script to translate to LADR
+    Script to translate to OWL
     :return:
     '''
     LOGGER.info('Called script clif_to_owl')
@@ -122,6 +122,13 @@ def clif_to_owl():
     optionalArguments.add_argument('--ffpcnf', action='store_true', help='Automatically convert axioms to function-free prenex conjuntive normal form (FF-PCNF)', default=True)
     optionalArguments.add_argument('--clip', action='store_true', help='Split FF-PCNF axioms across the top level quantifier', default=False)
 
+    owlArgument = parser.add_mutually_exclusive_group()
+    owlArgument.add_argument('--full', action='store_true', help='Translate to OWL2-Full', default=True)
+    owlArgument.add_argument('--dl', action='store_true', help='Translate to OWL2-DL', default=False)
+    owlArgument.add_argument('--el', action='store_true', help='Translate to OWL2-EL', default=False)
+    owlArgument.add_argument('--ql', action='store_true', help='Translate to OWL2-QL', default=False)
+    owlArgument.add_argument('--rl', action='store_true', help='Translate to OWL2-RL', default=False)
+
     # Parse the command line arguments
     args = parser.parse_args()
     args.owl = True
@@ -129,6 +136,20 @@ def clif_to_owl():
     args.ladr = False
     args.tptp = False
     args.latex = False
+
+    from macleod.dl.owl import Owl
+    # argument full is used to store the OWL Profile
+    if args.dl:
+        args.full = Owl.Profile.OWL2_DL
+    elif args.el:
+        args.full = Owl.Profile.OWL2_EL
+    elif args.ql:
+        args.full = Owl.Profile.OWL2_QL
+    elif args.rl:
+        args.full = Owl.Profile.OWL2_RL
+    else:
+        args.full = Owl.Profile.OWL2_FULL
+
     main(args)
 
 def clif_to_latex():
@@ -211,7 +232,8 @@ def convert_file(file, args, preserve_conditionals = None):
 
     # producing OWL output
     if args.owl:
-        onto = ontology.to_owl()
+        # argument full has been used to store the OWL Profile
+        onto = ontology.to_owl(args.full)
 
         print("\n-- Translation --\n")
         print(onto.tostring())

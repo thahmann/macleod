@@ -22,7 +22,27 @@ class Owl(object):
         INVERSE = 1
         OTHER = 2
 
-    def __init__(self, filename, uri):
+    class Profile(Enum.Enum):
+        OWL2_FULL = 0
+        OWL2_DL = 1
+        OWL2_RL = 2
+        OWL2_QL = 3
+        OWL2_EL = 4
+
+    def get_profile_string(self):
+        if self.profile == Owl.Profile.OWL2_DL:
+            return "owl2-DL"
+        if self.profile == Owl.Profile.OWL2_RL:
+            return "owl2-RL"
+        if self.profile == Owl.Profile.OWL2_QL:
+            return "owl2-QL"
+        if self.profile == Owl.Profile.OWL2_EL:
+            return "owl2-EL"
+        else:
+            return "owl2"
+
+
+    def __init__(self, filename, uri, profile):
         """
         Create a new Owl class
 
@@ -46,6 +66,9 @@ class Owl(object):
             <Prefix name="rdfs" IRI="http://www.w3.org/2000/01/rdf-schema#"/>
         </Ontology>
         '''
+
+        #
+        self.profile = profile
 
         self.name = filename
         self.base_uri = uri
@@ -173,7 +196,6 @@ class Owl(object):
         #print(repr(subclass) + " is a subclass of " + repr(superclass))
 
         if len(subclass) > 1:
-            # TODO where does this come from? Is it an intersection or indeed a set of subclass relations
             subclass_element = self._get_object_intersection(subclass)
         else:
             # single subclass
@@ -210,6 +232,8 @@ class Owl(object):
             sub_name, sub_state = subproperty
             sub_element = self._get_object_inverse(sub_name) if sub_state == Owl.Relations.INVERSE else self.properties[sub_name]
         else:
+            if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_QL]:
+                return
             sub_element = self._get_property_chain(subproperty)
 
         subproperty_declaration = ET.Element('SubObjectPropertyOf')
@@ -401,6 +425,9 @@ class Owl(object):
         Add an axiom declaring that two classes are disjoint
         """
 
+        if self.profile in [Owl.Profile.OWL2_EL]:
+            return
+
         disjoint = ET.Element('DisjointObjectProperties')
         property_one, property_two = disjoint_pair
 
@@ -414,6 +441,9 @@ class Owl(object):
         """
         Add a declaration that a property is reflexive
         """
+
+        if self.profile in [Owl.Profile.OWL2_RL]:
+            return
 
         reflexive = ET.Element('ReflexiveObjectProperty')
         reflexive.append(self.properties[reflexive_property])
@@ -451,6 +481,9 @@ class Owl(object):
         Add a declaration that a property is reflexive
         """
 
+        if self.profile in [Owl.Profile.OWL2_QL]:
+            return
+
         transitive = ET.Element('TransitiveObjectProperty')
         transitive.append(self.properties[transitive_property])
         self.root.append(transitive)
@@ -460,6 +493,9 @@ class Owl(object):
         Add a declaration that a property is reflexive
         """
 
+        if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_QL]:
+            return
+
         functional = ET.Element('FunctionalObjectProperty')
         functional.append(self.properties[functional_property])
         self.root.append(functional)
@@ -468,6 +504,8 @@ class Owl(object):
         """
         Add a declaration that a property is reflexive
         """
+        if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_QL]:
+            return
 
         functional = ET.Element('InverseFunctionalObjectProperty')
         functional.append(self.properties[functional_property])
@@ -483,6 +521,8 @@ class Owl(object):
         rr.append(self.properties[prop])
 
         if len(restriction) > 1:
+            if self.profile in [Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL, Owl.Profile.OWL2_EL]:
+                return
             restriction_element = self._get_object_union(restriction)
         else:
             name, state = restriction[0]
@@ -501,6 +541,8 @@ class Owl(object):
         dr.append(self.properties[prop])
 
         if len(restriction) > 1:
+            if self.profile in [Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL, Owl.Profile.OWL2_EL]:
+                return
             restriction_element = self._get_object_union(restriction)
         else:
             name, state = restriction[0]
@@ -519,15 +561,15 @@ class Owl(object):
         :param list(str) limit, list of limiting class names
         """
 
+        if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_QL]:
+            return
+
         # TODO: For now just make the whole subclass here instead of naming the anonymous
         #       class that is defined by the allValuesFrom. The approach affects the profile
         #       that the produced ontology will fall into.
         subclass_element = ET.Element('SubClassOf')
 
-        if len(subclass) == 0:
-            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
-            subclass_element.append(owl_class)
-        elif len(subclass) == 1:
+        if len(subclass) == 1:
             if subclass[0][1] == Owl.Relations.NORMAL:
                 subclass_element.append(self.classes[subclass[0][0]])
             else:
@@ -538,6 +580,9 @@ class Owl(object):
         all_values_from = ET.Element('ObjectAllValuesFrom')
         (property, inverted) = relation
         if inverted == Owl.Relations.INVERSE:
+            # Disallowed in certain OWL2 Profiles
+            if self.profile in [Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL, Owl.Profile.OWL2_EL]:
+                return
             all_values_from.append(self._get_object_inverse(property))
         else:
             all_values_from.append(self.properties[property])
@@ -679,6 +724,9 @@ class Owl(object):
                 equivalent = 0
 
                 if len(super)> 1:
+                    if self.profile in [Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL, Owl.Profile.OWL2_EL]:
+                        # union of classes not allowed in equivalent class statements in some OWL2 Profiles
+                        continue
 
                     equivalent = 0
                     for s in super:

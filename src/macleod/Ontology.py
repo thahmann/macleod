@@ -451,9 +451,10 @@ class Ontology(object):
 
         logging.getLogger(__name__).info("Approximating " + self.name + " as an OWL ontology")
 
-        self.to_owl()
+        #self.to_owl()
 
-        output_filename = self.get_output_filename('owl')
+        profile_name = self.owl.get_profile_string()
+        output_filename = self.get_output_filename(profile_name)
 
         with open(output_filename, "w") as f:
             f.write(self.owl.tostring(pretty_print=True))
@@ -655,7 +656,7 @@ class Ontology(object):
         return axioms
 
 
-    def to_owl(self):
+    def to_owl(self, profile):
         """
         Return a string representation of this ontology in OWL format. If this ontology
         contains imports will translate those as well and concatenate all the axioms.
@@ -668,7 +669,8 @@ class Ontology(object):
             # Create new OWL ontology instance
             # need to use normalized path to work properly on Windows
             onto = macleod.dl.owl.Owl(self.name,
-                       self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'))
+                       self.name.replace(os.path.normpath(self.basepath[1]), self.basepath[0]).replace('.clif', '.owl').replace(os.sep, '/'),
+                                      profile)
 
             axioms = self.get_all_axioms()
 
