@@ -225,12 +225,22 @@ class Owl(object):
         :param Tuple(str, Owl.Relations) superproperty
         """
         sup_name, sup_state = superproperty
-        sup_element = self._get_object_inverse(sup_name) if sup_state == Owl.Relations.INVERSE else self.properties[sup_name]
+        if sup_state == Owl.Relations.INVERSE:
+            if self.profile in [Owl.Profile.OWL2_EL]:
+                return
+            sup_element = self._get_object_inverse(sup_name)
+        else:
+            sup_element = self.properties[sup_name]
 
         # need to distinguish simple subproperties from subproperty chains
         if isinstance(subproperty, tuple):
             sub_name, sub_state = subproperty
-            sub_element = self._get_object_inverse(sub_name) if sub_state == Owl.Relations.INVERSE else self.properties[sub_name]
+            if sub_state == Owl.Relations.INVERSE:
+                if self.profile in [Owl.Profile.OWL2_EL]:
+                    return
+                sub_element = self._get_object_inverse(sub_name)
+            else:
+                sub_element = self.properties[sub_name]
         else:
             if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_QL]:
                 return
@@ -453,6 +463,8 @@ class Owl(object):
         """
         Add a declaration that a property is reflexive
         """
+        if self.profile in [Owl.Profile.OWL2_EL]:
+            return
 
         irreflexive = ET.Element('IrreflexiveObjectProperty')
         irreflexive.append(self.properties[irreflexive_property])
@@ -462,6 +474,8 @@ class Owl(object):
         """
         Add a declaration that a property is reflexive
         """
+        if self.profile in [Owl.Profile.OWL2_EL]:
+            return
 
         symmetric = ET.Element('SymmetricObjectProperty')
         symmetric.append(self.properties[symmetric_property])
@@ -471,6 +485,9 @@ class Owl(object):
         """
         Add a declaration that a property is reflexive
         """
+
+        if self.profile in [Owl.Profile.OWL2_EL]:
+            return
 
         asymmetric = ET.Element('AsymmetricObjectProperty')
         asymmetric.append(self.properties[asymmetric_property])
@@ -526,7 +543,13 @@ class Owl(object):
             restriction_element = self._get_object_union(restriction)
         else:
             name, state = restriction[0]
-            restriction_element = self.classes[name] if state != Owl.Relations.INVERSE else self._get_object_complement(name)
+
+            if state == Owl.Relations.INVERSE:
+                if self.profile in [Owl.Profile.OWL2_EL]:
+                    return
+                restriction_element = self._get_object_complement(name)
+            else:
+                restriction_element = self.classes[name]
 
         rr.append(restriction_element)
 
@@ -546,7 +569,13 @@ class Owl(object):
             restriction_element = self._get_object_union(restriction)
         else:
             name, state = restriction[0]
-            restriction_element = self.classes[name] if state != Owl.Relations.INVERSE else self._get_object_complement(name)
+
+            if state == Owl.Relations.INVERSE:
+                if self.profile in [Owl.Profile.OWL2_EL]:
+                    return
+                restriction_element = self._get_object_complement(name)
+            else:
+                restriction_element = self.classes[name]
 
         dr.append(restriction_element)
 
@@ -573,6 +602,8 @@ class Owl(object):
             if subclass[0][1] == Owl.Relations.NORMAL:
                 subclass_element.append(self.classes[subclass[0][0]])
             else:
+                if self.profile in [Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL]:
+                    return
                 subclass_element.append(self._get_object_complement(subclass[0][0]))
         else:
             subclass_element.append(self._get_object_intersection(subclass))
