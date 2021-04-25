@@ -42,7 +42,8 @@ reserved = {
         'if': 'IF',
         'cl-comment': 'CLCOMMENT',
         'cl-text': 'START',
-        'cl-imports': 'IMPORT'
+        'cl-imports': 'IMPORT',
+        'cl-module': 'CLMODULE'
 }
 
 tokens += reserved.values()
@@ -131,9 +132,11 @@ def p_statement(p):
     statement : axiom statement
     statement : import statement
     statement : comment statement
+    statement : module statement
     statement : axiom
     statement : import
     statement : comment
+    statement : module
     """
 
     if len(p) == 3:
@@ -170,6 +173,22 @@ def p_comment_error(p):
 
     raise TypeError("Error in comment: bad string")
 
+def p_module(p):
+    """
+    module : LPAREN CLMODULE NONLOGICAL LPAREN IMPORT URI RPAREN RPAREN
+    """
+
+    # TODO: doing nothing with cl-module right now ...
+    # p[0] = p[3]
+    p[0] = None
+
+def p_module_error(p):
+    """
+    module : LPAREN CLMODULE error
+    module : LPAREN CLMODULE LPAREN IMPORT URI RPAREN RPAREN
+    """
+
+    raise TypeError("Error in module")
 
 def p_import(p):
     """
@@ -525,7 +544,6 @@ def parse_file(path, sub, base, resolve=False, name=None, preserve_conditionals 
     #else:
     #    LOGGER.info("Eliminating all conditionals")
 
-
     ontology = macleod.Ontology(path, preserve_conditionals = conditionals)
 
     if name is not None:
@@ -569,6 +587,9 @@ def get_line_number(string, pos):
 def is_error(obj):
     return isinstance(obj, yacc.YaccSymbol) and obj.type == "error"
 
+def reset_parser():
+    global parser
+    parser = None
 
 if __name__ == '__main__':
 
