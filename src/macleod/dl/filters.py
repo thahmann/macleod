@@ -33,7 +33,7 @@ def filter_on_quantifiers(axiom):
     :return Set patterns, set of applicable patterns
     """
 
-    if len(axiom.quantifiers()) == 1:
+    if len(axiom.existential_quantifiers()) == 0 and len(axiom.universal_quantifiers()) == 1:
 
         return {Pattern.asymmetric_relation,
                 Pattern.disjoint_properties,
@@ -52,14 +52,15 @@ def filter_on_quantifiers(axiom):
                 Pattern.universe_restriction,
                 Pattern.all_values}
 
-    elif len(axiom.quantifiers()) == 2:
+    elif len(axiom.existential_quantifiers()) == 1 and len(axiom.universal_quantifiers()) == 1:
         return {Pattern.some_values}
 
     elif len(axiom.quantifiers()) == 0:
         return {Pattern.class_assertion,
                 Pattern.property_assertion}
 
-    return set()
+    else:
+        return set()
 
 def filter_on_variables(axiom):
     """
