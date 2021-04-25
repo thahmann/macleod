@@ -36,6 +36,9 @@ class Ontology(object):
         # The full path to the file
         self.name = os.path.abspath(name)
 
+        # Important in order to not reuse the seen OWL patterns from a prior ontology
+        macleod.dl.translation.reset_seen()
+
         # For the time being, just maintain a list of axioms
         self.axioms = []
 
@@ -61,7 +64,12 @@ class Ontology(object):
         self.all_predicates = set()
         self.consts = set()
         self.functs = set()
-
+        # same for the terminology in the resulting OWL conversion
+        self.classes = set()
+        self.properties = set()
+        self.pcnf_sentences = 0
+        self.filtered_patterns = 0
+        self.owl_axioms = 0
 
         self.tptp_output = None
         self.tptp_file = None
@@ -677,8 +685,6 @@ class Ontology(object):
             # keeping track of classes (unary predicates) and properties (binary predicates) encountered
             # to avoid redundant declarations
             # predicates with the same arity and name are assumed to be identical
-            classes = set()
-            properties = set()
 
             # Loop over each Axiom and filter applicable patterns
             for axiom, path in axioms:
@@ -689,20 +695,26 @@ class Ontology(object):
 
                 # for completeness: declare all unary predicates as classes
                 for unary in axiom.unary():
-                    if unary.name not in classes:
-                        classes.add(unary.name)
+                    if unary.name not in self.classes:
+                        self.classes.add(unary.name)
                         onto.declare_class(unary.name)
 
                 # for completeness: declare all binary predicates as object properties
                 for binary in axiom.binary():
-                    if binary.name not in properties:
-                        properties.add(binary.name)
+                    if binary.name not in self.properties:
+                        self.properties.add(binary.name)
                         onto.declare_property(binary.name)
 
-                for pruned in macleod.dl.translation.translate_owl(pcnf):
+                pcnf_sentences = macleod.dl.translation.translate_owl(pcnf)
+
+                for pruned in pcnf_sentences:
+
+                    self.pcnf_sentences += 1
 
                     tmp_axiom = macleod.logical.axiom.Axiom(pruned)
                     pattern_set = macleod.dl.filters.filter_axiom(tmp_axiom)
+
+                    self.filtered_patterns += len(pattern_set)
 
                     #Collector for extracted patterns
                     for pattern in pattern_set:
@@ -710,12 +722,16 @@ class Ontology(object):
                         extraction = pattern(tmp_axiom)
                         if extraction is not None:
                             print('     - pattern', extraction[0])
-                            macleod.dl.translation.produce_construct(extraction, onto)
+                            if macleod.dl.translation.produce_construct(extraction, onto):
+                                self.owl_axioms += 1
+
 
                 for extra in pcnf.extra_sentences:
                     for extra_pruned in macleod.dl.translation.translate_owl(extra):
                         tmp_axiom = macleod.logical.axiom.Axiom(extra_pruned)
                         pattern_set = macleod.dl.filters.filter_axiom(tmp_axiom)
+
+                        self.filtered_patterns += len(pattern_set)
 
                         #Collector for extracted patterns
                         for pattern in pattern_set:
@@ -723,7 +739,8 @@ class Ontology(object):
                             extraction = pattern(tmp_axiom)
                             if extraction is not None:
                                 print('     - (extra) pattern', extraction[0])
-                                macleod.dl.translation.produce_construct(extraction, onto)
+                                if macleod.dl.translation.produce_construct(extraction, onto):
+                                    self.owl_axioms += 1
 
                 print()
 

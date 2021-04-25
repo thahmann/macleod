@@ -93,6 +93,21 @@ class Owl(object):
         self.disjoints_processed = False
         self.equivalents_processed = False
 
+        # these are maintained for statistical purposes
+        self.disjointclasses_backup = set()
+        self.simple_subclasses_backup = set()
+        self.complex_subclasses_backup = []
+        self.equivalent_classes = 0
+        self.disjoint_classes = 0
+        self.subproperties = 0
+        self.disjointproperties = 0
+        self.domain_range_properties = 0
+        self.properties_other = 0
+        self.quantified_class_axioms = 0
+        self.propositional_constructs = 0
+        self.inverses = 0
+        self.chains = 0
+
     def tostring(self, pretty_print=False):
 
         # make sure that the simple subclasses are added (if it hasn't been done yet) before producing XML
@@ -251,6 +266,8 @@ class Owl(object):
         subproperty_declaration.append(sub_element)
         subproperty_declaration.append(sup_element)
         self.root.append(subproperty_declaration)
+
+        self.subproperties += 1
         return subproperty_declaration
 
     def _get_object_union(self, union_classes):
@@ -279,6 +296,7 @@ class Owl(object):
 
         #print(union_classes, ET.tostring(union))
 
+        self.propositional_constructs += 1
         return union
 
     def _get_object_intersection(self, intersection_classes):
@@ -302,6 +320,7 @@ class Owl(object):
                 name = c
                 intersection.append(self.classes[name])
 
+        self.propositional_constructs += 1
         return intersection
 
     def _get_property_chain(self, properties):
@@ -324,6 +343,7 @@ class Owl(object):
             else:
                 raise ValueError("HUH")
 
+        self.chains += 1
         return chain
 
     def _get_object_inverse(self, inverted_property):
@@ -337,6 +357,7 @@ class Owl(object):
         inverse = ET.Element('ObjectInverseOf')
         inverse.append(self.properties[inverted_property])
 
+        self.inverses += 1
         return inverse
 
     def _get_object_complement(self, inverted_class):
@@ -350,6 +371,7 @@ class Owl(object):
         inverse = ET.Element('ObjectComplementOf')
         inverse.append(self.classes[inverted_class])
 
+        self.propositional_constructs += 1
         return inverse
 
     def add_equivalent_classes(self, equivalent_classes):
@@ -447,6 +469,8 @@ class Owl(object):
         disjoint.append(element_two)
         self.root.append(disjoint)
 
+        self.disjointproperties += 1
+
     def declare_reflexive_property(self, reflexive_property):
         """
         Add a declaration that a property is reflexive
@@ -459,6 +483,8 @@ class Owl(object):
         reflexive.append(self.properties[reflexive_property])
         self.root.append(reflexive)
 
+        self.properties_other += 1
+
     def declare_irreflexive_property(self, irreflexive_property):
         """
         Add a declaration that a property is reflexive
@@ -470,6 +496,8 @@ class Owl(object):
         irreflexive.append(self.properties[irreflexive_property])
         self.root.append(irreflexive)
 
+        self.properties_other += 1
+
     def declare_symmetric_property(self, symmetric_property):
         """
         Add a declaration that a property is reflexive
@@ -480,6 +508,8 @@ class Owl(object):
         symmetric = ET.Element('SymmetricObjectProperty')
         symmetric.append(self.properties[symmetric_property])
         self.root.append(symmetric)
+
+        self.properties_other += 1
 
     def declare_asymmetric_property(self, asymmetric_property):
         """
@@ -493,6 +523,8 @@ class Owl(object):
         asymmetric.append(self.properties[asymmetric_property])
         self.root.append(asymmetric)
 
+        self.properties_other += 1
+
     def declare_transitive_property(self, transitive_property):
         """
         Add a declaration that a property is reflexive
@@ -504,6 +536,8 @@ class Owl(object):
         transitive = ET.Element('TransitiveObjectProperty')
         transitive.append(self.properties[transitive_property])
         self.root.append(transitive)
+
+        self.properties_other += 1
 
     def declare_functional_property(self, functional_property):
         """
@@ -517,6 +551,8 @@ class Owl(object):
         functional.append(self.properties[functional_property])
         self.root.append(functional)
 
+        self.properties_other += 1
+
     def declare_inverse_functional_property(self, functional_property):
         """
         Add a declaration that a property is reflexive
@@ -527,6 +563,8 @@ class Owl(object):
         functional = ET.Element('InverseFunctionalObjectProperty')
         functional.append(self.properties[functional_property])
         self.root.append(functional)
+
+        self.properties_other += 1
 
     def declare_range_restriction(self, prop, restriction):
         """
@@ -555,6 +593,8 @@ class Owl(object):
 
         self.root.append(rr)
 
+        self.domain_range_properties += 1
+
     def declare_domain_restriction(self, prop, restriction):
         """
         Add a declaration that a property is range restricted
@@ -580,6 +620,8 @@ class Owl(object):
         dr.append(restriction_element)
 
         self.root.append(dr)
+
+        self.domain_range_properties += 1
 
     def declare_all_values_from_subclass(self, relation, subclass, limit):
         """
@@ -630,6 +672,8 @@ class Owl(object):
         subclass_element.append(all_values_from)
         self.root.append(subclass_element)
 
+        self.quantified_class_axioms += 1
+
     def declare_some_values_from_subclass(self, relation, subclass, limit):
         """
         Add a subclass axiom where the superclass is a allValuesFrom class expression
@@ -656,6 +700,8 @@ class Owl(object):
 
         subclass_element.append(some_values_from)
         self.root.append(subclass_element)
+
+        self.quantified_class_axioms += 1
 
     def declare_universe(self, superclass):
         """
@@ -684,6 +730,8 @@ class Owl(object):
         """
 
         if not self.disjoints_processed:
+
+            self.disjointclasses_backup = self.disjointclasses.copy()
 
             #print(repr(self.disjointclasses))
 
@@ -737,6 +785,7 @@ class Owl(object):
                     disjoint.append(self.classes[c])
                 self.root.append(disjoint)
 
+                self.disjoint_classes += 1
 
             self.disjoints_processed = True
 
@@ -749,6 +798,9 @@ class Owl(object):
         #print("Starting with " + str(len(self.simple_subclasses)) + " sets of Simple Subclasses")
 
         if not self.equivalents_processed:
+
+            self.simple_subclasses_backup = self.simple_subclasses.copy()
+            self.complex_subclasses_backup = self.complex_subclasses.copy()
 
             for (sub, super) in self.complex_subclasses:
                 #print("Processing complex subclass relation: " + str(sub) + " subclass of " + str(super))
@@ -779,6 +831,8 @@ class Owl(object):
                         equivalent_declaration.append(self.classes[sub[0]])
                         equivalent_declaration.append(self._get_object_union(super))
                         self.root.append(equivalent_declaration)
+
+                        self.equivalent_classes += 1
 
                         # check whether the union of classes on the super side are pairwise disjoint as well
                         filtered_classes = [c for c in self.disjointclasses if super[0] in c]
@@ -811,6 +865,8 @@ class Owl(object):
                         equivalent_declaration.append(self._get_object_intersection(sub))
                         equivalent_declaration.append(self.classes[super[0]])
                         self.root.append(equivalent_declaration)
+
+                        self.equivalent_classes += 1
 
             self.add_simple_subclasses()
             self.equivalents_processed = True

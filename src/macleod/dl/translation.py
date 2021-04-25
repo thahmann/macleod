@@ -21,6 +21,10 @@ from macleod.logical.symbol import Predicate
 
 LOGGER = logging.getLogger(__name__)
 
+def reset_seen():
+    global seen
+    seen = set()
+
 def translate_owl(axiom):
     """
     """
@@ -38,7 +42,9 @@ def translate_owl(axiom):
         print(" + yielded: {}".format(str(sentence)))
         yield sentence
 
-def duplicate(pattern, seen=set()):
+def duplicate(pattern):
+
+    global seen
 
     dup = repr(pattern) in seen
     if dup:
@@ -65,45 +71,48 @@ def produce_construct(pattern, ontology):
 
     # Figure out which pattern we are working with
     if pattern[0] == 'subclass':
-        subclass(pattern, ontology)
+        return subclass(pattern, ontology)
     elif pattern[0] == 'subproperty':
-        subproperty(pattern, ontology)
+        return subproperty(pattern, ontology)
     elif pattern[0] == 'disjoint_classes':
-        disjoint_classes(pattern, ontology)
+        return disjoint_classes(pattern, ontology)
     elif pattern[0] == 'disjoint_properties':
-        disjoint_properties(pattern, ontology)
+        return disjoint_properties(pattern, ontology)
     elif pattern[0] == 'reflexive':
-        reflexive_property(pattern, ontology)
+        return reflexive_property(pattern, ontology)
     elif pattern[0] == 'irreflexive':
-        irreflexive_property(pattern, ontology)
+        return irreflexive_property(pattern, ontology)
     elif pattern[0] == 'symmetric':
-        symmetric_property(pattern, ontology)
+        return symmetric_property(pattern, ontology)
     elif pattern[0] == 'asymmetric':
-        asymmetric_property(pattern, ontology)
+        return asymmetric_property(pattern, ontology)
     elif pattern[0] == 'transitive':
-        transitive_property(pattern, ontology)
+        return transitive_property(pattern, ontology)
     elif pattern[0] == 'functional':
-        functional_property(pattern, ontology)
+        return functional_property(pattern, ontology)
     elif pattern[0] == 'inverse-functional':
-        inverse_functional_property(pattern, ontology)
+        return inverse_functional_property(pattern, ontology)
     elif pattern[0] == 'range_restriction':
-        range_restriction(pattern, ontology)
+        return range_restriction(pattern, ontology)
     elif pattern[0] == 'domain_restriction':
-        domain_restriction(pattern, ontology)
+        return domain_restriction(pattern, ontology)
     elif pattern[0] == 'all_values':
-        all_values_from(pattern, ontology)
+        return all_values_from(pattern, ontology)
     elif pattern[0] == 'inverse-all_values':
-        inverse_all_values_from(pattern, ontology)
+        return inverse_all_values_from(pattern, ontology)
     elif pattern[0] == 'some_values':
-        some_values_from(pattern, ontology)
+        return some_values_from(pattern, ontology)
     elif pattern[0] == 'universe':
-        universe(pattern, ontology)
+        return universe(pattern, ontology)
     elif pattern[0] == 'class-assertion':
         class_assertion(pattern, ontology)
+        return None
     elif pattern[0] == 'property-assertion':
         property_assertion(pattern, ontology)
+        return None
     elif pattern[0] == 'negative-property-assertion':
         property_assertion(pattern, ontology, negated=True)
+        return None
 
 def class_assertion(pattern, ontology):
     '''
@@ -166,6 +175,7 @@ def subclass(pattern, ontology):
     superclass = [x.name for x in pattern[2]]
 
     ontology.add_subclass(subclass, superclass)
+    return True
 
 def subproperty(pattern, ontology):
     '''
@@ -220,6 +230,7 @@ def subproperty(pattern, ontology):
         subproperty = (sub.name, Owl.Relations.INVERSE if state == Predicate.INVERTED else Owl.Relations.NORMAL)
 
     ontology.add_subproperty(subproperty, superproperty)
+    return True
 
 
 
@@ -235,6 +246,7 @@ def disjoint_classes(pattern, ontology):
     class_one, class_two = map(lambda x: x.name, pattern[1])
 
     ontology.add_disjoint_classes((class_one, class_two))
+    return True
 
 def disjoint_properties(pattern, ontology):
     '''
@@ -248,6 +260,7 @@ def disjoint_properties(pattern, ontology):
     prop_one, prop_two = map(lambda x: (x[0].name, Owl.Relations.INVERSE if x[1] == Predicate.INVERTED else Owl.Relations.NORMAL), pattern[1])
 
     ontology.add_disjoint_properties((prop_one, prop_two))
+    return True
 
 def reflexive_property(pattern, ontology):
     '''
@@ -260,6 +273,7 @@ def reflexive_property(pattern, ontology):
 
     prop = pattern[1][0].name
     ontology.declare_reflexive_property(prop)
+    return True
 
 def irreflexive_property(pattern, ontology):
     '''
@@ -272,6 +286,7 @@ def irreflexive_property(pattern, ontology):
 
     prop = pattern[1][0].name
     ontology.declare_irreflexive_property(prop)
+    return True
 
 def symmetric_property(pattern, ontology):
     '''
@@ -285,6 +300,8 @@ def symmetric_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_symmetric_property(prop)
+    return True
+
 
 def asymmetric_property(pattern, ontology):
     '''
@@ -298,6 +315,7 @@ def asymmetric_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_asymmetric_property(prop)
+    return True
 
 def transitive_property(pattern, ontology):
     '''
@@ -311,6 +329,7 @@ def transitive_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_transitive_property(prop)
+    return True
 
 def functional_property(pattern, ontology):
     '''
@@ -324,6 +343,7 @@ def functional_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_functional_property(prop)
+    return True
 
 
 def inverse_functional_property(pattern, ontology):
@@ -338,6 +358,7 @@ def inverse_functional_property(pattern, ontology):
     prop = pattern[1][0].name
 
     ontology.declare_inverse_functional_property(prop)
+    return True
 
 
 def range_restriction(pattern, ontology):
@@ -364,6 +385,7 @@ def range_restriction(pattern, ontology):
             restriction = [(pattern[3][0].name, Owl.Relations.INVERSE)]
 
     ontology.declare_range_restriction(property_name, restriction)
+    return True
 
 
 def domain_restriction(pattern, ontology):
@@ -390,6 +412,7 @@ def domain_restriction(pattern, ontology):
             restriction = [(pattern[3][0].name, Owl.Relations.INVERSE)]
 
     ontology.declare_domain_restriction(prop, restriction)
+    return True
 
 
 def all_values_from(pattern, ontology):
@@ -416,6 +439,7 @@ def all_values_from(pattern, ontology):
     ontology.declare_all_values_from_subclass((property.name,
                                                Owl.Relations.INVERSE if invert == Predicate.INVERTED else Owl.Relations.NORMAL),
                                               union_classes[0], union_classes[1])
+    return True
 
 
 def some_values_from(pattern, ontology):
@@ -444,6 +468,7 @@ def some_values_from(pattern, ontology):
     limit_name = union_classes[1] or [limit[0].name]
 
     ontology.declare_some_values_from_subclass(property_name, subclass_name, limit_name)
+    return True
 
 def universe(pattern, ontology):
     '''
@@ -457,3 +482,4 @@ def universe(pattern, ontology):
     universe_names = [x.name for x in pattern[1]]
 
     ontology.declare_universe(universe_names)
+    return True
