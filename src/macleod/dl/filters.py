@@ -156,10 +156,11 @@ def filter_on_predicates(axiom):
 
     # Axiom is composed of a mixture of unary and binary predicates
     if axiom.binary() and axiom.unary() and not axiom.nary():
-        return {Pattern.domain_restriction,
-                Pattern.range_restriction,
-                Pattern.all_values,
-                Pattern.some_values}
+        if len({p.name for p in axiom.binary()}) == 1:
+            return {Pattern.domain_restriction,
+                    Pattern.range_restriction,
+                    Pattern.all_values,
+                    Pattern.some_values}
 
     return set()
 
