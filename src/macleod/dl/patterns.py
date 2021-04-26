@@ -419,7 +419,8 @@ def some_values(axiom):
                 else:
                     print("FOUND some-values pattern: SubClassOf(C ObjectSomeValuesFrom(R, D)) but variable mismatch")
                     # TODO try the inverse relation
-                    return
+                    return ('some_values', (relation[0], Owl.Relations.INVERSE), positive, negated)
+
             else:
                 print("pattern SubClassOf(C ObjectSomeValuesFrom(R, D)) not applicable here (needs conjunction)")
 

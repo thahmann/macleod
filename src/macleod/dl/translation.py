@@ -465,8 +465,8 @@ def some_values_from(pattern, ontology):
         else:
             union_classes.append([class_list[0].name])
 
-    if negate==Owl.Relations.NORMAL:
-        ontology.declare_some_values_from_subclass(relation_name.name, union_classes[0], union_classes[1])
+    if negate==Owl.Relations.NORMAL or negate==Owl.Relations.INVERSE:
+        ontology.declare_some_values_from_subclass(relation, union_classes[0], union_classes[1])
     else:
         ontology.declare_some_values_from_limitclass(relation_name.name, union_classes[1], union_classes[0])
 

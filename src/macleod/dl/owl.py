@@ -736,8 +736,13 @@ class Owl(object):
 
         subclass_element = ET.Element('SubClassOf')
 
+        (property, inverse) = relation
+
         some_values_from = ET.Element('ObjectSomeValuesFrom')
-        some_values_from.append(self.properties[relation])
+        if inverse == Owl.Relations.INVERSE:
+            some_values_from.append(self._get_object_inverse(property.name))
+        else:
+            some_values_from.append(self.properties[property.name])
 
         if len(subclass) == 0:
             owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
