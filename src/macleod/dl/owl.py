@@ -108,6 +108,10 @@ class Owl(object):
         self.inverses = 0
         self.chains = 0
 
+        # need to keep track all predicates that cannot be declared as transitive
+        self.transitive_forbidden_predicates = []
+
+
     def tostring(self, pretty_print=False):
 
         # make sure that the simple subclasses are added (if it hasn't been done yet) before producing XML
@@ -463,6 +467,10 @@ class Owl(object):
         disjoint = ET.Element('DisjointObjectProperties')
         property_one, property_two = disjoint_pair
 
+        # Properties in disjoint property declarations cannot be non-simple (i.e. transitive)
+        self.transitive_forbidden_predicates.append(property_one[0])
+        self.transitive_forbidden_predicates.append(property_two[0])
+
         element_one = self._get_object_inverse(property_one[0]) if property_one[1] == Owl.Relations.INVERSE else self.properties[property_one[0]]
         element_two = self._get_object_inverse(property_two[0]) if property_two[1] == Owl.Relations.INVERSE else self.properties[property_two[0]]
         disjoint.append(element_one)
@@ -492,6 +500,8 @@ class Owl(object):
         if self.profile in [Owl.Profile.OWL2_EL]:
             return
 
+        self.transitive_forbidden_predicates.append(irreflexive_property)
+
         irreflexive = ET.Element('IrreflexiveObjectProperty')
         irreflexive.append(self.properties[irreflexive_property])
         self.root.append(irreflexive)
@@ -519,6 +529,8 @@ class Owl(object):
         if self.profile in [Owl.Profile.OWL2_EL]:
             return
 
+        self.transitive_forbidden_predicates.append(asymmetric_property)
+
         asymmetric = ET.Element('AsymmetricObjectProperty')
         asymmetric.append(self.properties[asymmetric_property])
         self.root.append(asymmetric)
@@ -531,6 +543,11 @@ class Owl(object):
         """
 
         if self.profile in [Owl.Profile.OWL2_QL]:
+            return
+
+        # if the same property has already been used in constructs
+        # that forbid non-simple (i.e. transitive) properties, skip transitive declaration
+        if transitive_property in self.transitive_forbidden_predicates:
             return
 
         transitive = ET.Element('TransitiveObjectProperty')

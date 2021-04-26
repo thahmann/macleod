@@ -57,7 +57,7 @@ def duplicate(pattern):
 
 def produce_construct(pattern, ontology):
     """
-    Given a pattern tuple instantiate the constuct and add it to an existing
+    Given a pattern tuple instantiate the construct and add it to an existing
     ontology.
 
     :param Tuple pattern, pattern that represents a construct

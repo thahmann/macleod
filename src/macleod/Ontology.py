@@ -71,6 +71,9 @@ class Ontology(object):
         self.filtered_patterns = 0
         self.owl_axioms = 0
 
+        self.transitive_extractions = []
+
+
         self.tptp_output = None
         self.tptp_file = None
         self.ladr_output = None
@@ -672,6 +675,8 @@ class Ontology(object):
         :return String onto, this ontology in OWL format
         """
 
+        import macleod.dl.patterns as Pattern
+
         if self.owl is None:
 
             # Create new OWL ontology instance
@@ -707,6 +712,9 @@ class Ontology(object):
 
                 pcnf_sentences = macleod.dl.translation.translate_owl(pcnf)
 
+                # Temporarily save all extractions to better sort and filter them
+                extractions = []
+
                 for pruned in pcnf_sentences:
 
                     self.pcnf_sentences += 1
@@ -722,8 +730,15 @@ class Ontology(object):
                         extraction = pattern(tmp_axiom)
                         if extraction is not None:
                             print('     - pattern', extraction[0])
-                            if macleod.dl.translation.produce_construct(extraction, onto):
-                                self.owl_axioms += 1
+                            if pattern==Pattern.transitive_relation:
+                                self.transitive_extractions.append(extraction)
+                            else:
+                                extractions.append(extraction)
+
+                # TODO: now produce all the extracted axioms
+                for extraction in extractions:
+                    if macleod.dl.translation.produce_construct(extraction, onto):
+                        self.owl_axioms += 1
 
 
                 for extra in pcnf.extra_sentences:
@@ -741,6 +756,11 @@ class Ontology(object):
                                 print('     - (extra) pattern', extraction[0])
                                 if macleod.dl.translation.produce_construct(extraction, onto):
                                     self.owl_axioms += 1
+
+            for extraction in self.transitive_extractions:
+                logging.getLogger(__name__).info("Processing all transitive properties last")
+                if macleod.dl.translation.produce_construct(extraction, onto):
+                    self.owl_axioms += 1
 
                 print()
 
