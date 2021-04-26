@@ -718,6 +718,8 @@ class Owl(object):
         elif len(limit) == 1:
             some_values_from.append(self.classes[limit[0]])
         else:
+            if self.profile in [Owl.Profile.OWL2_EL]:
+                return
             some_values_from.append(self._get_object_union(limit))
 
         subclass_element.append(some_values_from)
@@ -760,6 +762,8 @@ class Owl(object):
         elif len(limit) == 1:
             subclass_element.append(self.classes[limit[0]])
         else:
+            if self.profile in [Owl.Profile.OWL2_EL, Owl.Profile.OWL2_RL, Owl.Profile.OWL2_QL]:
+                return
             subclass_element.append(self._get_object_union(limit))
 
         self.root.append(subclass_element)
@@ -910,26 +914,27 @@ class Owl(object):
                             self.root.append(disjoint_declaration)
 
                 elif len(sub)>1:
-                    equivalent = 0
-                    for s in sub:
-                        # need to check that for every s a pair (s,super) exists in self.simple_subclasses
-                        #print(len(self.simple_subclasses))
-                        equivalent = len([(x, y) for (x, y) in self.simple_subclasses if x == super[0] and y==s])>0
+                    if not self.profile in [Owl.Profile.OWL2_QL]:
+                        equivalent = 0
+                        for s in sub:
+                            # need to check that for every s a pair (s,super) exists in self.simple_subclasses
+                            #print(len(self.simple_subclasses))
+                            equivalent = len([(x, y) for (x, y) in self.simple_subclasses if x == super[0] and y==s])>0
+                            if equivalent==0:
+                                break
+                        # create equivalent class statement
                         if equivalent==0:
-                            break
-                    # create equivalent class statement
-                    if equivalent==0:
-                        subclass_declaration = ET.Element("SubClassOf")
-                        subclass_declaration.append(self._get_object_intersection(sub))
-                        subclass_declaration.append(self.classes[super[0]])
-                        self.root.append(subclass_declaration)
-                    else:
-                        equivalent_declaration = ET.Element("EquivalentClasses")
-                        equivalent_declaration.append(self._get_object_intersection(sub))
-                        equivalent_declaration.append(self.classes[super[0]])
-                        self.root.append(equivalent_declaration)
+                            subclass_declaration = ET.Element("SubClassOf")
+                            subclass_declaration.append(self._get_object_intersection(sub))
+                            subclass_declaration.append(self.classes[super[0]])
+                            self.root.append(subclass_declaration)
+                        else:
+                            equivalent_declaration = ET.Element("EquivalentClasses")
+                            equivalent_declaration.append(self._get_object_intersection(sub))
+                            equivalent_declaration.append(self.classes[super[0]])
+                            self.root.append(equivalent_declaration)
 
-                        self.equivalent_classes += 1
+                            self.equivalent_classes += 1
 
             self.add_simple_subclasses()
             self.equivalents_processed = True
