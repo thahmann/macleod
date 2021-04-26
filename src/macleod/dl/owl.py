@@ -691,7 +691,7 @@ class Owl(object):
 
         self.quantified_class_axioms += 1
 
-    def declare_some_values_from_subclass(self, relation, subclass, limit):
+    def declare_some_values_from_limitclass(self, relation, subclass, limit):
         """
         Add a subclass axiom where the superclass is a allValuesFrom class expression
         """
@@ -701,21 +701,62 @@ class Owl(object):
         #       that the produced ontology will fall into.
         subclass_element = ET.Element('SubClassOf')
 
-
-        if len(subclass) > 1:
-            subclass_element.append(self._get_object_intersection(subclass))
-        else:
+        if len(subclass) == 0:
+            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
+            subclass_element.append(owl_class)
+        elif len(subclass) == 1:
             subclass_element.append(self.classes[subclass[0]])
+        else:
+            subclass_element.append(self._get_object_intersection(subclass))
 
         some_values_from = ET.Element('ObjectSomeValuesFrom')
         some_values_from.append(self.properties[relation])
 
-        if len(limit) > 1:
-            some_values_from.append(self._get_object_union(limit))
-        else:
+        if len(limit) == 0:
+            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
+            some_values_from.append(owl_class)
+        elif len(limit) == 1:
             some_values_from.append(self.classes[limit[0]])
+        else:
+            some_values_from.append(self._get_object_union(limit))
 
         subclass_element.append(some_values_from)
+        self.root.append(subclass_element)
+
+        self.quantified_class_axioms += 1
+
+    def declare_some_values_from_subclass(self, relation, subclass, limit):
+        """
+        Add a subclass axiom where the subclass is a allValuesFrom class expression
+        """
+
+        # TODO: For now just make the whole subclass here instead of naming the anonymous
+        #       class that is defined by the allValuesFrom. The approach affects the profile
+        #       that the produced ontology will fall into.
+
+        subclass_element = ET.Element('SubClassOf')
+
+        some_values_from = ET.Element('ObjectSomeValuesFrom')
+        some_values_from.append(self.properties[relation])
+
+        if len(subclass) == 0:
+            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
+            some_values_from.append(owl_class)
+        elif len(subclass) == 1:
+            some_values_from.append(self.classes[subclass[0]])
+        else:
+            some_values_from.append(self._get_object_intersection(subclass))
+
+        subclass_element.append(some_values_from)
+
+        if len(limit) == 0:
+            owl_class = ET.Element('Class', attrib={'abbreviatedIRI': 'owl:Thing'})
+            subclass_element.append(owl_class)
+        elif len(limit) == 1:
+            subclass_element.append(self.classes[limit[0]])
+        else:
+            subclass_element.append(self._get_object_union(limit))
+
         self.root.append(subclass_element)
 
         self.quantified_class_axioms += 1

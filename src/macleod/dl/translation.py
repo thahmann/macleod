@@ -421,9 +421,9 @@ def all_values_from(pattern, ontology):
     '''
 
     _, relation, subclass, limit = pattern
-    (property, invert) = relation
+    (relation_name, invert) = relation
     #print("Looking for a all_values pattern involving the property " + property_name)
-    ontology.declare_property(property.name)
+    ontology.declare_property(relation_name.name)
 
     for (c, _) in subclass + limit:
         ontology.declare_class(c.name)
@@ -436,7 +436,7 @@ def all_values_from(pattern, ontology):
         else:
             union_classes.append([(c.name, Owl.Relations.NORMAL if sign else Owl.Relations.INVERSE) for (c, sign) in class_list])
 
-    ontology.declare_all_values_from_subclass((property.name,
+    ontology.declare_all_values_from_subclass((relation_name.name,
                                                Owl.Relations.INVERSE if invert == Predicate.INVERTED else Owl.Relations.NORMAL),
                                               union_classes[0], union_classes[1])
     return True
@@ -448,9 +448,8 @@ def some_values_from(pattern, ontology):
     '''
 
     _, relation, subclass, limit = pattern
-    property_name = relation[0].name
-
-    ontology.declare_property(property_name)
+    (relation_name, negate) = relation
+    ontology.declare_property(relation_name.name)
 
     for c in subclass + limit:
         ontology.declare_class(c.name)
@@ -461,14 +460,19 @@ def some_values_from(pattern, ontology):
         if len(class_list) > 1:
             union_class_name = [c.name for c in class_list]
             union_classes.append(union_class_name)
+        elif len(class_list)==0:
+            union_classes.append([])
         else:
-            union_classes.append(None)
+            union_classes.append([class_list[0].name])
 
-    subclass_name = union_classes[0] or [subclass[0].name]
-    limit_name = union_classes[1] or [limit[0].name]
+    if negate==Owl.Relations.NORMAL:
+        ontology.declare_some_values_from_subclass(relation_name.name, union_classes[0], union_classes[1])
+    else:
+        ontology.declare_some_values_from_limitclass(relation_name.name, union_classes[1], union_classes[0])
 
-    ontology.declare_some_values_from_subclass(property_name, subclass_name, limit_name)
     return True
+
+
 
 def universe(pattern, ontology):
     '''

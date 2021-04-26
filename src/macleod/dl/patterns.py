@@ -3,10 +3,11 @@ Contains Pattern functions which evaluate and break down Axioms
 into the needed parts to construct OWL constructs.
 """
 
-from macleod.logical.connective import Conjunction
-from macleod.logical.quantifier import Universal
+from macleod.logical.connective import Conjunction, Disjunction
+from macleod.logical.quantifier import Universal, Existential
 from macleod.logical.symbol import Predicate
 from macleod.logical.negation import Negation
+from macleod.dl.owl import Owl
 
 
 EQUALITY = '='
@@ -211,11 +212,11 @@ def transitive_relation(axiom):
 
 def range_restriction(axiom):
     '''
-    Assumes a single negated binary predicate, then an arbitrary of positive
+    Assumes a single binary predicate, then an arbitrary of positive
     unary predicates. Only universally quantified predicates are used.
     '''
-    
-    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1]]
+
+    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1] and p in axiom.negated()]
     range_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
     range_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
 
@@ -233,11 +234,11 @@ def range_restriction(axiom):
 
 def domain_restriction(axiom):
     '''
-    Assumes a single negated binary predicate, then an arbitrary of positive
+    Assumes a single binary predicate, then an arbitrary of positive
     unary predicates. Only universally quantified predicates are used.
     '''
     
-    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1]]
+    prop = [p for p in axiom.binary() if p.variables[0]!=p.variables[1] and p in axiom.negated()]
     domain_classes_positive = [c for c in axiom.unary() if c not in axiom.negated()]
     domain_classes_negative = [c for c in axiom.unary() if c in axiom.negated()]
 
@@ -364,38 +365,127 @@ def all_values(axiom):
 def some_values(axiom):
     '''
     Assumes that the sentence is both universally and existentially quantified.
-    Contains a binary and unary predicate, detect the placement of the variable
+    Contains a single binary and unary predicate(s), detect the placement of the variable
     to see if it's R^(-1).C or Regular R.C.
     '''
 
-    if not isinstance(axiom.sentence.terms[0], Conjunction):
-        return None
-
     relation = axiom.binary()
-    subclass = [s for s in axiom.unary() if s in axiom.negated()]
-    limit = [s for s in axiom.unary() if s not in axiom.negated()]
 
-    # Should be a single binary
-    if not relation or len(relation) > 1:
+    if isinstance(axiom.sentence, Existential):
+        # wrong quantifier order
         return None
 
-    # Should be at least one subclass
-    if not subclass:
-        return None
+    nested_term = axiom.sentence.terms[0].terms[0]
 
-    # Every subclass predicate must be over the same variables
-    if not all([s.variables == subclass[0].variables for s in subclass]):
-        return None
+    print("Nested term is of kind " + str(type(nested_term)))
 
-    # Should be at least one limiting class
-    if not limit:
-        return None
+    if isinstance(nested_term, Disjunction):
+        # case 15: [-R(x,y) | -D(x) v C(y)]
+        print("EXPLORING some-values patterns")
+        # binary predicate needs to be negated
 
-    # Every limit class must be over the same variables
-    if not all([l.variables == limit[0].variables for l in limit]):
-        return None
+        negated = [s for s in axiom.unary() if s in axiom.negated()]
+        positive = [s for s in axiom.unary() if s not in axiom.negated()]
+        # should be at least one subclass and one limit
 
-    return ('some_values', relation, [subclass[0]], [limit[0]])
+        if len(negated)>0:
+            # Every subclass predicate must be over the same variables
+            if not all([s.variables == negated[0].variables for s in negated]):
+                return None
+
+        if len(positive)>0:
+            # Every limit class must be over the same variables
+            if not all([l.variables == positive[0].variables for l in positive]):
+                return None
+
+        if relation[0] in axiom.negated():
+            if len(negated)>0:
+                if negated[0].variables[0] == relation[0].variables[0]:
+                    print("FOUND some-values pattern: SubClassOf(ObjectSomeValuesFrom(R, D) C)")
+                    return ('some_values', (relation[0], Owl.Relations.NORMAL), negated, positive)
+                else:
+                    print("FOUND some-values pattern: SubClassOf(ObjectSomeValuesFrom(R, D) C) but variable mismatch")
+                    # TODO try the inverse relation
+                    return
+            else:
+                print("FOUND some-values pattern: SubClassOf(ObjectSomeValuesFrom(R, D) C) but D is empty")
+                #this is just a domain restrictions
+                return
+        else:
+            if len(positive)==0:
+                if negated[0].variables[0] == relation[0].variables[0]:
+                    print("FOUND some-values pattern: SubClassOf(C ObjectSomeValuesFrom(R, D)) with empty D")
+                    return ('some_values', (relation[0], Owl.Relations.OTHER), positive, negated)
+                else:
+                    print("FOUND some-values pattern: SubClassOf(C ObjectSomeValuesFrom(R, D)) but variable mismatch")
+                    # TODO try the inverse relation
+                    return
+            else:
+                print("pattern SubClassOf(C ObjectSomeValuesFrom(R, D)) not applicable here (needs conjunction)")
+
+    else:
+        # special case 14 involving a conjunction: [-C(x) v R(x,y)] ^ [-C(x) v D(y)]
+        print("NOT YET IMPLEMENTED: some-values pattern SubClassOf(C ObjectSomeValuesFrom(R, D)) with nonempty C and D")
+        return
+        #
+        # # binary predicate cannot be negated
+        # if relation in axiom.negated():
+        #     return
+        #
+        # matches = []
+        # binary_terms = []
+        # for conjunct in nested_term:
+        #     # looking just for conjunctions that have exactly two terms in them
+        #     if len(conjunct.terms)!=2:
+        #         continue
+        #     if isinstance(conjunct.terms[0], Predicate) and len(conjunct.terms[0].variables) == 2:
+        #         if (isinstance(conjunct.terms[1], Negation) and
+        #             isinstance(conjunct.terms[1].terms[0], Predicate) and
+        #             len(conjunct.terms[1].terms[0].variables) == 1):
+        #             # Found a binary predicate, saving the negated unary one that comes with it
+        #             binary_terms.append((conjunct.terms[0],conjunct.terms[1].terms[0]))
+        #     elif isinstance(conjunct.terms[1], Predicate) and len(conjunct.terms[1].variables) == 2:
+        #         if (isinstance(conjunct.terms[0], Negation) and
+        #                 isinstance(conjunct.terms[0].terms[0], Predicate) and
+        #                 len(conjunct.terms[0].terms[0].variables) == 1):
+        #             # Found a binary predicate, saving the negated unary one that comes with it
+        #             binary_terms.append((conjunct.terms[1], conjunct.terms[0].terms[0]))
+        #
+        # if len(binary_terms)<1:
+        #         return
+        #
+        # for conjunct in nested_term:
+        #     # looking just for conjunctions that have exactly two terms in them
+        #     if len(conjunct.terms)!=2:
+        #         continue
+        #     if (isinstance(conjunct.terms[0], Negation) and
+        #         isinstance(conjunct.terms[0].terms[0], Predicate) and
+        #         len(conjunct.terms[0].terms[0].variables) == 1):
+        #         for (b,c) in binary_terms:
+        #             # TODO: making sure the negated subclass C matches the prior one
+        #             if c.same_symbol(conjunct.terms[0].terms[0]) and c.compare(conjunct.terms[0].terms[0])==Predicate.SAME:
+        #                 if isinstance(conjunct.terms[1], Predicate):
+        #                     # found a match
+        #                     matches.append[(b,c,conjunct.terms[1])]
+        #     elif (isinstance(conjunct.terms[1], Negation) and
+        #         isinstance(conjunct.terms[1].terms[0], Predicate) and
+        #         len(conjunct.terms[1].terms[0].variables) == 1):
+        #         for (b,c) in binary_terms:
+        #             if c.same_symbol(conjunct.terms[1].terms[0]) and c.compare(conjunct.terms[1].terms[0])==Predicate.SAME:
+        #                 if isinstance(conjunct.terms[0], Predicate):
+        #                     # found a match
+        #                     matches.append[(b,c,conjunct.terms[0])]
+        #
+        # if len(matches)<1:
+        #     if len(binary_terms)>1:
+        #         print("Multiple some-values pattern discovered in one axiom -- just using the first one")
+        #     # n limit class found, will need to use OWLThing
+        #     return ('some_values', binary_terms[0][0], binary_terms[0][1], None)
+        # else:
+        #     if len(matches)>1:
+        #         print("Multiple some-values pattern discovered in one axiom -- just using the first one")
+        #     return ('some_values', matches[0][0], matches[0][1], matches[0][2])
+
 
 
 def universe_restriction(axiom):
