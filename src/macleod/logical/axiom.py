@@ -167,7 +167,7 @@ class Axiom(object):
 
     def constants(self):
         """
-        Returns a list of all constant/unquantified variabels that appear in
+        Returns a list of all constant/unquantified variables that appear in
         the axiom.
 
         :return List constants, list of all constants
@@ -591,6 +591,7 @@ def __analyze_logical__(term):
             for var in term.variables:
 
                 if isinstance(var, Function):
+                    # analyzing nested function terms
                     analyze_logical(var, accumulator, term)
 
                 else:

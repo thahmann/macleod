@@ -231,8 +231,13 @@ class Ontology(object):
                 self.symbol = symbol
 
             def __eq__(self, other):
-                if isinstance(self.symbol, str):
+                # special treatment if either one is a string -- applies to constants only
+                if isinstance(self.symbol, str) and isinstance(other.symbol, str):
                     return self.symbol==other.symbol
+                elif isinstance(self.symbol, str) and not isinstance(other.symbol, str):
+                    return self.symbol==other.symbol.name
+                elif not isinstance(self.symbol, str) and isinstance(other.symbol, str):
+                    return self.symbol.name == other.symbol
                 else:
                     return self.symbol.same_symbol(other.symbol)
 
@@ -250,11 +255,15 @@ class Ontology(object):
 
         axioms = self.get_all_axioms()
 
+        from macleod.logical.symbol import Function
+        self.binary_predicates.add(WrappedSymbol(Function("=",["x","y"])))
+
         for (axiom, _) in axioms:
             axiom.analyze_logical()
 
             self.unary_predicates.update(set(WrappedSymbol(p) for p in axiom.unary_predicates))
             self.binary_predicates.update(set(WrappedSymbol(p) for p in axiom.binary_predicates))
+
             self.nary_predicates.update(set(WrappedSymbol(p) for p in axiom.nary_predicates))
             self.consts.update(set(WrappedSymbol(p) for p in axiom.consts))
             self.functs.update(set(WrappedSymbol(p) for p in axiom.functs))
@@ -273,25 +282,40 @@ class Ontology(object):
         if bool(intersection):
             full_intersection = self.unary_predicates.intersection(self.binary_predicates)
             for i in full_intersection:
-                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and a binary predicate (relation)")
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and binary predicate (relation)")
 
         intersection = self.unary_predicates & self.nary_predicates
         if bool(intersection):
             full_intersection = self.unary_predicates.intersection(self.nary_predicates)
             for i in full_intersection:
-                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and an n-ary predicate (relation)")
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as unary predicate (class) and n-ary predicate (relation)")
 
         intersection = self.binary_predicates & self.nary_predicates
         if bool(intersection):
             full_intersection = self.binary_predicates.intersection(self.nary_predicates)
             for i in full_intersection:
-                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as binary and an n-ary predicate (relation)")
+                logging.getLogger(__name__).warning("Predicate " + repr(i.symbol.name) + " used as binary and n-ary predicate (relation)")
 
         intersection = self.all_predicates & self.functs
         if bool(intersection):
             full_intersection = self.all_predicates.intersection(self.functs)
             for i in full_intersection:
-                logging.getLogger(__name__).warning(repr(i.symbol.name) + " used as predicate and a function symbol")
+                logging.getLogger(__name__).warning(repr(i.symbol.name) + " used as predicate and function symbol")
+
+        #predicate_names = set([p.symbol.name for p in self.all_predicates])
+        #function_names = set([p.symbol.name for p in self.functs])
+
+        intersection = self.all_predicates & self.consts
+        if bool(intersection):
+            full_intersection = self.all_predicates.intersection(self.consts)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning(i.symbol + " used as predicate and constant")
+
+        intersection = self.functs & self.consts
+        if bool(intersection):
+            full_intersection = self.functs.intersection(self.consts)
+            for i in full_intersection:
+                logging.getLogger(__name__).warning(i.symbol + " used as function symbol and constant")
 
         # TODO comparing against constants needs to be done differently because they are just strings
         #intersection = self.consts & all_predicates

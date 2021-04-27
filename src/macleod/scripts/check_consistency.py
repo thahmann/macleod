@@ -30,7 +30,7 @@ def main():
     optionalArguments = parser.add_argument_group('optional arguments')
     optionalArguments.add_argument('-out', '--output', action='store_true', help='Write output to file', default=True)
     optionalArguments.add_argument('--resolve', action="store_true", help='Automatically resolve imports', default=False)
-    optionalArguments.add_argument('--stats', action="store_true", help='Present detailed statists about the ontology', default=False)
+    optionalArguments.add_argument('--stats', action="store_true", help='Present detailed statistics (including definitions) about the ontology', default=True)
     optionalArguments.add_argument('-n', '--nontrivial', action="store_true", default=False, help='Instantiate all predicates to check for nontrivial consistency')
     optionalArguments.add_argument('-b', '--base', default=None, type=str, help='Path to directory containing ontology files (basepath; only relevant when option --resolve is turned on; can also be set in configuration file)')
     optionalArguments.add_argument('-s', '--sub', default=None, type=str, help='String to replace with basepath found in imports, only relevant when option --resolve is turned on')
@@ -83,8 +83,9 @@ def consistent(filename, args):
     if args.resolve:
         ontology.resolve_imports()
 
+    ontology.analyze_ontology()
+
     if args.stats:
-        ontology.analyze_ontology()
         ontology.get_explicit_definitions()
 
     if args.nontrivial:
