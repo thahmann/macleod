@@ -147,7 +147,7 @@ class Ontology(object):
                         logging.getLogger(__name__).info("Starting to parse " + subbed_path)
                         new_ontology = Parser.parse_file(subbed_path, sub, base, self.resolve, preserve_conditionals=conditionals)
                     except TypeError as e:
-                        logging.getLogger(__name__).error("Error parsing + " + subbed_path + ": " + str(e))
+                        logging.getLogger(__name__).error("Error parsing " + subbed_path + ": " + str(e))
 
                     new_ontology.basepath = self.basepath
                     self.imports[path] = new_ontology
@@ -259,7 +259,8 @@ class Ontology(object):
         self.binary_predicates.add(WrappedSymbol(Function("=",["x","y"])))
 
         for (axiom, _) in axioms:
-            axiom.analyze_logical()
+            # Aready done during axiom creation
+            #axiom.analyze_logical()
 
             self.unary_predicates.update(set(WrappedSymbol(p) for p in axiom.unary_predicates))
             self.binary_predicates.update(set(WrappedSymbol(p) for p in axiom.binary_predicates))

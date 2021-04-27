@@ -3,6 +3,7 @@ Insert boss header here
 @RPSkillet
 """
 
+import copy
 import logging
 
 from macleod.logical.negation import Negation
@@ -70,6 +71,40 @@ def generator():
 
     return next_term
 
+def quote_constants(term, constants):
+
+    def substitute_constants_in_term(term, constants):
+
+        if isinstance(term, str):
+            # do the real substitution here
+            for c in constants:
+                #print("REPLACING Constant " + c)
+                return term.replace(c, "'" + c + "'")
+
+        if isinstance(term, Predicate) or isinstance(term, Function):
+            return type(term)(term.name, [substitute_constants_in_term(x, constants) for x in term.variables])
+        if isinstance(term, Quantifier):
+            return type(term)([substitute_constants_in_term(x, constants) for x in term.variables], [substitute_constants_in_term(x, constants) for x in term.terms])
+        else:
+            return type(term)([substitute_constants_in_term(x, constants) for x in term.get_term()])
+
+    constants_copy = copy.deepcopy(constants)
+    constants_copy.sort(key=len, reverse=True)
+
+    for c in constants_copy:
+        if c.isalnum():
+            constants_copy.discard(c)
+
+    #print("Constants: " + str(constants_copy))
+
+    if len(constants_copy) == 0:
+        return term
+    else:
+        term = substitute_constants_in_term(term, constants_copy)
+        print ("New string " + repr(term))
+        return term
+
+
 def dfs_standardize(term, gen, translations=[]):
     """
     Recurse over a logical applying variable substitution to ensure only unique
@@ -92,6 +127,10 @@ def dfs_standardize(term, gen, translations=[]):
 
         if left != 0:
             LOGGER.info("Found a constant!")
+
+            # TODO: can we substitute constants with special symbols here?
+
+
             #raise ValueError("Found a free variable!")
 
         return term

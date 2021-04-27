@@ -352,6 +352,9 @@ class Axiom(object):
         self.consts = analysis[9]
         self.functs = analysis[10]
 
+        # surround constants with special symbols with quotation marks
+        self.sentence = Util.quote_constants(self.sentence, self.consts)
+
 
     def to_tptp(self):
         """
