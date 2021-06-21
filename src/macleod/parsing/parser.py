@@ -32,6 +32,7 @@ tokens = [
     "QUOTED_STRING"
 ]
 
+# Adding new CL keywords, but all with colons are not yet processed
 reserved = {
         'not': 'NOT',
         'and': 'AND',
@@ -41,9 +42,16 @@ reserved = {
         'iff': 'IFF',
         'if': 'IF',
         'cl-comment': 'CLCOMMENT',
+#        'cl:comment': 'CLCOMMENT',
         'cl-text': 'START',
+#        'cl:text': 'START',
         'cl-imports': 'IMPORT',
-        'cl-module': 'CLMODULE'
+#        'cl:imports': 'IMPORT',
+        'cl-module': 'CLMODULE',
+#        'cl:module': 'CLMODULE',
+#        'cl:indiscourse': 'CLCOMMENT',
+#        'cl:outdiscourse': 'CLCOMMENT',
+#        'cl:restrict': 'CLCOMMENT'
 }
 
 tokens += reserved.values()
@@ -238,7 +246,7 @@ def p_conjunction_error(p):
     conjunction : LPAREN AND error
     """
 
-    raise TypeError("Error in conjunction: bad axiom")
+    raise TypeError("Error in conjunction: bad formula")
 
 def p_disjunction(p):
     """
@@ -252,7 +260,7 @@ def p_disjunction_error(p):
     disjunction : LPAREN OR error
     """
 
-    raise TypeError("Error in disjunction: bad axiom")
+    raise TypeError("Error in disjunction: bad formula")
 
 def p_axiom_list(p):
     """
@@ -293,9 +301,9 @@ def p_implication_error(p):
     """
 
     if is_error(p.slice[3]):
-        raise TypeError("Error in implication: bad first axiom")
+        raise TypeError("Error in implication: bad first formula")
 
-    raise TypeError("Error in implication: bad second axiom")
+    raise TypeError("Error in implication: bad second formula")
 
 
 def p_biconditional(p):
@@ -318,9 +326,9 @@ def p_biconditional_error(p):
     """
 
     if is_error(p.slice[3]):
-        raise TypeError("Error in biconditional: bad first axiom")
+        raise TypeError("Error in biconditional: bad first formula")
 
-    raise TypeError("Error in biconditional: bad second axiom")
+    raise TypeError("Error in biconditional: bad second formula")
 
 
 def p_existential(p):
@@ -337,9 +345,9 @@ def p_existential_error(p):
     """
 
     if is_error(p.slice[4]):
-        raise TypeError("Error in existential: bad nonlogical")
+        raise TypeError("Error in existential: bad nested formula " + p.slice[4])
 
-    raise TypeError("Error in existential: bad axiom")
+    raise TypeError("Error in existential: bad formula")
 
 
 def p_universal(p):
@@ -366,9 +374,9 @@ def p_universal_error(p):
     """
 
     if is_error(p.slice[4]):
-        raise TypeError("Error in universal: bad nonlogical")
+        raise TypeError("Error in universal: bad nested formula")
 
-    raise TypeError("Error in universal: bad axiom")
+    raise TypeError("Error in universal: bad formula")
 
 def p_predicate(p):
     """
@@ -382,7 +390,7 @@ def p_predicate_error(p):
     predicate : LPAREN NONLOGICAL error RPAREN
     """
 
-    raise TypeError("Error in predicate: bad parameter")
+    raise TypeError("Error in predicate: bad term (variable or functional term) inside")
 
 
 def p_parameter(p):
@@ -425,12 +433,13 @@ def p_function(p):
 
     p[0] = Function(p[2], p[3])
 
+
 def p_function_error(p):
     """
     function : LPAREN NONLOGICAL error RPAREN
     """
 
-    raise TypeError("Error in function: bad parameter")
+    raise TypeError("Error in function: bad nested term")
 
 
 def p_nonlogicals(p):
@@ -460,7 +469,7 @@ def p_error(p):
     global parser
 
     if p is None:
-        raise TypeError("Unexpectedly reached EOF")
+        raise TypeError("Unexpectedly reached end of file (EOF)")
 
     # Note the location of the error before trying to lookahead
     error_pos = p.lexpos
