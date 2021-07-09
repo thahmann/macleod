@@ -106,10 +106,10 @@ For example to simply parse a CLIF module:
 ∀(x,y,z)[(~(S(x) & S(y) & S(z) & BCont(x,y) & Cont(z,x)) | BCont(z,y))]
 ∀(x,y)[((~(S(x) & S(y) & BCont(x,y)) | (S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))])) & (~(S(x) & S(y) & ~ZEX(x) & ∀(z)[(~(P(z,x) & Min(z)) | BCont(z,y))]) | (S(x) & S(y) & BCont(x,y))))]
 ```
-Or to produce a TPTP conversion of a CLIF ontology (which involves resolving all imports):
+Or to produce a TPTP conversion of a CLIF ontology (including all of the CLIF modules in the import closure):
 
 ```bash
-[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -t -o --resolve
+[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -tptp --resolve
 2021-02-02 06:16:51,685 macleod.Filemgt                INFO     Config file read: C:\Users\torsten\macleod\macleod_win.conf
 2021-02-02 06:16:51,687 macleod.Filemgt                INFO     Logging configuration file read: C:\Users\torsten\macleod\logging.conf
 2021-02-02 06:16:51,710 macleod.scripts.parser         INFO     Called script parse_clif
@@ -140,22 +140,37 @@ fof(axiom100, axiom, (! [X] :  (((~(mindim(X)) | (s(X) & ~(zex(X)) & (! [Y] :  (
 2021-02-02 06:16:51,741 macleod.scripts.parser         INFO     Finished writing TPTP file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_dim\conversions\dim_prime_linear.all.tptp
 ```
 
-or to generate OWL approximation of an entire ontology:
+or to generate OWL approximation of an entire ontology (including all axioms in the import closure of the CLIF file):
 
 ```bash
-[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif --owl --resolve -o
+[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif --owl --resolve
 [the bulk of the output is omitted here]
 2021-02-02 17:25:07,571 macleod.scripts.parser         INFO     Approximating C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\codib_simple_curves.clif as an OWL ontology
 2021-02-02 17:25:07,585 macleod.scripts.parser         INFO     Produced OWL file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_codib\owl\codib_simple_curves.all.owl
 ```
 
-or to generate a LaTeX representation of an entire ontology:
+or to generate a LaTeX representation of an entire ontology (including all axioms in the import closure of the CLIF file):
 
 ```bash
 [rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\multidim_space_physcont\fullphyscont_full.clif --latex --resolve --enum
 [the bulk of the output is omitted here]
 2021-02-05 07:24:58,247 macleod.scripts.parser         INFO     Produced LaTeX file C:\Users\torsten\GitHub\colore\ontologies\multidim_space_physcont\latex\fullphyscont_full.all.tex
 ```
+
+These commands can also be applied to an entire folder or the entire repository. For example, to extract OWL versions of all CLIF files in a folder (without considering its imports):
+
+```bash
+[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\simple_features\ --owl
+[the output is omitted here]
+```
+
+or to convert all CLIF modules (without considering their inputs) in the repository to TPTP files:
+
+```bash
+[rob@demo]$ parse_clif -f C:\Users\torsten\GitHub\colore\ontologies\ --tptp
+[the output is omitted here]
+```
+
 
 
 To launch the GUI
