@@ -383,11 +383,20 @@ class Axiom(object):
             elif isinstance(logical, Predicate):
                 if logical.is_equality():
                     return tptp_logical(logical.variables[0])  + logical.name + tptp_logical(logical.variables[1])
-                else:
+                elif logical.name.isalnum():
+                    # leave alphanumeric predicate symbols names as-is
                     return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
+                else:
+                    # if the predicate symbol contains any special symbols, wrap it in single quotes
+                    return "'{}'({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Function):
-                return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
+                if logical.name.isalnum():
+                    # leave alphanumeric function symbols as-is
+                    return "{}({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
+                else:
+                    # if the function symbol contains any special symbols, wrap it in single quotes
+                    return "'{}'({})".format(str.lower(logical.name), ",".join([tptp_logical(t) for t in logical.variables]))
 
             elif isinstance(logical, Negation):
                 if isinstance(logical.terms[0], Negation):
