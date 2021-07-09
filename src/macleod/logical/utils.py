@@ -93,7 +93,7 @@ def quote_constants(term, constants):
 
     for c in constants_copy:
         if c.isalnum():
-            constants_copy.discard(c)
+            constants_copy.remove(c)
 
     #print("Constants: " + str(constants_copy))
 
