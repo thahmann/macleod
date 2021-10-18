@@ -38,8 +38,8 @@ ve/scripts/activate.bat
 ```
 
 ```bash
-# On Linux hosts with Python3 installed
-python3 -m ve && . ve/bin/active
+# On Linux hosts with Python3 installed 
+python3 -m venv ve && . ve/bin/activate
 ```
 
 Once the virtual environment has been created and activated clone this repository and install:
@@ -109,7 +109,7 @@ For example to simply parse a CLIF module:
 Or to produce a TPTP conversion of a CLIF ontology (including all of the CLIF modules in the import closure):
 
 ```bash
-[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif -tptp --resolve
+[rob@demo]$ parse_clif -f C:/Users/torsten/GitHub/colore/ontologies/multidim_space_dim/dim_prime_linear.clif --tptp --resolve
 2021-02-02 06:16:51,685 macleod.Filemgt                INFO     Config file read: C:\Users\torsten\macleod\macleod_win.conf
 2021-02-02 06:16:51,687 macleod.Filemgt                INFO     Logging configuration file read: C:\Users\torsten\macleod\logging.conf
 2021-02-02 06:16:51,710 macleod.scripts.parser         INFO     Called script parse_clif
