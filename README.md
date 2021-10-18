@@ -8,8 +8,8 @@ This program consists of a set of scripts designed for key reasoning tasks frequ
 
 The most common tasks supported at the moment:
 * Translating a single CLIF file (a "module") or a CLIF ontology (a single CLIF file and its import closure) to formats supported by FOL reasoners: 
-** TPTP, which is supported by all reasoners participating in the annual theorem proving competition (ATP) including Vampire and the model finder Paradox 
-** LADR, which is supported by the theorem prover Prover9 and its accompanying model finder Mace4
+    * TPTP, which is supported by all reasoners participating in the annual theorem proving competition (ATP) including Vampire and the model finder Paradox 
+    * LADR, which is supported by the theorem prover Prover9 and its accompanying model finder Mace4
 * Extracting an OWL approximation of a CLIF ontology or module 
 * Verifying the logical consistency of a CLIF ontology or module by invoking a model finder like Mace4 or Paradox
 * Verifying the *non-trivial* logical consistency of a CLIF ontology or module by adding existential statements that demand the existence and non-existence of each new concept and relation for some individuals
@@ -24,7 +24,7 @@ Installation
 ------------
 
 Requirements: 
-* Python 3.7.* or higher (there are some issues with Python 3.6.*)
+* Python 3.7.x or higher (there are some issues with Python 3.6.x)
 * Virtual Environments for Python enabled, if not (or unsure) first run "pip install virtualenv"
 
 It is recommended to create a virtual environment to work out of:
