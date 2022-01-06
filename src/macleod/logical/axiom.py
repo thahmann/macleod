@@ -95,7 +95,7 @@ class Axiom(object):
 
     def universal_variables(self):
         """
-        Returns a list of universal variables.
+        Returns a list of universally quantified variables.
 
         :return List variables, list of strings
         """
@@ -104,12 +104,12 @@ class Axiom(object):
 
     def existential_variables(self):
         """
-        Returns a list of universal variables.
+        Returns a list of existentially quantified variables.
 
         :return List variables, list of strings
         """
 
-        return self.uni_variables
+        return self.exi_variables
 
     def predicates(self):
         """
