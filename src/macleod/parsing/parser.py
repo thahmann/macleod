@@ -602,4 +602,4 @@ def reset_parser():
 
 if __name__ == '__main__':
 
-    LOGGER.error('This is not the droid you are looking for. Use bin/parser.py instead')
+    LOGGER.error('This is not the module to be used directly for parsing a file. Instead, use scripts/parser.py to call the parser.')
